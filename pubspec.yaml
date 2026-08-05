@@ -1,10 +1,10 @@
 name: mivet_app
 description: MIVET Sales — Flutter starter (modern UI, Cairo + Almarai fonts)
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -26,8 +26,6 @@ flutter:
     - assets/images/
 
   fonts:
-    # ضع ملفات الخط دي جوه assets/fonts قبل ما تشغل المشروع
-    # نفس الملفات اللي عندك في مشروع Warraq (assets/fonts)
     - family: Cairo
       fonts:
         - asset: assets/fonts/Cairo-ExtraLight.ttf
@@ -42,6 +40,9 @@ flutter:
       fonts:
         - asset: assets/fonts/Almarai-Regular.ttf
           weight: 400
-        # لو عندك أوزان تانية لـ Almarai (Light / Bold / ExtraBold) ضيفها هنا بنفس الطريقة
-        # - asset: assets/fonts/Almarai-Bold.ttf
-        #   weight: 700
+    - family: typokar
+      fonts:
+        - asset: assets/fonts/typokar.ttf
+    - family: Wessam
+      fonts:
+        - asset: assets/fonts/a-arslan-wessam-b.ttf
