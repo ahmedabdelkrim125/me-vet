@@ -1,79 +1,42 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import 'package:mivet_app/core/utils/responsive_extension.dart';
 
-/// استخدام الخطين:
-/// - Almarai: للعناوين الكبيرة والأرقام البارزة (شكله أقوى وأوضح في الحجم الكبير)
-/// - Cairo: لباقي النصوص والفقرات والأزرار (مريح في القراءة بالحجم الصغير)
 class AppTextStyles {
   AppTextStyles._();
 
-  static const String headingFont = 'Almarai';
-  static const String bodyFont = 'Cairo';
+  static TextStyle get typokar24White => TextStyle(
+        fontFamily: 'typokar',
+        fontSize: 24.sp,
+        color: Colors.white,
+      );
 
-  // Headings (Almarai)
-  static const TextStyle h1 = TextStyle(
-    fontFamily: headingFont,
-    fontSize: 26,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-    height: 1.3,
-  );
+  static TextStyle get wessamBold24black => TextStyle(
+        fontFamily: 'Wessam',
+        fontSize: 24.sp,
+        color: Colors.black,
+      );
 
-  static const TextStyle h2 = TextStyle(
-    fontFamily: headingFont,
-    fontSize: 20,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-    height: 1.3,
-  );
+  static TextStyle get cairoRegular14 => TextStyle(
+        fontFamily: 'Cairo',
+        fontWeight: FontWeight.w400,
+        fontSize: 14.sp,
+      );
 
-  static const TextStyle h3 = TextStyle(
-    fontFamily: headingFont,
-    fontSize: 16,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-  );
+  static TextStyle get cairoMedium16 => TextStyle(
+        fontFamily: 'Cairo',
+        fontWeight: FontWeight.w500,
+        fontSize: 16.sp,
+      );
 
-  static const TextStyle statValue = TextStyle(
-    fontFamily: headingFont,
-    fontSize: 22,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-  );
+  static TextStyle get cairoBold18 => TextStyle(
+        fontFamily: 'Cairo',
+        fontWeight: FontWeight.w700,
+        fontSize: 18.sp,
+      );
 
-  // Body (Cairo)
-  static const TextStyle bodyLarge = TextStyle(
-    fontFamily: bodyFont,
-    fontSize: 15,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textPrimary,
-  );
-
-  static const TextStyle bodyMedium = TextStyle(
-    fontFamily: bodyFont,
-    fontSize: 13,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textPrimary,
-  );
-
-  static const TextStyle bodySmall = TextStyle(
-    fontFamily: bodyFont,
-    fontSize: 11,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
-  );
-
-  static const TextStyle label = TextStyle(
-    fontFamily: bodyFont,
-    fontSize: 12,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
-  );
-
-  static const TextStyle button = TextStyle(
-    fontFamily: bodyFont,
-    fontSize: 15,
-    fontWeight: FontWeight.w700,
-    color: Colors.white,
-  );
+  static TextStyle get almaraiRegular14 => TextStyle(
+        fontFamily: 'Almarai',
+        fontWeight: FontWeight.w400,
+        fontSize: 14.sp,
+      );
 }
