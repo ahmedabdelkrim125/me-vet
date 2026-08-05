@@ -10,4 +10,8 @@ abstract class AppColors {
   static const Color primaryGreenDark = Color(0xFF115C48);
   static const Color backgroundLight = Color(0xFFF4F8F6);
   static const Color navInactive = Color(0xFF9AA6A2);
+
+  static const Color statBlue = Color(0xFF2F6FED);
+  static const Color statOrange = Color(0xFFE0862F);
+  static const Color cardBorder = Color(0xFFE7EFEC);
 }

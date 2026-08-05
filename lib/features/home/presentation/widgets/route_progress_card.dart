@@ -1,0 +1,209 @@
+import 'package:flutter/material.dart';
+import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_text_styles.dart';
+import 'package:mivet_app/core/utils/responsive_extension.dart';
+
+class RouteProgressCard extends StatelessWidget {
+  final String routeName;
+  final String dayLabel;
+  final int totalVisits;
+  final int completedVisits;
+
+  const RouteProgressCard({
+    super.key,
+    required this.routeName,
+    required this.dayLabel,
+    required this.totalVisits,
+    required this.completedVisits,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = totalVisits - completedVisits;
+    final progress = totalVisits == 0 ? 0.0 : completedVisits / totalVisits;
+
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(24.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.25),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44.w,
+                height: 44.w,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                child: Icon(
+                  Icons.map_outlined,
+                  color: Colors.white,
+                  size: 22.sp,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      routeName,
+                      style: AppTextStyles.cairoBold18.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      dayLabel,
+                      style: AppTextStyles.almaraiRegular14.copyWith(
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20.r),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8.h,
+              backgroundColor: Colors.white.withOpacity(0.15),
+              valueColor: const AlwaysStoppedAnimation(AppColors.primaryGreen),
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            '$completedVisits من $totalVisits زيارة مكتملة',
+            style: AppTextStyles.almaraiRegular14.copyWith(
+              color: Colors.white.withOpacity(0.75),
+            ),
+          ),
+          SizedBox(height: 20.h),
+          if (context.isMobile) ...[
+            Row(
+              children: [
+                _RouteStat(value: '$totalVisits', label: 'عميل'),
+                _RouteStat(
+                  value: '$completedVisits',
+                  label: 'تمت',
+                  color: AppColors.primaryGreen,
+                ),
+                _RouteStat(
+                  value: '$remaining',
+                  label: 'متبقي',
+                  color: AppColors.statOrange,
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+            const _StartButton(expand: true),
+          ] else
+            Row(
+              children: [
+                _RouteStat(value: '$totalVisits', label: 'عميل'),
+                _RouteStat(
+                  value: '$completedVisits',
+                  label: 'تمت',
+                  color: AppColors.primaryGreen,
+                ),
+                _RouteStat(
+                  value: '$remaining',
+                  label: 'متبقي',
+                  color: AppColors.statOrange,
+                ),
+                const Spacer(),
+                const _StartButton(),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RouteStat extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+
+  const _RouteStat({
+    required this.value,
+    required this.label,
+    this.color = Colors.white,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: 18.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value, style: AppTextStyles.cairoBold18.copyWith(color: color)),
+          SizedBox(height: 2.h),
+          Text(
+            label,
+            style: AppTextStyles.almaraiRegular14.copyWith(
+              color: Colors.white.withOpacity(0.6),
+              fontSize: 11.sp,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StartButton extends StatelessWidget {
+  final bool expand;
+
+  const _StartButton({this.expand = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final button = Material(
+      color: AppColors.primaryGreen,
+      borderRadius: BorderRadius.circular(14.r),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14.r),
+        onTap: () {},
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'ابدأ الجولة',
+                style: AppTextStyles.cairoMedium16.copyWith(
+                  color: Colors.white,
+                  fontSize: 13.sp,
+                ),
+              ),
+              SizedBox(width: 6.w),
+              Icon(Icons.arrow_back_rounded, color: Colors.white, size: 16.sp),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (expand) return SizedBox(width: double.infinity, child: button);
+    return button;
+  }
+}
