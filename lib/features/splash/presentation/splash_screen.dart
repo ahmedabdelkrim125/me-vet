@@ -1,6 +1,7 @@
-// features/splash/presentation/screens/splash_screen.dart
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/routing/routes.dart';
 
+import '../../../core/utils/extensions.dart';
 import 'widgets/splash_background.dart';
 import 'widgets/splash_body.dart';
 
@@ -27,6 +28,10 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat();
+
+    Future.delayed(const Duration(milliseconds: 2800), () {
+      if (mounted) context.pushReplacementNamed(Routes.mainScreen);
+    });
   }
 
   @override
