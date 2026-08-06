@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/routing/routes.dart';
 
 import '../../../core/utils/extensions.dart';
-import 'widgets/splash_background.dart';
 import 'widgets/splash_body.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -30,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen>
     )..repeat();
 
     Future.delayed(const Duration(milliseconds: 2800), () {
-      if (mounted) context.pushReplacementNamed(Routes.mainScreen);
+      if (mounted) context.pushReplacementNamed(Routes.repEntryScreen);
     });
   }
 
@@ -45,15 +44,9 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const SplashBackground(),
-            SplashBody(
-              entranceController: entranceController,
-              loopController: loopController,
-            ),
-          ],
+        child: SplashBody(
+          entranceController: entranceController,
+          loopController: loopController,
         ),
       ),
     );
