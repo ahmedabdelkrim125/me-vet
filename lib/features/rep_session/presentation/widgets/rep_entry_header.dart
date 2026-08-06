@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
+import 'package:mivet_app/core/const/app_images.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -15,26 +15,10 @@ class RepEntryHeader extends StatelessWidget {
           width: 72.w,
           height: 72.w,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.primary, AppColors.secondary],
-            ),
             borderRadius: BorderRadius.circular(22.r),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.25),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
           ),
           child: Center(
-            child: HugeIcon(
-              icon: HugeIcons.strokeRoundedUser,
-              color: Colors.white,
-              size: 32.sp,
-            ),
+            child: Image.asset(AppImages.logoSplash),
           ),
         ),
         SizedBox(height: 16.h),
