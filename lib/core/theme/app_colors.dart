@@ -13,5 +13,6 @@ abstract class AppColors {
 
   static const Color statBlue = Color(0xFF2F6FED);
   static const Color statOrange = Color(0xFFE0862F);
+  static const Color statusNotReached = Color(0xFFE0473F);
   static const Color cardBorder = Color(0xFFE7EFEC);
 }
