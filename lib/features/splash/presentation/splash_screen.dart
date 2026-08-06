@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen>
     )..repeat();
 
     Future.delayed(const Duration(milliseconds: 2800), () {
-      if (mounted) context.pushReplacementNamed(Routes.mainScreen);
+      if (mounted) context.pushReplacementNamed(Routes.repEntryScreen);
     });
   }
 

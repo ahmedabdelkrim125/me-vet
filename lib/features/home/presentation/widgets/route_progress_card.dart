@@ -8,6 +8,7 @@ class RouteProgressCard extends StatelessWidget {
   final String dayLabel;
   final int totalVisits;
   final int completedVisits;
+  final String buttonText;
 
   const RouteProgressCard({
     super.key,
@@ -15,6 +16,7 @@ class RouteProgressCard extends StatelessWidget {
     required this.dayLabel,
     required this.totalVisits,
     required this.completedVisits,
+    required this.buttonText,
   });
 
   @override
@@ -111,7 +113,7 @@ class RouteProgressCard extends StatelessWidget {
               ],
             ),
             SizedBox(height: 16.h),
-            const _StartButton(expand: true),
+            _StartButton(buttonText: buttonText, expand: true),
           ] else
             Row(
               children: [
@@ -127,7 +129,7 @@ class RouteProgressCard extends StatelessWidget {
                   color: AppColors.statOrange,
                 ),
                 const Spacer(),
-                const _StartButton(),
+                _StartButton(buttonText: buttonText),
               ],
             ),
         ],
@@ -170,9 +172,10 @@ class _RouteStat extends StatelessWidget {
 }
 
 class _StartButton extends StatelessWidget {
+  final String buttonText;
   final bool expand;
 
-  const _StartButton({this.expand = false});
+  const _StartButton({required this.buttonText, this.expand = false});
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +192,7 @@ class _StartButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'ابدأ الجولة',
+                buttonText,
                 style: AppTextStyles.cairoMedium16.copyWith(
                   color: Colors.white,
                   fontSize: 13.sp,

@@ -1,44 +1,77 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
+import 'package:mivet_app/core/utils/arabic_date_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../../../rep_session/data/rep_session_store.dart';
 
-class HomeHeader extends StatelessWidget {
+class HomeHeader extends StatefulWidget {
   const HomeHeader({super.key});
 
   @override
+  State<HomeHeader> createState() => _HomeHeaderState();
+}
+
+class _HomeHeaderState extends State<HomeHeader> {
+  String? _repName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActiveRep();
+  }
+
+  Future<void> _loadActiveRep() async {
+    final rep = await RepSessionStore.instance.getActiveRep();
+    if (!mounted) return;
+    setState(() => _repName = rep?.name);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final greeting =
+        _repName == null ? arabicGreeting() : '${arabicGreeting()}، $_repName';
+
     return Row(
       children: [
-        const _NotificationButton(),
-        SizedBox(width: 14.w),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'صباح الخير، أحمد',
-                style: AppTextStyles.cairoBold18.copyWith(
-                  color: AppColors.primary,
-                ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              greeting,
+              style: AppTextStyles.cairoBold18.copyWith(
+                color: AppColors.primary,
               ),
-              SizedBox(height: 4.h),
-              Text(
-                'الأحد، 6 أغسطس',
-                style: AppTextStyles.almaraiRegular14.copyWith(
-                  color: AppColors.navInactive,
-                ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              arabicDateLabel(),
+              style: AppTextStyles.almaraiRegular14.copyWith(
+                color: AppColors.navInactive,
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
+        const Spacer(),
+        const _ActionButton(
+          icon: Icons.sync_rounded,
+          hasBadge: false,
+        ),
+        SizedBox(width: 12.w),
+        const _ActionButton(
+          icon: Icons.notifications_none_rounded,
+          hasBadge: true,
         ),
       ],
     );
   }
 }
 
-class _NotificationButton extends StatelessWidget {
-  const _NotificationButton();
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final bool hasBadge;
+
+  const _ActionButton({required this.icon, required this.hasBadge});
 
   @override
   Widget build(BuildContext context) {
@@ -59,22 +92,23 @@ class _NotificationButton extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               Icon(
-                Icons.notifications_none_rounded,
+                icon,
                 color: AppColors.primary,
                 size: 22.sp,
               ),
-              Positioned(
-                top: 10.h,
-                right: 10.w,
-                child: Container(
-                  width: 8.w,
-                  height: 8.w,
-                  decoration: const BoxDecoration(
-                    color: AppColors.statOrange,
-                    shape: BoxShape.circle,
+              if (hasBadge)
+                Positioned(
+                  top: 10.h,
+                  right: 10.w,
+                  child: Container(
+                    width: 8.w,
+                    height: 8.w,
+                    decoration: const BoxDecoration(
+                      color: AppColors.statOrange,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

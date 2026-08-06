@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../domain/models/customer_alert_model.dart';
-import 'widgets/customer_alert_section.dart';
 import 'widgets/daily_summary_section.dart';
 import 'widgets/home_header.dart';
-import 'widgets/quick_actions_row.dart';
+import 'widgets/quick_invoice_dialog.dart';
 import 'widgets/route_progress_card.dart';
 import 'widgets/visits_kpi_card.dart';
 
@@ -14,35 +13,29 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const followUpCustomers = [
-      CustomerAlertModel(
-        name: 'صيدلية النور',
-        subtitle: 'زيارة واحدة هذا الشهر',
-      ),
-      CustomerAlertModel(
-        name: 'عيادة الشفاء البيطرية',
-        subtitle: 'زيارتان هذا الشهر',
-      ),
-      CustomerAlertModel(
-        name: 'صيدلية الأمل',
-        subtitle: 'زيارة واحدة هذا الشهر',
-      ),
-    ];
+    return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          debugPrint('تم الضغط على فاتورة سريعة');
 
-    const stalledCustomers = [
-      CustomerAlertModel(
-        name: 'مزرعة الدلتا',
-        subtitle: 'بدون طلبات منذ شهرين',
+          showDialog(
+            context: context,
+            builder: (context) => const QuickInvoiceDialog(),
+          );
+        },
+        backgroundColor: AppColors.primaryGreen,
+        icon:
+            Icon(Icons.receipt_long_outlined, color: Colors.white, size: 20.sp),
+        label: Text(
+          'فاتورة سريعة',
+          style: AppTextStyles.cairoMedium16.copyWith(
+            color: Colors.white,
+            fontSize: 14.sp,
+          ),
+        ),
       ),
-      CustomerAlertModel(
-        name: 'صيدلية الفا',
-        subtitle: 'بدون طلبات منذ شهرين',
-      ),
-    ];
-
-    return Container(
-      color: AppColors.backgroundLight,
-      child: SafeArea(
+      body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(16.w),
           child: Column(
@@ -51,78 +44,20 @@ class HomeScreen extends StatelessWidget {
               const HomeHeader(),
               SizedBox(height: 20.h),
               const RouteProgressCard(
-                routeName: 'خط اليوم — المنصورة 1',
-                dayLabel: 'الأحد — ابدأ جولتك الآن',
-                totalVisits: 12,
-                completedVisits: 5,
+                routeName: 'خطة زياراتك اليوم',
+                dayLabel: 'حدد عملاءك لتبدأ الجولة',
+                totalVisits: 0,
+                completedVisits: 0,
+                buttonText: 'تحديد عملاء اليوم',
               ),
               SizedBox(height: 16.h),
               const DailySummarySection(),
               SizedBox(height: 16.h),
-              if (context.isTablet)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const VisitsKpiCard(
-                            currentVisits: 9,
-                            targetVisits: 12,
-                          ),
-                          SizedBox(height: 16.h),
-                          const QuickActionsRow(),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const CustomerAlertSection(
-                            title: 'عملاء يحتاجون متابعة',
-                            icon: Icons.priority_high_rounded,
-                            accentColor: AppColors.statOrange,
-                            customers: followUpCustomers,
-                          ),
-                          SizedBox(height: 16.h),
-                          const CustomerAlertSection(
-                            title: 'عملاء متوقفين',
-                            icon: Icons.pause_circle_outline_rounded,
-                            accentColor: AppColors.statBlue,
-                            customers: stalledCustomers,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const VisitsKpiCard(currentVisits: 9, targetVisits: 12),
-                    SizedBox(height: 16.h),
-                    const QuickActionsRow(),
-                    SizedBox(height: 16.h),
-                    const CustomerAlertSection(
-                      title: 'عملاء يحتاجون متابعة',
-                      icon: Icons.priority_high_rounded,
-                      accentColor: AppColors.statOrange,
-                      customers: followUpCustomers,
-                    ),
-                    SizedBox(height: 16.h),
-                    const CustomerAlertSection(
-                      title: 'عملاء متوقفين',
-                      icon: Icons.pause_circle_outline_rounded,
-                      accentColor: AppColors.statBlue,
-                      customers: stalledCustomers,
-                    ),
-                  ],
-                ),
-              SizedBox(height: 24.h),
+              const VisitsKpiCard(
+                currentVisits: 9,
+                targetVisits: 12,
+              ),
+              SizedBox(height: 80.h),
             ],
           ),
         ),
