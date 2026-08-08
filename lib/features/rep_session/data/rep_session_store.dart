@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../domain/models/rep_profile_model.dart';
 
 /// Persists sales-rep profiles on-device so a rep can pick their name once,

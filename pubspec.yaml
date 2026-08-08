@@ -16,6 +16,7 @@ dependencies:
   google_nav_bar: ^5.0.7
   hugeicons: ^1.1.7
   shared_preferences: ^2.5.5
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -49,3 +50,8 @@ flutter:
     - family: Wessam
       fonts:
         - asset: assets/fonts/a-arslan-wessam-b.ttf
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo_splash.png"
