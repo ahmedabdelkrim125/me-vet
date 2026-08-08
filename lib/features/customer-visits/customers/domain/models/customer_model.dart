@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'customer_status.dart';
 
 class CustomerModel {
@@ -18,10 +20,75 @@ class CustomerModel {
     required this.code,
     required this.area,
     required this.category,
-    required this.status,
+    this.status = CustomerStatus.needsFollowUp,
     required this.visitsThisMonth,
     this.phone = '',
     this.address = '',
     this.creditLimit = 0,
   });
+
+  CustomerModel copyWith({
+    String? id,
+    String? name,
+    String? code,
+    String? area,
+    String? category,
+    CustomerStatus? status,
+    int? visitsThisMonth,
+    String? phone,
+    String? address,
+    double? creditLimit,
+  }) {
+    return CustomerModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      code: code ?? this.code,
+      area: area ?? this.area,
+      category: category ?? this.category,
+      status: status ?? this.status,
+      visitsThisMonth: visitsThisMonth ?? this.visitsThisMonth,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      creditLimit: creditLimit ?? this.creditLimit,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'code': code,
+      'area': area,
+      'category': category,
+      'status': status.name,
+      'visitsThisMonth': visitsThisMonth,
+      'phone': phone,
+      'address': address,
+      'creditLimit': creditLimit,
+    };
+  }
+
+  factory CustomerModel.fromJson(Map<String, dynamic> json) {
+    return CustomerModel(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      code: json['code'] as String,
+      area: json['area'] as String,
+      category: json['category'] as String,
+      status: CustomerStatus.values.firstWhere(
+        (value) => value.name == json['status'],
+        orElse: () => CustomerStatus.needsFollowUp,
+      ),
+      visitsThisMonth: json['visitsThisMonth'] as int,
+      phone: json['phone'] as String? ?? '',
+      address: json['address'] as String? ?? '',
+      creditLimit: (json['creditLimit'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  String toJsonString() => jsonEncode(toJson());
+
+  factory CustomerModel.fromJsonString(String raw) {
+    return CustomerModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../../../domain/mock_customers_repository.dart';
 import '../../../domain/models/customer_model.dart';
 import '../../../domain/models/customer_status.dart';
 import '../../customer_detail_screen.dart';
@@ -67,21 +68,49 @@ class CustomerListTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10.r),
+              PopupMenuButton<CustomerStatus>(
+                icon: Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Text(
+                    customer.status.label,
+                    style: AppTextStyles.cairoMedium16
+                        .copyWith(color: color, fontSize: 10.sp),
+                  ),
                 ),
-                child: Text(
-                  customer.status.label,
-                  style: AppTextStyles.cairoMedium16
-                      .copyWith(color: color, fontSize: 10.sp),
-                ),
+                onSelected: (status) async {
+                  await MockCustomersRepository.instance
+                      .updateCustomerStatus(customer.id, status);
+                },
+                itemBuilder: (context) => [
+                  _buildMenuItem(CustomerStatus.active),
+                  _buildMenuItem(CustomerStatus.needsFollowUp),
+                  _buildMenuItem(CustomerStatus.stopped),
+                ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  PopupMenuEntry<CustomerStatus> _buildMenuItem(CustomerStatus status) {
+    return PopupMenuItem<CustomerStatus>(
+      value: status,
+      child: Row(
+        children: [
+          Icon(
+            status == customer.status ? CupertinoIcons.checkmark_alt : null,
+            color: customerStatusColor(status),
+          ),
+          SizedBox(width: 8.w),
+          Text(status.label),
+        ],
       ),
     );
   }

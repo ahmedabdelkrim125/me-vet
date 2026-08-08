@@ -8,7 +8,7 @@ Color customerStatusColor(CustomerStatus status) {
       return AppColors.primaryGreen;
     case CustomerStatus.needsFollowUp:
       return AppColors.statOrange;
-    case CustomerStatus.stalled:
+    case CustomerStatus.stopped:
       return AppColors.statusNotReached;
   }
 }

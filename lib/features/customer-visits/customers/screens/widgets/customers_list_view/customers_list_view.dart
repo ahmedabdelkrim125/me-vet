@@ -23,14 +23,17 @@ class _CustomersListViewState extends State<CustomersListView>
   late final AnimationController _entranceController;
   int _filterIndex = 0;
   String _query = '';
+  late final MockCustomersRepository _repository;
 
   @override
   void initState() {
     super.initState();
+    _repository = MockCustomersRepository.instance;
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
     )..forward();
+    _loadCustomers();
   }
 
   @override
@@ -39,85 +42,105 @@ class _CustomersListViewState extends State<CustomersListView>
     super.dispose();
   }
 
+  Future<void> _loadCustomers() async {
+    await _repository.initialize();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   List<CustomerModel> get _filteredCustomers {
-    final customers = MockCustomersRepository.instance.customers;
-    return customers.where((customer) {
-      final matchesQuery = _query.isEmpty ||
-          customer.name.contains(_query) ||
-          customer.code.contains(_query);
+    return _repository.getCustomers(
+      query: _query,
+      status: switch (_filterIndex) {
+        1 => CustomerStatus.active,
+        2 => CustomerStatus.needsFollowUp,
+        3 => CustomerStatus.stopped,
+        _ => null,
+      },
+    );
+  }
 
-      final matchesFilter = switch (_filterIndex) {
-        1 => customer.status == CustomerStatus.active,
-        2 => customer.status == CustomerStatus.needsFollowUp,
-        3 => customer.status == CustomerStatus.stalled,
-        _ => true,
-      };
-
-      return matchesQuery && matchesFilter;
-    }).toList();
+  List<int> get _filterCounts {
+    return [
+      _repository.countForStatus(null),
+      _repository.countForStatus(CustomerStatus.active),
+      _repository.countForStatus(CustomerStatus.needsFollowUp),
+      _repository.countForStatus(CustomerStatus.stopped),
+    ];
   }
 
   Future<void> _openAddCustomerSheet() async {
     final newCustomer = await showAddCustomerBottomSheet(context);
     if (newCustomer == null) return;
 
-    setState(() {
-      MockCustomersRepository.instance.addCustomer(newCustomer);
-      _entranceController
-        ..reset()
-        ..forward();
-    });
+    await _repository.addCustomer(newCustomer);
+    if (mounted) {
+      setState(() {
+        _entranceController
+          ..reset()
+          ..forward();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final customers = _filteredCustomers;
+    // final customers = _filteredCustomers;
 
-    return Stack(
-      children: [
-        ListView(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 100.h),
+    return ValueListenableBuilder<List<CustomerModel>>(
+      valueListenable: _repository.customersNotifier,
+      builder: (context, _, __) {
+        final visibleCustomers = _filteredCustomers;
+
+        return Stack(
           children: [
-            CustomerSearchField(
-                onChanged: (value) => setState(() => _query = value)),
-            SizedBox(height: 12.h),
-            CustomerFilterBar(
-              selectedIndex: _filterIndex,
-              onChanged: (index) => setState(() => _filterIndex = index),
-            ),
-            SizedBox(height: 14.h),
-            for (int i = 0; i < customers.length; i++)
-              _AnimatedCustomerTile(
-                index: i,
-                total: customers.length,
-                controller: _entranceController,
-                customer: customers[i],
-              ),
-            if (customers.isEmpty)
-              Padding(
-                padding: EdgeInsets.only(top: 60.h),
-                child: Center(
-                  child: Text(
-                    'لا يوجد عملاء مطابقين',
-                    style: AppTextStyles.cairoMedium16.copyWith(
-                      color: AppColors.navInactive,
-                      fontSize: 13.sp,
+            ListView(
+              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 100.h),
+              children: [
+                CustomerSearchField(
+                    onChanged: (value) => setState(() => _query = value)),
+                SizedBox(height: 12.h),
+                CustomerFilterBar(
+                  selectedIndex: _filterIndex,
+                  counts: _filterCounts,
+                  onChanged: (index) => setState(() => _filterIndex = index),
+                ),
+                SizedBox(height: 14.h),
+                for (int i = 0; i < visibleCustomers.length; i++)
+                  _AnimatedCustomerTile(
+                    index: i,
+                    total: visibleCustomers.length,
+                    controller: _entranceController,
+                    customer: visibleCustomers[i],
+                  ),
+                if (visibleCustomers.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 60.h),
+                    child: Center(
+                      child: Text(
+                        'لا يوجد عملاء مطابقين',
+                        style: AppTextStyles.cairoMedium16.copyWith(
+                          color: AppColors.navInactive,
+                          fontSize: 13.sp,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+              ],
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 16.h,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: AddCustomerButton(onTap: _openAddCustomerSheet),
               ),
+            ),
           ],
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 16.h,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: AddCustomerButton(onTap: _openAddCustomerSheet),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

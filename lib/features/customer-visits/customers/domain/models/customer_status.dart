@@ -1,4 +1,4 @@
-enum CustomerStatus { active, needsFollowUp, stalled }
+enum CustomerStatus { active, needsFollowUp, stopped }
 
 extension CustomerStatusX on CustomerStatus {
   String get label {
@@ -7,7 +7,7 @@ extension CustomerStatusX on CustomerStatus {
         return 'نشط';
       case CustomerStatus.needsFollowUp:
         return 'يحتاج متابعة';
-      case CustomerStatus.stalled:
+      case CustomerStatus.stopped:
         return 'متوقف';
     }
   }

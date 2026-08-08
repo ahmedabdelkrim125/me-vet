@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../domain/mock_customers_repository.dart';
 import '../domain/models/customer_detail_model.dart';
 import '../domain/models/customer_model.dart';
 import 'widgets/customer_detail/customer_account_statement_section.dart';
@@ -17,19 +18,22 @@ class CustomerDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final detail = CustomerDetailModel.mock(customer);
+    final currentCustomer =
+        MockCustomersRepository.instance.getCustomerById(customer.id) ??
+            customer;
+    final detail = CustomerDetailModel.mock(currentCustomer);
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: SafeArea(
         child: Column(
           children: [
-            CustomerDetailHeader(customer: customer),
+            CustomerDetailHeader(customer: currentCustomer),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 30.h),
                 children: [
-                  CustomerQuickActionsBar(customer: customer),
+                  CustomerQuickActionsBar(customer: currentCustomer),
                   SizedBox(height: 16.h),
                   CustomerFinancialInfoCard(detail: detail),
                   SizedBox(height: 16.h),
