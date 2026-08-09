@@ -136,7 +136,8 @@ class _AppSideNavBarState extends State<AppSideNavBar>
       duration: const Duration(milliseconds: 750),
     );
 
-    _indicatorAnimation = AlwaysStoppedAnimation(widget.selectedIndex.toDouble());
+    _indicatorAnimation =
+        AlwaysStoppedAnimation(widget.selectedIndex.toDouble());
 
     _shimmerController = AnimationController(
       vsync: this,
@@ -219,9 +220,8 @@ class _AppSideNavBarState extends State<AppSideNavBar>
                 builder: (context, _) {
                   final animatedPos = _indicatorAnimation.value;
                   final distance = (widget.selectedIndex - animatedPos).abs();
-                  final stretch = distance > 0.02
-                      ? (1 - distance.clamp(0.0, 1.0))
-                      : 0.0;
+                  final stretch =
+                      distance > 0.02 ? (1 - distance.clamp(0.0, 1.0)) : 0.0;
 
                   return Stack(
                     children: [
@@ -243,7 +243,8 @@ class _AppSideNavBarState extends State<AppSideNavBar>
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: context.colors.primary.withValues(alpha: 0.45),
+                                color: context.colors.primary
+                                    .withValues(alpha: 0.45),
                                 blurRadius: 20,
                                 offset: const Offset(0, 8),
                               ),
@@ -268,7 +269,8 @@ class _AppSideNavBarState extends State<AppSideNavBar>
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       AnimatedSwitcher(
-                                        duration: const Duration(milliseconds: 450),
+                                        duration:
+                                            const Duration(milliseconds: 450),
                                         transitionBuilder: (child, animation) {
                                           return ScaleTransition(
                                             scale: Tween<double>(
@@ -300,8 +302,10 @@ class _AppSideNavBarState extends State<AppSideNavBar>
                                       ),
                                       SizedBox(height: 6.h),
                                       AnimatedDefaultTextStyle(
-                                        duration: const Duration(milliseconds: 300),
-                                        style: AppTextStyles.cairoRegular14.copyWith(
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        style: AppTextStyles.cairoRegular14
+                                            .copyWith(
                                           fontSize: 10.sp,
                                           color: isSelected
                                               ? Colors.white
