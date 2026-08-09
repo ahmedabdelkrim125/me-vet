@@ -1,13 +1,16 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../../../../../../core/theme/app_color_scheme_extension.dart';
 import '../../../domain/models/route_stop_model.dart';
 import '../../../domain/models/visit_status.dart';
+import 'route_status_style.dart';
 
-void showRouteReportSheet(BuildContext context, List<RouteStopModel> stops) {
-  showModalBottomSheet(
+Future<void> showRouteReportSheet(
+  BuildContext context,
+  List<RouteStopModel> stops,
+) {
+  return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -20,21 +23,15 @@ class _RouteReportSheet extends StatelessWidget {
 
   const _RouteReportSheet({required this.stops});
 
-  int _countOf(RouteVisitStatus status) =>
+  int _countFor(RouteVisitStatus status) =>
       stops.where((s) => s.status == status).length;
 
   @override
   Widget build(BuildContext context) {
-    final completed =
-        _countOf(RouteVisitStatus.completed) + _countOf(RouteVisitStatus.sold);
-    final sold = _countOf(RouteVisitStatus.sold);
-    final noOrder = _countOf(RouteVisitStatus.noOrder);
-    final notReached = _countOf(RouteVisitStatus.notReached);
-    final pending = _countOf(RouteVisitStatus.pending);
-
     return Container(
+      constraints: BoxConstraints(maxHeight: 560.h),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLight,
+        color: context.colors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
       padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 24.h),
@@ -47,145 +44,76 @@ class _RouteReportSheet extends StatelessWidget {
               width: 42.w,
               height: 4.h,
               decoration: BoxDecoration(
-                  color: AppColors.cardBorder,
-                  borderRadius: BorderRadius.circular(10.r)),
+                color: context.colors.border,
+                borderRadius: BorderRadius.circular(10.r),
+              ),
             ),
           ),
-          SizedBox(height: 14.h),
-          Text('تقرير الخط',
-              style: AppTextStyles.cairoBold18
-                  .copyWith(color: AppColors.primary, fontSize: 16.sp)),
           SizedBox(height: 16.h),
-          Row(
+          Text(
+            'تقرير الخط',
+            style: AppTextStyles.cairoBold18
+                .copyWith(color: context.colors.text, fontSize: 16.sp),
+          ),
+          SizedBox(height: 14.h),
+          Wrap(
+            spacing: 10.w,
+            runSpacing: 10.h,
             children: [
-              Expanded(
-                  child: _StatBox(
-                      label: 'إجمالي الزيارات',
-                      value: '${stops.length}',
-                      color: AppColors.primary)),
-              SizedBox(width: 10.w),
-              Expanded(
-                  child: _StatBox(
-                      label: 'تمت',
-                      value: '$completed',
-                      color: AppColors.primaryGreen)),
+              for (final status in RouteVisitStatus.values)
+                Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: routeStatusColor(context, status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Text(
+                    '${status.label}: ${_countFor(status)}',
+                    style: AppTextStyles.cairoMedium16.copyWith(
+                        color: routeStatusColor(context, status),
+                        fontSize: 11.sp),
+                  ),
+                ),
             ],
           ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Expanded(
-                  child: _StatBox(
-                      label: 'بيع', value: '$sold', color: AppColors.statBlue)),
-              SizedBox(width: 10.w),
-              Expanded(
-                  child: _StatBox(
-                      label: 'بدون طلب',
-                      value: '$noOrder',
-                      color: AppColors.statOrange)),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Expanded(
-                  child: _StatBox(
-                      label: 'لم يوصل',
-                      value: '$notReached',
-                      color: AppColors.statusNotReached)),
-              SizedBox(width: 10.w),
-              Expanded(
-                  child: _StatBox(
-                      label: 'لسه',
-                      value: '$pending',
-                      color: AppColors.navInactive)),
-            ],
-          ),
-          SizedBox(height: 18.h),
-          Text('تفاصيل الزيارات',
-              style: AppTextStyles.cairoMedium16
-                  .copyWith(color: AppColors.primary, fontSize: 13.sp)),
-          SizedBox(height: 8.h),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 260.h),
+          SizedBox(height: 16.h),
+          Flexible(
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: stops.length,
               separatorBuilder: (_, __) => SizedBox(height: 8.h),
               itemBuilder: (context, index) {
                 final stop = stops[index];
-                return Row(
-                  children: [
-                    Expanded(
-                      child: Text(stop.customerName,
+                final color = routeStatusColor(context, stop.status);
+                return Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                  decoration: BoxDecoration(
+                    color: context.colors.surface,
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(color: context.colors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          stop.customerName,
                           style: AppTextStyles.cairoMedium16.copyWith(
-                              color: AppColors.primary, fontSize: 12.sp)),
-                    ),
-                    Text(stop.status.label,
-                        style: AppTextStyles.almaraiRegular14.copyWith(
-                            color: AppColors.navInactive, fontSize: 11.sp)),
-                  ],
+                              color: context.colors.text, fontSize: 12.sp),
+                        ),
+                      ),
+                      Text(
+                        stop.status.label,
+                        style: AppTextStyles.cairoMedium16
+                            .copyWith(color: color, fontSize: 11.sp),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
           ),
-          SizedBox(height: 16.h),
-          Material(
-            color: AppColors.primaryGreen,
-            borderRadius: BorderRadius.circular(14.r),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14.r),
-              onTap: () {},
-              child: Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(vertical: 14.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(CupertinoIcons.paperplane_fill,
-                        color: Colors.white, size: 16.sp),
-                    SizedBox(width: 8.w),
-                    Text('إرسال التقرير للإدارة',
-                        style: AppTextStyles.cairoMedium16
-                            .copyWith(color: Colors.white, fontSize: 13.sp)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatBox(
-      {required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(value,
-              style: AppTextStyles.cairoBold18
-                  .copyWith(color: color, fontSize: 18.sp)),
-          SizedBox(height: 4.h),
-          Text(label,
-              style: AppTextStyles.almaraiRegular14
-                  .copyWith(color: AppColors.navInactive, fontSize: 10.sp)),
         ],
       ),
     );

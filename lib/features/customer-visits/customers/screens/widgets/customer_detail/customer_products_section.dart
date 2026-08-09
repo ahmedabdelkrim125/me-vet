@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../domain/models/customer_detail_model.dart';
@@ -18,7 +18,7 @@ class CustomerTopProductsSection extends StatelessWidget {
     return _SectionCard(
       title: 'أكتر المنتجات شراءً',
       icon: CupertinoIcons.star_fill,
-      iconColor: AppColors.primaryGreen,
+      iconColor: context.colors.primary,
       child: Column(
         children: [
           for (final product in products)
@@ -43,7 +43,7 @@ class CustomerNotBoughtSection extends StatelessWidget {
     return _SectionCard(
       title: 'منتجات لم يشترها من فترة',
       icon: CupertinoIcons.exclamationmark_triangle_fill,
-      iconColor: AppColors.statOrange,
+      iconColor: context.colors.statOrange,
       child: Column(
         children: [
           for (final product in products)
@@ -67,10 +67,11 @@ class CustomerSeasonalSuggestionsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return _SectionCard(
       title: 'اقتراحات بيع موسمية',
       icon: CupertinoIcons.lightbulb_fill,
-      iconColor: AppColors.statBlue,
+      iconColor: colors.statBlue,
       child: Wrap(
         spacing: 8.w,
         runSpacing: 8.h,
@@ -79,13 +80,13 @@ class CustomerSeasonalSuggestionsSection extends StatelessWidget {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
               decoration: BoxDecoration(
-                color: AppColors.statBlue.withOpacity(0.1),
+                color: colors.statBlue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: Text(
                 suggestion,
                 style: AppTextStyles.cairoMedium16
-                    .copyWith(color: AppColors.statBlue, fontSize: 11.sp),
+                    .copyWith(color: colors.statBlue, fontSize: 11.sp),
               ),
             ),
         ],
@@ -109,12 +110,13 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -125,7 +127,7 @@ class _SectionCard extends StatelessWidget {
               SizedBox(width: 8.w),
               Text(title,
                   style: AppTextStyles.cairoMedium16
-                      .copyWith(color: AppColors.primary, fontSize: 13.sp)),
+                      .copyWith(color: colors.text, fontSize: 13.sp)),
             ],
           ),
           SizedBox(height: 12.h),
@@ -151,6 +153,7 @@ class _ProductRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
@@ -161,17 +164,17 @@ class _ProductRow extends StatelessWidget {
               children: [
                 Text(name,
                     style: AppTextStyles.cairoMedium16
-                        .copyWith(color: AppColors.primary, fontSize: 12.sp)),
+                        .copyWith(color: colors.text, fontSize: 12.sp)),
                 SizedBox(height: 2.h),
                 Text(subtitle,
-                    style: AppTextStyles.almaraiRegular14.copyWith(
-                        color: AppColors.navInactive, fontSize: 10.sp)),
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.textMuted, fontSize: 10.sp)),
               ],
             ),
           ),
           Text(trailing,
               style: AppTextStyles.cairoMedium16
-                  .copyWith(color: AppColors.primary, fontSize: 11.sp)),
+                  .copyWith(color: colors.text, fontSize: 11.sp)),
           if (showAddButton) ...[
             SizedBox(width: 8.w),
             InkWell(
@@ -180,11 +183,11 @@ class _ProductRow extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(6.w),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withOpacity(0.12),
+                  color: colors.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Icon(CupertinoIcons.add,
-                    size: 14.sp, color: AppColors.primaryGreen),
+                    size: 14.sp, color: colors.primary),
               ),
             ),
           ],

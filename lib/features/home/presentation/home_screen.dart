@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -14,7 +15,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      // backgroundColor: AppColors.backgroundLight,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           debugPrint('تم الضغط على فاتورة سريعة');
@@ -25,8 +26,11 @@ class HomeScreen extends StatelessWidget {
           );
         },
         backgroundColor: AppColors.primaryGreen,
-        icon:
-            Icon(Icons.receipt_long_outlined, color: Colors.white, size: 20.sp),
+        icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedInvoice01,
+          color: Colors.white,
+          size: 20.sp,
+        ),
         label: Text(
           'فاتورة سريعة',
           style: AppTextStyles.cairoMedium16.copyWith(

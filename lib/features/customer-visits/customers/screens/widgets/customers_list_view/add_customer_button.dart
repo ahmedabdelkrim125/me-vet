@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
@@ -12,10 +12,10 @@ class AddCustomerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.primaryGreen,
+      color: context.colors.primary,
       borderRadius: BorderRadius.circular(16.r),
       elevation: 6,
-      shadowColor: AppColors.primaryGreen.withOpacity(0.4),
+      shadowColor: context.colors.primary.withOpacity(0.4),
       child: InkWell(
         borderRadius: BorderRadius.circular(16.r),
         onTap: onTap,

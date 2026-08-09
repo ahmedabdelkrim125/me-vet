@@ -1,15 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../domain/mock_customers_repository.dart';
+import '../../../domain/models/customer_model.dart';
 import '../../../domain/models/route_stop_model.dart';
 import '../../../domain/models/visit_status.dart';
 import 'route_actions_bar.dart';
 import 'route_report_sheet.dart';
 import 'route_stop_tile.dart';
 import 'route_summary_card.dart';
+import 'route_visit_status_sheet.dart';
 import 'select_route_customers_sheet.dart';
 import 'unplanned_visit_button.dart';
 
@@ -44,6 +46,7 @@ class _RouteViewState extends State<RouteView>
     _stops = [
       for (int i = 0; i < customers.length; i++)
         RouteStopModel(
+          customerId: customers[i].id,
           order: i + 1,
           customerName: customers[i].name,
           area: customers[i].area,
@@ -58,9 +61,15 @@ class _RouteViewState extends State<RouteView>
     super.dispose();
   }
 
-  RouteVisitStatus _previousStatusFor(String customerName) {
-    final existing = _stops.where((s) => s.customerName == customerName);
+  RouteVisitStatus _previousStatusFor(String customerId) {
+    final existing = _stops.where((s) => s.customerId == customerId);
     return existing.isEmpty ? RouteVisitStatus.pending : existing.first.status;
+  }
+
+  void _renumber() {
+    _stops = [
+      for (int i = 0; i < _stops.length; i++) _stops[i].copyWith(order: i + 1),
+    ];
   }
 
   Future<void> _editRoute() async {
@@ -78,10 +87,11 @@ class _RouteViewState extends State<RouteView>
       _stops = [
         for (int i = 0; i < selected.length; i++)
           RouteStopModel(
+            customerId: selected[i].id,
             order: i + 1,
             customerName: selected[i].name,
             area: selected[i].area,
-            status: _previousStatusFor(selected[i].name),
+            status: _previousStatusFor(selected[i].id),
           ),
       ];
 
@@ -89,6 +99,51 @@ class _RouteViewState extends State<RouteView>
         ..duration = Duration(milliseconds: 500 + _stops.length * 80)
         ..reset()
         ..forward();
+    });
+  }
+
+  void _addUnplannedVisit(CustomerModel customer) {
+    if (_selectedCustomerIds.contains(customer.id)) return;
+    setState(() {
+      _selectedCustomerIds.add(customer.id);
+      _stops.add(
+        RouteStopModel(
+          customerId: customer.id,
+          order: _stops.length + 1,
+          customerName: customer.name,
+          area: customer.area,
+          status: RouteVisitStatus.pending,
+        ),
+      );
+      _entranceController
+        ..duration = Duration(milliseconds: 500 + _stops.length * 80)
+        ..reset()
+        ..forward();
+    });
+  }
+
+  void _reorderStops(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex -= 1;
+      final stop = _stops.removeAt(oldIndex);
+      _stops.insert(newIndex, stop);
+      _renumber();
+    });
+  }
+
+  void _updateStatus(String customerId, RouteVisitStatus status) {
+    setState(() {
+      final index = _stops.indexWhere((s) => s.customerId == customerId);
+      if (index == -1) return;
+      _stops[index] = _stops[index].copyWith(status: status);
+    });
+  }
+
+  void _removeStop(String customerId) {
+    setState(() {
+      _stops.removeWhere((s) => s.customerId == customerId);
+      _selectedCustomerIds.remove(customerId);
+      _renumber();
     });
   }
 
@@ -109,11 +164,11 @@ class _RouteViewState extends State<RouteView>
               child: Text(
                 'خط اليوم',
                 style: AppTextStyles.cairoBold18
-                    .copyWith(color: AppColors.primary, fontSize: 15.sp),
+                    .copyWith(color: context.colors.text, fontSize: 15.sp),
               ),
             ),
             Material(
-              color: AppColors.primaryGreen.withOpacity(0.1),
+              color: context.colors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12.r),
               child: InkWell(
                 borderRadius: BorderRadius.circular(12.r),
@@ -124,12 +179,12 @@ class _RouteViewState extends State<RouteView>
                   child: Row(
                     children: [
                       Icon(CupertinoIcons.pencil,
-                          size: 14.sp, color: AppColors.primaryGreen),
+                          size: 14.sp, color: context.colors.primary),
                       SizedBox(width: 6.w),
                       Text(
                         'تعديل خط اليوم',
                         style: AppTextStyles.cairoMedium16.copyWith(
-                            color: AppColors.primaryGreen, fontSize: 12.sp),
+                            color: context.colors.primary, fontSize: 12.sp),
                       ),
                     ],
                   ),
@@ -141,7 +196,10 @@ class _RouteViewState extends State<RouteView>
         SizedBox(height: 14.h),
         RouteSummaryCard(total: _stops.length, completed: completed),
         SizedBox(height: 14.h),
-        const UnplannedVisitButton(),
+        UnplannedVisitButton(
+          excludeIds: _selectedCustomerIds,
+          onCustomerSelected: _addUnplannedVisit,
+        ),
         SizedBox(height: 18.h),
         if (_stops.isEmpty)
           Padding(
@@ -150,23 +208,44 @@ class _RouteViewState extends State<RouteView>
               child: Text(
                 'لسه محددتش عملاء لخط اليوم',
                 style: AppTextStyles.cairoMedium16
-                    .copyWith(color: AppColors.navInactive, fontSize: 13.sp),
+                    .copyWith(color: context.colors.textMuted, fontSize: 13.sp),
               ),
             ),
           )
         else
-          for (int i = 0; i < _stops.length; i++)
-            _AnimatedStopTile(
-              index: i,
-              total: _stops.length,
-              controller: _entranceController,
-              stop: _stops[i],
-              isLast: i == _stops.length - 1,
-            ),
+          ReorderableListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            onReorder: _reorderStops,
+            itemCount: _stops.length,
+            itemBuilder: (context, index) {
+              final stop = _stops[index];
+              return _AnimatedStopTile(
+                key: ValueKey(stop.customerId),
+                index: index,
+                total: _stops.length,
+                controller: _entranceController,
+                stop: stop,
+                isLast: index == _stops.length - 1,
+                onTap: () => showRouteStopActionsSheet(
+                  context,
+                  stop: stop,
+                  onStatusChanged: (status) =>
+                      _updateStatus(stop.customerId, status),
+                  onRemove: () => _removeStop(stop.customerId),
+                ),
+              );
+            },
+          ),
         SizedBox(height: 8.h),
         RouteActionsBar(
           onReportTap: () => showRouteReportSheet(context, _stops),
-          onReloadTap: () {},
+          onReloadTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('تم إرسال طلب إعادة تحميل العربية')),
+            );
+          },
         ),
       ],
     );
@@ -179,13 +258,16 @@ class _AnimatedStopTile extends StatelessWidget {
   final AnimationController controller;
   final RouteStopModel stop;
   final bool isLast;
+  final VoidCallback onTap;
 
   const _AnimatedStopTile({
+    super.key,
     required this.index,
     required this.total,
     required this.controller,
     required this.stop,
     required this.isLast,
+    required this.onTap,
   });
 
   @override
@@ -209,7 +291,12 @@ class _AnimatedStopTile extends StatelessWidget {
           ),
         );
       },
-      child: RouteStopTile(stop: stop, isLast: isLast),
+      child: RouteStopTile(
+        stop: stop,
+        isLast: isLast,
+        index: index,
+        onTap: onTap,
+      ),
     );
   }
 }

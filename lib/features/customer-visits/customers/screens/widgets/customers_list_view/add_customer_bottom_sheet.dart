@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../domain/models/customer_model.dart';
@@ -75,7 +75,7 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.backgroundLight,
+          color: context.colors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         ),
         padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 20.h),
@@ -90,7 +90,7 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
                     width: 42.w,
                     height: 4.h,
                     decoration: BoxDecoration(
-                      color: AppColors.cardBorder,
+                      color: context.colors.border,
                       borderRadius: BorderRadius.circular(10.r),
                     ),
                   ),
@@ -99,7 +99,7 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
                 Text(
                   'إضافة عميل جديد',
                   style: AppTextStyles.cairoBold18
-                      .copyWith(color: AppColors.primary, fontSize: 16.sp),
+                      .copyWith(color: context.colors.text, fontSize: 16.sp),
                 ),
                 SizedBox(height: 18.h),
                 const _FieldLabel('اسم العميل'),
@@ -154,7 +154,7 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
                 ),
                 SizedBox(height: 22.h),
                 Material(
-                  color: AppColors.primaryGreen,
+                  color: context.colors.primary,
                   borderRadius: BorderRadius.circular(14.r),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14.r),
@@ -189,7 +189,7 @@ class _FieldLabel extends StatelessWidget {
     return Text(
       label,
       style: AppTextStyles.cairoMedium16
-          .copyWith(color: AppColors.primary, fontSize: 12.sp),
+          .copyWith(color: context.colors.primary, fontSize: 12.sp),
     );
   }
 }
@@ -216,26 +216,27 @@ class _CustomerTextField extends StatelessWidget {
         keyboardType: keyboardType,
         validator: validator,
         textAlign: TextAlign.right,
-        style: AppTextStyles.cairoRegular14.copyWith(color: AppColors.primary),
+        style:
+            AppTextStyles.cairoRegular14.copyWith(color: context.colors.text),
         decoration: InputDecoration(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: context.colors.surface,
           hintText: hint,
           hintStyle: AppTextStyles.almaraiRegular14
-              .copyWith(color: AppColors.navInactive, fontSize: 12.sp),
+              .copyWith(color: context.colors.textMuted, fontSize: 12.sp),
           contentPadding:
               EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.r),
-            borderSide: const BorderSide(color: AppColors.cardBorder),
+            borderSide: BorderSide(color: context.colors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.r),
-            borderSide: const BorderSide(color: AppColors.cardBorder),
+            borderSide: BorderSide(color: context.colors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.r),
-            borderSide: const BorderSide(color: AppColors.primaryGreen),
+            borderSide: BorderSide(color: context.colors.primary),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14.r),
@@ -267,11 +268,11 @@ class _CategoryChip extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryGreen.withOpacity(0.12)
-              : Colors.white,
+              ? context.colors.primary.withOpacity(0.12)
+              : context.colors.surface,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isSelected ? AppColors.primaryGreen : AppColors.cardBorder,
+            color: isSelected ? context.colors.primary : context.colors.border,
           ),
         ),
         child: Row(
@@ -279,14 +280,15 @@ class _CategoryChip extends StatelessWidget {
           children: [
             if (isSelected) ...[
               Icon(CupertinoIcons.check_mark,
-                  size: 13.sp, color: AppColors.primaryGreen),
+                  size: 13.sp, color: context.colors.primary),
               SizedBox(width: 6.w),
             ],
             Text(
               label,
               style: AppTextStyles.cairoMedium16.copyWith(
-                color:
-                    isSelected ? AppColors.primaryGreen : AppColors.navInactive,
+                color: isSelected
+                    ? context.colors.primary
+                    : context.colors.textMuted,
                 fontSize: 12.sp,
               ),
             ),

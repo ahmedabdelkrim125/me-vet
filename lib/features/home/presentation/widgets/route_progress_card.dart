@@ -78,62 +78,119 @@ class RouteProgressCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 20.h),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20.r),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8.h,
-              backgroundColor: Colors.white.withOpacity(0.15),
-              valueColor: const AlwaysStoppedAnimation(AppColors.primaryGreen),
-            ),
+          SizedBox(height: 24.h),
+          Row(
+            textDirection: TextDirection.ltr,
+            children: [
+              _CompletionRing(
+                completed: completedVisits,
+                total: totalVisits,
+                progress: progress,
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Row(
+                  textDirection: TextDirection.ltr,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _RouteStat(
+                      value: '$remaining',
+                      label: 'متبقي',
+                      color: AppColors.statOrange,
+                    ),
+                    const _StatDivider(),
+                    _RouteStat(
+                      value: '$completedVisits',
+                      label: 'تمت',
+                      color: AppColors.primaryGreen,
+                    ),
+                    const _StatDivider(),
+                    _RouteStat(
+                      value: '$totalVisits',
+                      label: 'عميل',
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 10.h),
-          Text(
-            '$completedVisits من $totalVisits زيارة مكتملة',
-            style: AppTextStyles.almaraiRegular14.copyWith(
-              color: Colors.white.withOpacity(0.75),
-            ),
-          ),
           SizedBox(height: 20.h),
-          if (context.isMobile) ...[
-            Row(
-              children: [
-                _RouteStat(value: '$totalVisits', label: 'عميل'),
-                _RouteStat(
-                  value: '$completedVisits',
-                  label: 'تمت',
-                  color: AppColors.primaryGreen,
-                ),
-                _RouteStat(
-                  value: '$remaining',
-                  label: 'متبقي',
-                  color: AppColors.statOrange,
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            _StartButton(buttonText: buttonText, expand: true),
-          ] else
-            Row(
-              children: [
-                _RouteStat(value: '$totalVisits', label: 'عميل'),
-                _RouteStat(
-                  value: '$completedVisits',
-                  label: 'تمت',
-                  color: AppColors.primaryGreen,
-                ),
-                _RouteStat(
-                  value: '$remaining',
-                  label: 'متبقي',
-                  color: AppColors.statOrange,
-                ),
-                const Spacer(),
-                _StartButton(buttonText: buttonText),
-              ],
-            ),
+          _StartButton(buttonText: buttonText, expand: true),
         ],
       ),
+    );
+  }
+}
+
+class _CompletionRing extends StatelessWidget {
+  final int completed;
+  final int total;
+  final double progress;
+
+  const _CompletionRing({
+    required this.completed,
+    required this.total,
+    required this.progress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 92.w,
+      height: 92.w,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 92.w,
+            height: 92.w,
+            child: CircularProgressIndicator(
+              value: progress == 0 ? 1 : progress,
+              strokeWidth: 6,
+              backgroundColor: Colors.white.withOpacity(0.15),
+              valueColor: AlwaysStoppedAnimation(
+                progress == 0
+                    ? Colors.white.withOpacity(0.15)
+                    : AppColors.primaryGreen,
+              ),
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$completed / $total',
+                style: AppTextStyles.cairoBold18.copyWith(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                'زيارة مكتملة',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.almaraiRegular14.copyWith(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 10.sp,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatDivider extends StatelessWidget {
+  const _StatDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 32.h,
+      color: Colors.white.withOpacity(0.15),
     );
   }
 }
@@ -151,22 +208,19 @@ class _RouteStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(left: 18.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(value, style: AppTextStyles.cairoBold18.copyWith(color: color)),
-          SizedBox(height: 2.h),
-          Text(
-            label,
-            style: AppTextStyles.almaraiRegular14.copyWith(
-              color: Colors.white.withOpacity(0.6),
-              fontSize: 11.sp,
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(value, style: AppTextStyles.cairoBold18.copyWith(color: color)),
+        SizedBox(height: 2.h),
+        Text(
+          label,
+          style: AppTextStyles.almaraiRegular14.copyWith(
+            color: Colors.white.withOpacity(0.6),
+            fontSize: 11.sp,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -186,8 +240,9 @@ class _StartButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(14.r),
         onTap: () {},
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
           child: Row(
+            spacing: 6.w,
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -198,8 +253,7 @@ class _StartButton extends StatelessWidget {
                   fontSize: 13.sp,
                 ),
               ),
-              SizedBox(width: 6.w),
-              Icon(Icons.arrow_back_rounded, color: Colors.white, size: 16.sp),
+              Icon(Icons.add, color: Colors.white, size: 18.sp),
             ],
           ),
         ),

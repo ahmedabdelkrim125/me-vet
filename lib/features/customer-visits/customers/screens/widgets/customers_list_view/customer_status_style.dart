@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import '../../../domain/models/customer_status.dart';
 
-Color customerStatusColor(CustomerStatus status) {
+Color customerStatusColor(BuildContext context, CustomerStatus status) {
   switch (status) {
     case CustomerStatus.active:
-      return AppColors.primaryGreen;
+      return context.colors.primary;
     case CustomerStatus.needsFollowUp:
-      return AppColors.statOrange;
+      return context.colors.statOrange;
     case CustomerStatus.stopped:
-      return AppColors.statusNotReached;
+      return context.colors.statusNotReached;
   }
 }

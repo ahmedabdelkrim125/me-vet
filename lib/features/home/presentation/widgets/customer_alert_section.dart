@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../domain/models/customer_alert_model.dart';
 
 class CustomerAlertSection extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final List<List<dynamic>> icon;
   final Color accentColor;
   final List<CustomerAlertModel> customers;
 
@@ -23,21 +24,21 @@ class CustomerAlertSection extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: accentColor, size: 18.sp),
+              HugeIcon(icon: icon, color: accentColor, size: 18.sp),
               SizedBox(width: 8.w),
               Text(
                 title,
                 style: AppTextStyles.cairoMedium16.copyWith(
-                  color: AppColors.primary,
+                  color: context.colors.primary,
                   fontSize: 14.sp,
                 ),
               ),
@@ -79,8 +80,8 @@ class _CustomerRow extends StatelessWidget {
             color: accentColor.withOpacity(0.12),
             borderRadius: BorderRadius.circular(12.r),
           ),
-          child: Icon(
-            Icons.storefront_outlined,
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedStore01,
             color: accentColor,
             size: 18.sp,
           ),
@@ -93,7 +94,7 @@ class _CustomerRow extends StatelessWidget {
               Text(
                 customer.name,
                 style: AppTextStyles.cairoMedium16.copyWith(
-                  color: AppColors.primary,
+                  color: context.colors.text,
                   fontSize: 13.sp,
                 ),
               ),
@@ -101,16 +102,16 @@ class _CustomerRow extends StatelessWidget {
               Text(
                 customer.subtitle,
                 style: AppTextStyles.almaraiRegular14.copyWith(
-                  color: AppColors.navInactive,
+                  color: context.colors.textMuted,
                   fontSize: 11.sp,
                 ),
               ),
             ],
           ),
         ),
-        Icon(
-          Icons.chevron_left_rounded,
-          color: AppColors.navInactive,
+        HugeIcon(
+          icon: HugeIcons.strokeRoundedArrowLeft01,
+          color: context.colors.textMuted,
           size: 18.sp,
         ),
       ],

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
@@ -35,13 +35,13 @@ class CustomerFilterBar extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.primaryGreen.withOpacity(0.12)
-                    : Colors.white,
+                    ? context.colors.primary.withOpacity(0.12)
+                    : context.colors.surface,
                 borderRadius: BorderRadius.circular(10.r),
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.primaryGreen
-                      : AppColors.cardBorder,
+                      ? context.colors.primary
+                      : context.colors.border,
                 ),
               ),
               child: Row(
@@ -51,8 +51,8 @@ class CustomerFilterBar extends StatelessWidget {
                     _filters[index],
                     style: AppTextStyles.cairoMedium16.copyWith(
                       color: isSelected
-                          ? AppColors.primaryGreen
-                          : AppColors.navInactive,
+                          ? context.colors.primary
+                          : context.colors.textMuted,
                       fontSize: 12.sp,
                     ),
                   ),
@@ -62,13 +62,13 @@ class CustomerFilterBar extends StatelessWidget {
                       padding:
                           EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withOpacity(0.14),
+                        color: context.colors.primary.withOpacity(0.14),
                         borderRadius: BorderRadius.circular(999.r),
                       ),
                       child: Text(
                         '${counts[index]}',
                         style: AppTextStyles.cairoMedium16.copyWith(
-                          color: AppColors.primaryGreen,
+                          color: context.colors.primary,
                           fontSize: 10.sp,
                         ),
                       ),
