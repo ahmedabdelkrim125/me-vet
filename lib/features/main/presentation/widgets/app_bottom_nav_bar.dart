@@ -70,9 +70,9 @@
 //   }
 // }
 import 'package:flutter/material.dart';
-import 'package:flashy_tab_bar2/flashy_tab_bar2.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'nav_items.dart';
@@ -116,38 +116,49 @@ class AppBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildTitle(BuildContext context, String text, int index) {
-    final isSelected = selectedIndex == index;
-
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: AppTextStyles.cairoRegular14.copyWith(
-        fontSize: isSelected ? 12.5.sp : 11.sp,
-        color: isSelected ? context.colors.primary : context.colors.textMuted,
-        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FlashyTabBar(
-      selectedIndex: selectedIndex,
-      height: 68.h,
-      showElevation: true,
-      animationCurve: Curves.easeOutQuint,
-      backgroundColor: context.colors.surface,
-      onItemSelected: onTabChange,
-      items: List.generate(appNavItems.length, (index) {
-        final item = appNavItems[index];
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryGreenDark.withOpacity(0.10),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+          child: BottomNavigationBar(
+            currentIndex: selectedIndex,
+            onTap: onTabChange,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: context.colors.surface,
+            selectedItemColor: context.colors.primary,
+            unselectedItemColor: context.colors.textMuted,
+            selectedLabelStyle: AppTextStyles.cairoMedium16.copyWith(
+              color: context.colors.primary,
+              fontSize: 13.sp,
+            ),
+            unselectedLabelStyle: AppTextStyles.cairoMedium16.copyWith(
+              color: context.colors.textMuted,
+              fontSize: 13.sp,
+            ),
+            elevation: 0,
+            items: List.generate(appNavItems.length, (index) {
+              final item = appNavItems[index];
 
-        return FlashyTabBarItem(
-          icon: _buildIcon(context, item.icon, index),
-          title: _buildTitle(context, item.label, index),
-        );
-      }),
+              return BottomNavigationBarItem(
+                icon: _buildIcon(context, item.icon, index),
+                label: item.label,
+              );
+            }),
+          ),
+        ),
+      ),
     );
   }
 }
