@@ -1,12 +1,13 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../domain/mock_customers_repository.dart';
-import '../../../domain/models/customer_model.dart';
-import '../../../domain/models/customer_status.dart';
-import '../customers_list_view/customer_status_style.dart';
+import '../../../../domain/mock_customers_repository.dart';
+import '../../../../domain/models/customer_model.dart';
+import '../../../../domain/models/customer_status.dart';
+import '../../customers_list_view/customer_status_style.dart';
+import 'status_menu_item.dart';
 
 class CustomerDetailHeader extends StatelessWidget {
   final CustomerModel customer;
@@ -16,16 +17,20 @@ class CustomerDetailHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = customerStatusColor(context, customer.status);
+    final colors = context.colors;
 
     return Container(
-      color: context.colors.surface,
+      color: colors.surface,
       padding: EdgeInsets.fromLTRB(12.w, 12.h, 16.w, 16.h),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(CupertinoIcons.back,
-                color: context.colors.primary, size: 22.sp),
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowLeft01,
+              color: colors.primary,
+              size: 22.sp,
+            ),
           ),
           Expanded(
             child: Column(
@@ -34,13 +39,13 @@ class CustomerDetailHeader extends StatelessWidget {
                 Text(
                   customer.name,
                   style: AppTextStyles.cairoBold18
-                      .copyWith(color: context.colors.primary, fontSize: 16.sp),
+                      .copyWith(color: colors.primary, fontSize: 16.sp),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   '${customer.code} · ${customer.category} · ${customer.area}',
-                  style: AppTextStyles.almaraiRegular14.copyWith(
-                      color: context.colors.textMuted, fontSize: 11.sp),
+                  style: AppTextStyles.almaraiRegular14
+                      .copyWith(color: colors.textMuted, fontSize: 11.sp),
                 ),
               ],
             ),
@@ -63,32 +68,12 @@ class CustomerDetailHeader extends StatelessWidget {
                   .updateCustomerStatus(customer.id, status);
             },
             itemBuilder: (context) => [
-              _buildMenuItem(context, CustomerStatus.active, customer.status),
-              _buildMenuItem(
+              statusMenuItem(context, CustomerStatus.active, customer.status),
+              statusMenuItem(
                   context, CustomerStatus.needsFollowUp, customer.status),
-              _buildMenuItem(context, CustomerStatus.stopped, customer.status),
+              statusMenuItem(context, CustomerStatus.stopped, customer.status),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  PopupMenuEntry<CustomerStatus> _buildMenuItem(
-    BuildContext context,
-    CustomerStatus status,
-    CustomerStatus currentStatus,
-  ) {
-    return PopupMenuItem<CustomerStatus>(
-      value: status,
-      child: Row(
-        children: [
-          Icon(
-            status == currentStatus ? CupertinoIcons.checkmark_alt : null,
-            color: customerStatusColor(context, status),
-          ),
-          SizedBox(width: 8.w),
-          Text(status.label),
         ],
       ),
     );

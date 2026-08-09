@@ -1,469 +1,6 @@
-// import 'dart:math';
-// import 'package:flutter/material.dart';
-// import 'package:mivet_app/core/theme/app_colors.dart';
-// import 'package:mivet_app/core/theme/app_text_styles.dart';
-// import 'package:mivet_app/core/utils/responsive_extension.dart';
-
-// class QuickInvoiceDialog extends StatefulWidget {
-//   const QuickInvoiceDialog({super.key});
-
-//   @override
-//   State<QuickInvoiceDialog> createState() => _QuickInvoiceDialogState();
-// }
-
-// class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
-//   late String invoiceCode;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     invoiceCode = 'INV-${Random().nextInt(999999).toString().padLeft(6, '0')}';
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Dialog(
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.r)),
-//       backgroundColor: Colors.white,
-//       insetPadding: EdgeInsets.symmetric(
-//         horizontal: context.isMobile ? 16.w : context.screenWidth * 0.2,
-//         vertical: 24.h,
-//       ),
-//       child: ClipRRect(
-//         borderRadius: BorderRadius.circular(24.r),
-//         child: SizedBox(
-//           width: double.infinity,
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               Container(
-//                 padding: EdgeInsets.all(20.w),
-//                 decoration: const BoxDecoration(
-//                   color: AppColors.primary,
-//                 ),
-//                 child: Row(
-//                   children: [
-//                     Container(
-//                       padding: EdgeInsets.symmetric(
-//                           horizontal: 12.w, vertical: 6.h),
-//                       decoration: BoxDecoration(
-//                         color: Colors.white.withOpacity(0.15),
-//                         borderRadius: BorderRadius.circular(8.r),
-//                       ),
-//                       child: Text(
-//                         'Mevet',
-//                         style: AppTextStyles.cairoBold18.copyWith(
-//                           color: Colors.white,
-//                           fontSize: 14.sp,
-//                         ),
-//                       ),
-//                     ),
-//                     SizedBox(width: 12.w),
-//                     Expanded(
-//                       child: Column(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Text(
-//                             'فاتورة جديدة',
-//                             style: AppTextStyles.cairoBold18.copyWith(
-//                               color: Colors.white,
-//                             ),
-//                           ),
-//                           SizedBox(height: 2.h),
-//                           Text(
-//                             'رقم: $invoiceCode',
-//                             style: AppTextStyles.almaraiRegular14.copyWith(
-//                               color: Colors.white70,
-//                               fontSize: 12.sp,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                     ),
-//                     IconButton(
-//                       onPressed: () => Navigator.pop(context),
-//                       icon: Icon(Icons.close_rounded,
-//                           color: Colors.white, size: 24.sp),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//               Flexible(
-//                 child: SingleChildScrollView(
-//                   padding: EdgeInsets.all(20.w),
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.stretch,
-//                     children: [
-//                       Row(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Expanded(
-//                             child: Column(
-//                               crossAxisAlignment: CrossAxisAlignment.start,
-//                               children: [
-//                                 Text(
-//                                   'صيدلية الشفاء البيطرية',
-//                                   style: AppTextStyles.cairoBold18.copyWith(
-//                                     color: AppColors.primary,
-//                                   ),
-//                                 ),
-//                                 SizedBox(height: 4.h),
-//                                 Row(
-//                                   children: [
-//                                     Icon(Icons.location_on_outlined,
-//                                         size: 14.sp,
-//                                         color: AppColors.navInactive),
-//                                     SizedBox(width: 4.w),
-//                                     Text(
-//                                       'المنصورة، شارع الجمهورية',
-//                                       style: AppTextStyles.almaraiRegular14
-//                                           .copyWith(
-//                                         color: AppColors.navInactive,
-//                                         fontSize: 12.sp,
-//                                       ),
-//                                     ),
-//                                   ],
-//                                 ),
-//                                 SizedBox(height: 4.h),
-//                                 Row(
-//                                   children: [
-//                                     Icon(Icons.person_outline_rounded,
-//                                         size: 14.sp,
-//                                         color: AppColors.navInactive),
-//                                     SizedBox(width: 4.w),
-//                                     Text(
-//                                       'المندوب: أحمد محمود',
-//                                       style: AppTextStyles.almaraiRegular14
-//                                           .copyWith(
-//                                         color: AppColors.navInactive,
-//                                         fontSize: 12.sp,
-//                                       ),
-//                                     ),
-//                                   ],
-//                                 ),
-//                               ],
-//                             ),
-//                           ),
-//                           Container(
-//                             padding: EdgeInsets.symmetric(
-//                                 horizontal: 12.w, vertical: 6.h),
-//                             decoration: BoxDecoration(
-//                               color: AppColors.primaryGreen.withOpacity(0.12),
-//                               borderRadius: BorderRadius.circular(20.r),
-//                             ),
-//                             child: Row(
-//                               mainAxisSize: MainAxisSize.min,
-//                               children: [
-//                                 Container(
-//                                   width: 8.w,
-//                                   height: 8.w,
-//                                   decoration: const BoxDecoration(
-//                                     color: AppColors.primaryGreen,
-//                                     shape: BoxShape.circle,
-//                                   ),
-//                                 ),
-//                                 SizedBox(width: 6.w),
-//                                 Text(
-//                                   'عميل نشط',
-//                                   style: AppTextStyles.cairoMedium16.copyWith(
-//                                     color: AppColors.primaryGreen,
-//                                     fontSize: 12.sp,
-//                                   ),
-//                                 ),
-//                               ],
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       SizedBox(height: 20.h),
-//                       Row(
-//                         children: [
-//                           const  Expanded(
-//                             child:   _FinancialCard(
-//                               title: 'حد الائتمان',
-//                               value: '10,000 ج',
-//                               icon: Icons.account_balance_wallet_outlined,
-//                               color: AppColors.statBlue,
-//                             ),
-//                           ),
-//                           SizedBox(width: 12.w),
-//                            const Expanded(
-//                             child:  _FinancialCard(
-//                               title: 'الرصيد الحالي',
-//                               value: '4,500 ج',
-//                               icon: Icons.money_outlined,
-//                               color: AppColors.statOrange,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       SizedBox(height: 16.h),
-//                       InkWell(
-//                         onTap: () {},
-//                         borderRadius: BorderRadius.circular(12.r),
-//                         child: Container(
-//                           padding: EdgeInsets.all(12.w),
-//                           decoration: BoxDecoration(
-//                             border: Border.all(color: AppColors.cardBorder),
-//                             borderRadius: BorderRadius.circular(12.r),
-//                           ),
-//                           child: Row(
-//                             children: [
-//                               Icon(Icons.receipt_long_outlined,
-//                                   color: AppColors.primary, size: 20.sp),
-//                               SizedBox(width: 10.w),
-//                               Expanded(
-//                                 child: Text(
-//                                   'كشف الحساب — آخر 6 شهور',
-//                                   style: AppTextStyles.cairoMedium16.copyWith(
-//                                     color: AppColors.primary,
-//                                     fontSize: 14.sp,
-//                                   ),
-//                                 ),
-//                               ),
-//                               Icon(Icons.chevron_left_rounded,
-//                                   color: AppColors.navInactive, size: 20.sp),
-//                             ],
-//                           ),
-//                         ),
-//                       ),
-//                       SizedBox(height: 20.h),
-//                       Text(
-//                         'تحليل مشتريات العميل',
-//                         style: AppTextStyles.cairoBold18.copyWith(
-//                           color: AppColors.primary,
-//                           fontSize: 14.sp,
-//                         ),
-//                       ),
-//                       SizedBox(height: 12.h),
-//                       Row(
-//                         children: [
-//                           const   Expanded(
-//                             child: _InsightBadge(
-//                               title: 'أكثر المنتجات شراءً',
-//                               items: ['فيتامين C بيطري', 'مضاد حيوي شامل'],
-//                               color: AppColors.primaryGreen,
-//                               icon: Icons.trending_up_rounded,
-//                             ),
-//                           ),
-//                           SizedBox(width: 12.w),
-//                           const  Expanded(
-//                             child:  _InsightBadge(
-//                               title: 'لم يشترها منذ فترة',
-//                               items: ['كالسيوم بلس', 'مضاد سموم'],
-//                               color: AppColors.statOrange,
-//                               icon: Icons.history_rounded,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       SizedBox(height: 20.h),
-//                       TextField(
-//                         maxLines: 3,
-//                         decoration: InputDecoration(
-//                           hintText: '📝 ملاحظات المندوب...',
-//                           hintStyle: AppTextStyles.almaraiRegular14.copyWith(
-//                             color: AppColors.navInactive,
-//                           ),
-//                           filled: true,
-//                           fillColor: AppColors.backgroundLight,
-//                           border: OutlineInputBorder(
-//                             borderRadius: BorderRadius.circular(12.r),
-//                             borderSide: BorderSide.none,
-//                           ),
-//                           contentPadding: EdgeInsets.all(16.w),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ),
-//               Container(
-//                 padding: EdgeInsets.all(20.w),
-//                 decoration: const  BoxDecoration(
-//                   color: Colors.white,
-//                   border: Border(
-//                     top:   BorderSide(color: AppColors.cardBorder),
-//                   ),
-//                 ),
-//                 child: Row(
-//                   children: [
-//                     Expanded(
-//                       child: ElevatedButton.icon(
-//                         onPressed: () {},
-//                         style: ElevatedButton.styleFrom(
-//                           backgroundColor: AppColors.primaryGreen,
-//                           padding: EdgeInsets.symmetric(vertical: 14.h),
-//                           shape: RoundedRectangleBorder(
-//                             borderRadius: BorderRadius.circular(12.r),
-//                           ),
-//                         ),
-//                         icon: Icon(Icons.add_shopping_cart_rounded,
-//                             color: Colors.white, size: 20.sp),
-//                         label: Text(
-//                           'إضافة منتجات للفاتورة',
-//                           style: AppTextStyles.cairoMedium16.copyWith(
-//                             color: Colors.white,
-//                             fontSize: 14.sp,
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-//                     SizedBox(width: 12.w),
-//                     Material(
-//                       color: const Color(0xFF25D366).withOpacity(0.12),
-//                       borderRadius: BorderRadius.circular(12.r),
-//                       child: InkWell(
-//                         borderRadius: BorderRadius.circular(12.r),
-//                         onTap: () {},
-//                         child: Container(
-//                           padding: EdgeInsets.symmetric(
-//                               horizontal: 20.w, vertical: 14.h),
-//                           child: Icon(
-//                             Icons.chat_outlined,
-//                             color: const Color(0xFF25D366),
-//                             size: 24.sp,
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// class _FinancialCard extends StatelessWidget {
-//   final String title;
-//   final String value;
-//   final IconData icon;
-//   final Color color;
-
-//   const _FinancialCard({
-//     required this.title,
-//     required this.value,
-//     required this.icon,
-//     required this.color,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       padding: EdgeInsets.all(12.w),
-//       decoration: BoxDecoration(
-//         color: color.withOpacity(0.05),
-//         borderRadius: BorderRadius.circular(12.r),
-//         border: Border.all(color: color.withOpacity(0.15)),
-//       ),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Row(
-//             children: [
-//               Icon(icon, color: color, size: 16.sp),
-//               SizedBox(width: 6.w),
-//               Text(
-//                 title,
-//                 style: AppTextStyles.almaraiRegular14.copyWith(
-//                   color: color.withOpacity(0.8),
-//                   fontSize: 11.sp,
-//                 ),
-//               ),
-//             ],
-//           ),
-//           SizedBox(height: 8.h),
-//           Text(
-//             value,
-//             style: AppTextStyles.cairoBold18.copyWith(
-//               color: color,
-//               fontSize: 16.sp,
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-// class _InsightBadge extends StatelessWidget {
-//   final String title;
-//   final List<String> items;
-//   final Color color;
-//   final IconData icon;
-
-//   const _InsightBadge({
-//     required this.title,
-//     required this.items,
-//     required this.color,
-//     required this.icon,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       padding: EdgeInsets.all(12.w),
-//       decoration: BoxDecoration(
-//         color: AppColors.backgroundLight,
-//         borderRadius: BorderRadius.circular(12.r),
-//         border: Border.all(color: AppColors.cardBorder),
-//       ),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Row(
-//             children: [
-//               Icon(icon, color: color, size: 14.sp),
-//               SizedBox(width: 6.w),
-//               Expanded(
-//                 child: Text(
-//                   title,
-//                   style: AppTextStyles.cairoMedium16.copyWith(
-//                     color: color,
-//                     fontSize: 12.sp,
-//                   ),
-//                 ),
-//               ),
-//             ],
-//           ),
-//           SizedBox(height: 8.h),
-//           ...items.map((item) => Padding(
-//                 padding: EdgeInsets.only(bottom: 4.h),
-//                 child: Row(
-//                   children: [
-//                     Container(
-//                       width: 4.w,
-//                       height: 4.w,
-//                       decoration: const BoxDecoration(
-//                         color: AppColors.navInactive,
-//                         shape: BoxShape.circle,
-//                       ),
-//                     ),
-//                     SizedBox(width: 6.w),
-//                     Expanded(
-//                       child: Text(
-//                         item,
-//                         style: AppTextStyles.almaraiRegular14.copyWith(
-//                           color: AppColors.primary,
-//                           fontSize: 11.sp,
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               )),
-//         ],
-//       ),
-//     );
-//   }
-// }
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../domain/models/quick_invoice_models.dart';
@@ -653,6 +190,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   }
 
   void _issueInvoice() {
+    final colors = context.colors;
     if (customer == null) {
       _toast('اختر العميل أولًا');
       return;
@@ -664,7 +202,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: AppColors.primaryGreen,
+        backgroundColor: colors.primary,
         content: Text(
           'تم إصدار الفاتورة $invoiceNumber بإجمالي ${_money(grandTotal)}',
           style: AppTextStyles.cairoMedium16
@@ -682,9 +220,10 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       insetPadding: EdgeInsets.symmetric(
         horizontal: context.isMobile ? 12.w : context.screenWidth * 0.18,
         vertical: 24.h,
@@ -788,13 +327,14 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: EdgeInsets.all(20.w),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.secondary],
+          colors: [colors.heroBackground, colors.secondary],
         ),
       ),
       child: Row(
@@ -855,14 +395,15 @@ class _RepChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
-        Icon(Icons.badge_outlined, size: 15.sp, color: AppColors.navInactive),
+        Icon(Icons.badge_outlined, size: 15.sp, color: colors.textMuted),
         SizedBox(width: 6.w),
         Text(
           'المندوب: $name',
           style: AppTextStyles.almaraiRegular14.copyWith(
-            color: AppColors.navInactive,
+            color: colors.textMuted,
             fontSize: 12.sp,
           ),
         ),
@@ -881,15 +422,16 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: colors.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.04),
+            color: colors.subtleShadow,
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -909,14 +451,15 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
-        Icon(icon, size: 16.sp, color: AppColors.primaryGreen),
+        Icon(icon, size: 16.sp, color: colors.primary),
         SizedBox(width: 8.w),
         Text(
           title,
           style: AppTextStyles.cairoMedium16.copyWith(
-            color: AppColors.primary,
+            color: colors.text,
             fontSize: 13.sp,
           ),
         ),
@@ -937,6 +480,7 @@ class _CustomerEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -944,7 +488,7 @@ class _CustomerEmptyState extends StatelessWidget {
             icon: Icons.storefront_outlined, title: 'بيانات العميل'),
         SizedBox(height: 12.h),
         Material(
-          color: AppColors.backgroundLight,
+          color: colors.background,
           borderRadius: BorderRadius.circular(14.r),
           child: InkWell(
             onTap: onPick,
@@ -954,7 +498,7 @@ class _CustomerEmptyState extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14.r),
                 border: Border.all(
-                  color: AppColors.primaryGreen.withOpacity(0.35),
+                  color: colors.primary.withOpacity(0.35),
                   width: 1.2,
                 ),
               ),
@@ -964,24 +508,24 @@ class _CustomerEmptyState extends StatelessWidget {
                     width: 40.w,
                     height: 40.w,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withOpacity(0.12),
+                      color: colors.primary.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Icon(Icons.person_search_rounded,
-                        color: AppColors.primaryGreen, size: 20.sp),
+                        color: colors.primary, size: 20.sp),
                   ),
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
                       'اختر العميل لبدء إصدار الفاتورة',
                       style: AppTextStyles.cairoMedium16.copyWith(
-                        color: AppColors.primary,
+                        color: colors.text,
                         fontSize: 13.sp,
                       ),
                     ),
                   ),
                   Icon(Icons.chevron_left_rounded,
-                      color: AppColors.primaryGreen, size: 20.sp),
+                      color: colors.primary, size: 20.sp),
                 ],
               ),
             ),
@@ -1000,6 +544,7 @@ class _CustomerInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1009,7 +554,7 @@ class _CustomerInfo extends StatelessWidget {
               child: Text(
                 customer.name,
                 style: AppTextStyles.cairoBold18
-                    .copyWith(color: AppColors.primary, fontSize: 15.sp),
+                    .copyWith(color: colors.text, fontSize: 15.sp),
               ),
             ),
             TextButton(
@@ -1017,7 +562,7 @@ class _CustomerInfo extends StatelessWidget {
               child: Text(
                 'تغيير',
                 style: AppTextStyles.cairoMedium16.copyWith(
-                  color: AppColors.primaryGreen,
+                  color: colors.primary,
                   fontSize: 12.sp,
                 ),
               ),
@@ -1028,13 +573,13 @@ class _CustomerInfo extends StatelessWidget {
         Row(
           children: [
             Icon(Icons.location_on_outlined,
-                size: 14.sp, color: AppColors.navInactive),
+                size: 14.sp, color: colors.textMuted),
             SizedBox(width: 4.w),
             Expanded(
               child: Text(
                 customer.address,
                 style: AppTextStyles.almaraiRegular14
-                    .copyWith(color: AppColors.navInactive, fontSize: 12.sp),
+                    .copyWith(color: colors.textMuted, fontSize: 12.sp),
               ),
             ),
           ],
@@ -1042,13 +587,12 @@ class _CustomerInfo extends StatelessWidget {
         SizedBox(height: 4.h),
         Row(
           children: [
-            Icon(Icons.call_outlined,
-                size: 14.sp, color: AppColors.navInactive),
+            Icon(Icons.call_outlined, size: 14.sp, color: colors.textMuted),
             SizedBox(width: 4.w),
             Text(
               customer.phone,
               style: AppTextStyles.almaraiRegular14
-                  .copyWith(color: AppColors.navInactive, fontSize: 12.sp),
+                  .copyWith(color: colors.textMuted, fontSize: 12.sp),
             ),
           ],
         ),
@@ -1070,6 +614,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final filtered = widget.customers
         .where((c) => c.name.toLowerCase().contains(query.toLowerCase()))
         .toList();
@@ -1082,12 +627,14 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
         children: [
           TextField(
             onChanged: (v) => setState(() => query = v),
+            style: TextStyle(color: colors.text),
             decoration: InputDecoration(
               hintText: 'ابحث باسم العميل...',
+              hintStyle: TextStyle(color: colors.textMuted),
               prefixIcon: Icon(Icons.search_rounded,
-                  size: 20.sp, color: AppColors.navInactive),
+                  size: 20.sp, color: colors.textMuted),
               filled: true,
-              fillColor: AppColors.backgroundLight,
+              fillColor: colors.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide.none,
@@ -1101,7 +648,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
             (c) => Padding(
               padding: EdgeInsets.only(bottom: 10.h),
               child: Material(
-                color: AppColors.backgroundLight,
+                color: colors.background,
                 borderRadius: BorderRadius.circular(14.r),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14.r),
@@ -1114,11 +661,11 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
                           width: 38.w,
                           height: 38.w,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryGreen.withOpacity(0.12),
+                            color: colors.primary.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(12.r),
                           ),
                           child: Icon(Icons.storefront_outlined,
-                              color: AppColors.primaryGreen, size: 18.sp),
+                              color: colors.primary, size: 18.sp),
                         ),
                         SizedBox(width: 10.w),
                         Expanded(
@@ -1128,7 +675,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
                               Text(
                                 c.name,
                                 style: AppTextStyles.cairoMedium16.copyWith(
-                                  color: AppColors.primary,
+                                  color: colors.text,
                                   fontSize: 13.sp,
                                 ),
                               ),
@@ -1136,7 +683,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
                               Text(
                                 c.address,
                                 style: AppTextStyles.almaraiRegular14.copyWith(
-                                  color: AppColors.navInactive,
+                                  color: colors.textMuted,
                                   fontSize: 11.sp,
                                 ),
                               ),
@@ -1144,7 +691,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
                           ),
                         ),
                         Icon(Icons.chevron_left_rounded,
-                            color: AppColors.navInactive, size: 18.sp),
+                            color: colors.textMuted, size: 18.sp),
                       ],
                     ),
                   ),
@@ -1159,7 +706,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
                 child: Text(
                   'لا يوجد عملاء مطابقين',
                   style: AppTextStyles.almaraiRegular14
-                      .copyWith(color: AppColors.navInactive),
+                      .copyWith(color: colors.textMuted),
                 ),
               ),
             ),
@@ -1190,6 +737,7 @@ class _InvoiceMetaSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1220,7 +768,7 @@ class _InvoiceMetaSection extends StatelessWidget {
         Text(
           'نوع البيع',
           style: AppTextStyles.almaraiRegular14
-              .copyWith(color: AppColors.navInactive, fontSize: 12.sp),
+              .copyWith(color: colors.textMuted, fontSize: 12.sp),
         ),
         SizedBox(height: 8.h),
         Row(
@@ -1264,13 +812,14 @@ class _TappableField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12.r),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
         decoration: BoxDecoration(
-          color: AppColors.backgroundLight,
+          color: colors.background,
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Column(
@@ -1278,15 +827,15 @@ class _TappableField extends StatelessWidget {
           children: [
             Text(label,
                 style: AppTextStyles.almaraiRegular14
-                    .copyWith(color: AppColors.navInactive, fontSize: 11.sp)),
+                    .copyWith(color: colors.textMuted, fontSize: 11.sp)),
             SizedBox(height: 4.h),
             Row(
               children: [
-                Icon(icon, size: 15.sp, color: AppColors.primary),
+                Icon(icon, size: 15.sp, color: colors.text),
                 SizedBox(width: 6.w),
                 Text(value,
                     style: AppTextStyles.cairoMedium16
-                        .copyWith(color: AppColors.primary, fontSize: 13.sp)),
+                        .copyWith(color: colors.text, fontSize: 13.sp)),
               ],
             ),
           ],
@@ -1306,10 +855,11 @@ class _StaticField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLight,
+        color: colors.background,
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
@@ -1317,17 +867,17 @@ class _StaticField extends StatelessWidget {
         children: [
           Text(label,
               style: AppTextStyles.almaraiRegular14
-                  .copyWith(color: AppColors.navInactive, fontSize: 11.sp)),
+                  .copyWith(color: colors.textMuted, fontSize: 11.sp)),
           SizedBox(height: 4.h),
           Row(
             children: [
-              Icon(icon, size: 15.sp, color: AppColors.primary),
+              Icon(icon, size: 15.sp, color: colors.text),
               SizedBox(width: 6.w),
               Expanded(
                 child: Text(
                   value,
                   style: AppTextStyles.cairoMedium16
-                      .copyWith(color: AppColors.primary, fontSize: 13.sp),
+                      .copyWith(color: colors.text, fontSize: 13.sp),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -1354,8 +904,9 @@ class _SaleTypeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Material(
-      color: selected ? AppColors.primaryGreen : AppColors.backgroundLight,
+      color: selected ? colors.primary : colors.background,
       borderRadius: BorderRadius.circular(12.r),
       child: InkWell(
         borderRadius: BorderRadius.circular(12.r),
@@ -1367,12 +918,12 @@ class _SaleTypeOption extends StatelessWidget {
             children: [
               Icon(icon,
                   size: 15.sp,
-                  color: selected ? Colors.white : AppColors.navInactive),
+                  color: selected ? Colors.white : colors.textMuted),
               SizedBox(width: 6.w),
               Text(
                 label,
                 style: AppTextStyles.cairoMedium16.copyWith(
-                  color: selected ? Colors.white : AppColors.primary,
+                  color: selected ? Colors.white : colors.text,
                   fontSize: 12.sp,
                 ),
               ),
@@ -1394,6 +945,7 @@ class _FinancialSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final nearLimit = customer.currentBalance > customer.creditLimit * 0.8;
     return Row(
       children: [
@@ -1402,7 +954,7 @@ class _FinancialSummaryRow extends StatelessWidget {
             title: 'حد الائتمان',
             value: _money(customer.creditLimit),
             icon: Icons.verified_user_outlined,
-            color: AppColors.statBlue,
+            color: colors.statBlue,
           ),
         ),
         SizedBox(width: 10.w),
@@ -1411,7 +963,7 @@ class _FinancialSummaryRow extends StatelessWidget {
             title: 'الرصيد الحالي',
             value: _money(customer.currentBalance),
             icon: Icons.account_balance_wallet_outlined,
-            color: nearLimit ? Colors.redAccent : AppColors.statOrange,
+            color: nearLimit ? colors.statusNotReached : colors.statOrange,
           ),
         ),
         SizedBox(width: 10.w),
@@ -1420,7 +972,7 @@ class _FinancialSummaryRow extends StatelessWidget {
             title: 'آخر سداد',
             value: _date(customer.lastPaymentDate),
             icon: Icons.event_available_outlined,
-            color: AppColors.primaryGreen,
+            color: colors.primary,
           ),
         ),
       ],
@@ -1446,9 +998,9 @@ class _FinancialCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: color.withOpacity(0.18)),
+        border: Border.all(color: color.withOpacity(0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1466,7 +1018,7 @@ class _FinancialCard extends StatelessWidget {
           Text(
             title,
             style: AppTextStyles.almaraiRegular14
-                .copyWith(color: color.withOpacity(0.8), fontSize: 10.sp),
+                .copyWith(color: color.withOpacity(0.85), fontSize: 10.sp),
           ),
         ],
       ),
@@ -1484,8 +1036,9 @@ class _StatementTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Material(
-      color: Colors.white,
+      color: colors.surface,
       borderRadius: BorderRadius.circular(14.r),
       child: InkWell(
         onTap: onTap,
@@ -1493,23 +1046,23 @@ class _StatementTile extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.all(14.w),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: colors.border),
             borderRadius: BorderRadius.circular(14.r),
           ),
           child: Row(
             children: [
               Icon(Icons.receipt_long_outlined,
-                  color: AppColors.primary, size: 20.sp),
+                  color: colors.text, size: 20.sp),
               SizedBox(width: 10.w),
               Expanded(
                 child: Text(
                   'كشف الحساب — آخر 6 شهور',
                   style: AppTextStyles.cairoMedium16
-                      .copyWith(color: AppColors.primary, fontSize: 13.sp),
+                      .copyWith(color: colors.text, fontSize: 13.sp),
                 ),
               ),
               Icon(Icons.chevron_left_rounded,
-                  color: AppColors.navInactive, size: 20.sp),
+                  color: colors.textMuted, size: 20.sp),
             ],
           ),
         ),
@@ -1526,6 +1079,7 @@ class _StatementSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return _BottomSheetShell(
       title: 'كشف حساب — ${customer.name}',
       icon: Icons.receipt_long_outlined,
@@ -1537,7 +1091,7 @@ class _StatementSheet extends StatelessWidget {
                 margin: EdgeInsets.only(bottom: 10.h),
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
-                  color: AppColors.backgroundLight,
+                  color: colors.background,
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Row(
@@ -1548,12 +1102,11 @@ class _StatementSheet extends StatelessWidget {
                         children: [
                           Text(e.invoiceNumber,
                               style: AppTextStyles.cairoMedium16.copyWith(
-                                  color: AppColors.primary, fontSize: 12.sp)),
+                                  color: colors.text, fontSize: 12.sp)),
                           SizedBox(height: 2.h),
                           Text(_date(e.date),
                               style: AppTextStyles.almaraiRegular14.copyWith(
-                                  color: AppColors.navInactive,
-                                  fontSize: 11.sp)),
+                                  color: colors.textMuted, fontSize: 11.sp)),
                         ],
                       ),
                     ),
@@ -1562,8 +1115,8 @@ class _StatementSheet extends StatelessWidget {
                           EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                       decoration: BoxDecoration(
                         color: (e.status == 'مدفوعة'
-                                ? AppColors.primaryGreen
-                                : AppColors.statOrange)
+                                ? colors.primary
+                                : colors.statOrange)
                             .withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8.r),
                       ),
@@ -1571,16 +1124,16 @@ class _StatementSheet extends StatelessWidget {
                         e.status,
                         style: AppTextStyles.almaraiRegular14.copyWith(
                           color: e.status == 'مدفوعة'
-                              ? AppColors.primaryGreen
-                              : AppColors.statOrange,
+                              ? colors.primary
+                              : colors.statOrange,
                           fontSize: 10.sp,
                         ),
                       ),
                     ),
                     SizedBox(width: 10.w),
                     Text(_money(e.total),
-                        style: AppTextStyles.cairoBold18.copyWith(
-                            color: AppColors.primary, fontSize: 13.sp)),
+                        style: AppTextStyles.cairoBold18
+                            .copyWith(color: colors.text, fontSize: 13.sp)),
                   ],
                 ),
               ),
@@ -1620,6 +1173,7 @@ class _ProductsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1629,11 +1183,11 @@ class _ProductsSection extends StatelessWidget {
           trailing: TextButton.icon(
             onPressed: onAdd,
             icon: Icon(Icons.add_circle_outline_rounded,
-                size: 16.sp, color: AppColors.primaryGreen),
+                size: 16.sp, color: colors.primary),
             label: Text(
               'إضافة صنف',
               style: AppTextStyles.cairoMedium16
-                  .copyWith(color: AppColors.primaryGreen, fontSize: 12.sp),
+                  .copyWith(color: colors.primary, fontSize: 12.sp),
             ),
           ),
         ),
@@ -1643,13 +1197,13 @@ class _ProductsSection extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 20.h),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.backgroundLight,
+              color: colors.background,
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Text(
               'لم تتم إضافة أصناف بعد',
               style: AppTextStyles.almaraiRegular14
-                  .copyWith(color: AppColors.navInactive, fontSize: 12.sp),
+                  .copyWith(color: colors.textMuted, fontSize: 12.sp),
             ),
           )
         else
@@ -1665,7 +1219,7 @@ class _ProductsSection extends StatelessWidget {
           ),
         if (items.isNotEmpty) ...[
           SizedBox(height: 10.h),
-          const Divider(height: 1, color: AppColors.cardBorder),
+          Divider(height: 1, color: colors.border),
           SizedBox(height: 10.h),
           _TotalsRow(label: 'الإجمالي الفرعي', value: _money(subtotal)),
           SizedBox(height: 8.h),
@@ -1674,7 +1228,7 @@ class _ProductsSection extends StatelessWidget {
               Text(
                 'خصم %',
                 style: AppTextStyles.almaraiRegular14
-                    .copyWith(color: AppColors.navInactive, fontSize: 12.sp),
+                    .copyWith(color: colors.textMuted, fontSize: 12.sp),
               ),
               const Spacer(),
               _DiscountStepper(
@@ -1690,7 +1244,7 @@ class _ProductsSection extends StatelessWidget {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withOpacity(0.08),
+              color: colors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Row(
@@ -1698,13 +1252,13 @@ class _ProductsSection extends StatelessWidget {
                 Text(
                   'إجمالي الفاتورة',
                   style: AppTextStyles.cairoMedium16
-                      .copyWith(color: AppColors.primary, fontSize: 13.sp),
+                      .copyWith(color: colors.text, fontSize: 13.sp),
                 ),
                 const Spacer(),
                 Text(
                   _money(grandTotal),
                   style: AppTextStyles.cairoBold18
-                      .copyWith(color: AppColors.primaryGreen, fontSize: 17.sp),
+                      .copyWith(color: colors.primary, fontSize: 17.sp),
                 ),
               ],
             ),
@@ -1724,16 +1278,17 @@ class _TotalsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
         Text(label,
             style: AppTextStyles.almaraiRegular14
-                .copyWith(color: AppColors.navInactive, fontSize: 12.sp)),
+                .copyWith(color: colors.textMuted, fontSize: 12.sp)),
         const Spacer(),
         Text(
           value,
           style: AppTextStyles.cairoMedium16.copyWith(
-            color: muted ? AppColors.statOrange : AppColors.primary,
+            color: muted ? colors.statOrange : colors.text,
             fontSize: 13.sp,
           ),
         ),
@@ -1749,6 +1304,7 @@ class _DiscountStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
         _StepButton(
@@ -1760,7 +1316,7 @@ class _DiscountStepper extends StatelessWidget {
           child: Text(
             '${value.toStringAsFixed(0)}%',
             style: AppTextStyles.cairoMedium16
-                .copyWith(color: AppColors.primary, fontSize: 13.sp),
+                .copyWith(color: colors.text, fontSize: 13.sp),
           ),
         ),
         _StepButton(
@@ -1778,15 +1334,16 @@ class _StepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Material(
-      color: AppColors.backgroundLight,
+      color: colors.background,
       borderRadius: BorderRadius.circular(8.r),
       child: InkWell(
         borderRadius: BorderRadius.circular(8.r),
         onTap: onTap,
         child: Padding(
           padding: EdgeInsets.all(6.w),
-          child: Icon(icon, size: 14.sp, color: AppColors.primary),
+          child: Icon(icon, size: 14.sp, color: colors.text),
         ),
       ),
     );
@@ -1806,16 +1363,17 @@ class _LineItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLight,
+        color: colors.background,
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Row(
         children: [
           Material(
-            color: Colors.redAccent.withOpacity(0.1),
+            color: colors.statusNotReached.withOpacity(0.12),
             borderRadius: BorderRadius.circular(8.r),
             child: InkWell(
               borderRadius: BorderRadius.circular(8.r),
@@ -1823,7 +1381,7 @@ class _LineItemTile extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.all(6.w),
                 child: Icon(Icons.close_rounded,
-                    size: 14.sp, color: Colors.redAccent),
+                    size: 14.sp, color: colors.statusNotReached),
               ),
             ),
           ),
@@ -1835,15 +1393,15 @@ class _LineItemTile extends StatelessWidget {
                 Text(
                   item.product.name,
                   style: AppTextStyles.cairoMedium16
-                      .copyWith(color: AppColors.primary, fontSize: 12.5.sp),
+                      .copyWith(color: colors.text, fontSize: 12.5.sp),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 2.h),
                 Text(
                   '${_money(item.product.price)} / ${item.product.unit}',
-                  style: AppTextStyles.almaraiRegular14.copyWith(
-                      color: AppColors.navInactive, fontSize: 10.5.sp),
+                  style: AppTextStyles.almaraiRegular14
+                      .copyWith(color: colors.textMuted, fontSize: 10.5.sp),
                 ),
               ],
             ),
@@ -1856,7 +1414,7 @@ class _LineItemTile extends StatelessWidget {
             alignment: Alignment.center,
             child: Text('${item.quantity}',
                 style: AppTextStyles.cairoMedium16
-                    .copyWith(color: AppColors.primary, fontSize: 12.sp)),
+                    .copyWith(color: colors.text, fontSize: 12.sp)),
           ),
           _StepButton(
               icon: Icons.add_rounded,
@@ -1868,7 +1426,7 @@ class _LineItemTile extends StatelessWidget {
               _money(item.total),
               textAlign: TextAlign.end,
               style: AppTextStyles.cairoBold18
-                  .copyWith(color: AppColors.primaryGreen, fontSize: 12.sp),
+                  .copyWith(color: colors.primary, fontSize: 12.sp),
             ),
           ),
         ],
@@ -1912,6 +1470,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final filtered = _mockCatalog
         .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
         .toList();
@@ -1924,12 +1483,14 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
         children: [
           TextField(
             onChanged: (v) => setState(() => query = v),
+            style: TextStyle(color: colors.text),
             decoration: InputDecoration(
               hintText: 'ابحث عن منتج...',
+              hintStyle: TextStyle(color: colors.textMuted),
               prefixIcon: Icon(Icons.search_rounded,
-                  size: 20.sp, color: AppColors.navInactive),
+                  size: 20.sp, color: colors.textMuted),
               filled: true,
-              fillColor: AppColors.backgroundLight,
+              fillColor: colors.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide.none,
@@ -1947,12 +1508,12 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
                   color: qty > 0
-                      ? AppColors.primaryGreen.withOpacity(0.06)
-                      : AppColors.backgroundLight,
+                      ? colors.primary.withOpacity(0.08)
+                      : colors.background,
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
                     color: qty > 0
-                        ? AppColors.primaryGreen.withOpacity(0.35)
+                        ? colors.primary.withOpacity(0.35)
                         : Colors.transparent,
                   ),
                 ),
@@ -1964,18 +1525,17 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                         children: [
                           Text(p.name,
                               style: AppTextStyles.cairoMedium16.copyWith(
-                                  color: AppColors.primary, fontSize: 12.5.sp)),
+                                  color: colors.text, fontSize: 12.5.sp)),
                           SizedBox(height: 2.h),
                           Text('${_money(p.price)} / ${p.unit}',
                               style: AppTextStyles.almaraiRegular14.copyWith(
-                                  color: AppColors.navInactive,
-                                  fontSize: 10.5.sp)),
+                                  color: colors.textMuted, fontSize: 10.5.sp)),
                         ],
                       ),
                     ),
                     if (qty == 0)
                       Material(
-                        color: AppColors.primaryGreen,
+                        color: colors.primary,
                         borderRadius: BorderRadius.circular(10.r),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(10.r),
@@ -2000,7 +1560,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                             alignment: Alignment.center,
                             child: Text('$qty',
                                 style: AppTextStyles.cairoMedium16.copyWith(
-                                    color: AppColors.primary, fontSize: 12.sp)),
+                                    color: colors.text, fontSize: 12.sp)),
                           ),
                           _StepButton(
                               icon: Icons.add_rounded,
@@ -2018,7 +1578,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context, cart),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: colors.primary,
                 padding: EdgeInsets.symmetric(vertical: 14.h),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r)),
@@ -2046,6 +1606,7 @@ class _NotesField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -2055,12 +1616,13 @@ class _NotesField extends StatelessWidget {
         TextField(
           controller: controller,
           maxLines: 3,
+          style: TextStyle(color: colors.text),
           decoration: InputDecoration(
             hintText: '📝 اكتب ملاحظاتك على الزيارة أو الفاتورة...',
             hintStyle: AppTextStyles.almaraiRegular14
-                .copyWith(color: AppColors.navInactive),
+                .copyWith(color: colors.textMuted),
             filled: true,
-            fillColor: AppColors.backgroundLight,
+            fillColor: colors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide.none,
@@ -2083,6 +1645,7 @@ class _PurchaseAnalysisSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2098,7 +1661,7 @@ class _PurchaseAnalysisSection extends StatelessWidget {
                   child: _InsightBadge(
                     title: 'أكثر المنتجات شراءً',
                     items: customer.topPurchasedProducts,
-                    color: AppColors.primaryGreen,
+                    color: colors.primary,
                     icon: Icons.trending_up_rounded,
                   ),
                 ),
@@ -2110,7 +1673,7 @@ class _PurchaseAnalysisSection extends StatelessWidget {
                   child: _InsightBadge(
                     title: 'لم يشترها منذ فترة',
                     items: customer.notPurchasedRecently,
-                    color: AppColors.statOrange,
+                    color: colors.statOrange,
                     icon: Icons.history_rounded,
                   ),
                 ),
@@ -2137,12 +1700,13 @@ class _InsightBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLight,
+        color: colors.background,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2169,15 +1733,15 @@ class _InsightBadge extends StatelessWidget {
                   Container(
                     width: 4.w,
                     height: 4.w,
-                    decoration: const BoxDecoration(
-                        color: AppColors.navInactive, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                        color: colors.textMuted, shape: BoxShape.circle),
                   ),
                   SizedBox(width: 6.w),
                   Expanded(
                     child: Text(
                       item,
                       style: AppTextStyles.almaraiRegular14
-                          .copyWith(color: AppColors.primary, fontSize: 11.sp),
+                          .copyWith(color: colors.text, fontSize: 11.sp),
                     ),
                   ),
                 ],
@@ -2202,11 +1766,12 @@ class _FooterActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: EdgeInsets.all(16.w),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.cardBorder)),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(top: BorderSide(color: colors.border)),
       ),
       child: Row(
         children: [
@@ -2214,9 +1779,8 @@ class _FooterActions extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: canIssue ? onSave : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                disabledBackgroundColor:
-                    AppColors.primaryGreen.withOpacity(0.35),
+                backgroundColor: colors.primary,
+                disabledBackgroundColor: colors.primary.withOpacity(0.35),
                 padding: EdgeInsets.symmetric(vertical: 14.h),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r)),
@@ -2232,9 +1796,7 @@ class _FooterActions extends StatelessWidget {
           ),
           SizedBox(width: 10.w),
           _OutlinedIconButton(
-              icon: Icons.print_outlined,
-              color: AppColors.primary,
-              onTap: () {}),
+              icon: Icons.print_outlined, color: colors.text, onTap: () {}),
           SizedBox(width: 8.w),
           _OutlinedIconButton(
               icon: Icons.chat_outlined,
@@ -2285,6 +1847,7 @@ class _BottomSheetShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
       maxChildSize: 0.92,
@@ -2292,7 +1855,7 @@ class _BottomSheetShell extends StatelessWidget {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
           ),
           child: Column(
@@ -2302,7 +1865,7 @@ class _BottomSheetShell extends StatelessWidget {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: AppColors.cardBorder,
+                  color: colors.border,
                   borderRadius: BorderRadius.circular(4.r),
                 ),
               ),
@@ -2310,20 +1873,20 @@ class _BottomSheetShell extends StatelessWidget {
                 padding: EdgeInsets.all(16.w),
                 child: Row(
                   children: [
-                    Icon(icon, color: AppColors.primaryGreen, size: 18.sp),
+                    Icon(icon, color: colors.primary, size: 18.sp),
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Text(
                         title,
-                        style: AppTextStyles.cairoBold18.copyWith(
-                            color: AppColors.primary, fontSize: 15.sp),
+                        style: AppTextStyles.cairoBold18
+                            .copyWith(color: colors.text, fontSize: 15.sp),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
                       icon: Icon(Icons.close_rounded,
-                          size: 20.sp, color: AppColors.navInactive),
+                          size: 20.sp, color: colors.textMuted),
                     ),
                   ],
                 ),

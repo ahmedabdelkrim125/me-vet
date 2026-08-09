@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
@@ -12,7 +13,7 @@ class QuickActionsRow extends StatelessWidget {
       children: [
         Expanded(
           child: _QuickActionButton(
-            icon: Icons.route_outlined,
+            icon: HugeIcons.strokeRoundedRoute01,
             label: 'بدء خط السير',
             filled: true,
             onTap: () {},
@@ -21,7 +22,7 @@ class QuickActionsRow extends StatelessWidget {
         SizedBox(width: 12.w),
         Expanded(
           child: _QuickActionButton(
-            icon: Icons.receipt_long_outlined,
+            icon: HugeIcons.strokeRoundedInvoice01,
             label: 'فاتورة سريعة',
             filled: false,
             onTap: () {},
@@ -33,7 +34,7 @@ class QuickActionsRow extends StatelessWidget {
 }
 
 class _QuickActionButton extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> icon;
   final String label;
   final bool filled;
   final VoidCallback onTap;
@@ -48,7 +49,7 @@ class _QuickActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: filled ? AppColors.primaryGreen : Colors.white,
+      color: filled ? context.colors.primary : context.colors.surface,
       borderRadius: BorderRadius.circular(16.r),
       child: InkWell(
         borderRadius: BorderRadius.circular(16.r),
@@ -57,20 +58,20 @@ class _QuickActionButton extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 16.h),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16.r),
-            border: filled ? null : Border.all(color: AppColors.cardBorder),
+            border: filled ? null : Border.all(color: context.colors.border),
           ),
           child: Column(
             children: [
-              Icon(
-                icon,
-                color: filled ? Colors.white : AppColors.primaryGreen,
+              HugeIcon(
+                icon: icon,
+                color: filled ? Colors.white : context.colors.primary,
                 size: 22.sp,
               ),
               SizedBox(height: 8.h),
               Text(
                 label,
                 style: AppTextStyles.cairoMedium16.copyWith(
-                  color: filled ? Colors.white : AppColors.primary,
+                  color: filled ? Colors.white : context.colors.primary,
                   fontSize: 13.sp,
                 ),
               ),

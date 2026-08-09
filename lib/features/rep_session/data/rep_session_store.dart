@@ -3,13 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/models/rep_profile_model.dart';
 
-/// Persists sales-rep profiles on-device so a rep can pick their name once,
-/// then just tap their card next time instead of retyping it — and a
-/// tablet shared between a couple of reps can switch between them.
-///
-/// Requires the `shared_preferences` package:
-///   dependencies:
-///     shared_preferences: ^2.2.0
 class RepSessionStore {
   RepSessionStore._();
   static final RepSessionStore instance = RepSessionStore._();

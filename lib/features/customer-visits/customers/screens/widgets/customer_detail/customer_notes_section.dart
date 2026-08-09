@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
@@ -30,12 +30,13 @@ class _CustomerNotesSectionState extends State<CustomerNotesSection> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -44,14 +45,14 @@ class _CustomerNotesSectionState extends State<CustomerNotesSection> {
             children: [
               Text('ملاحظات المندوب',
                   style: AppTextStyles.cairoMedium16
-                      .copyWith(color: AppColors.primary, fontSize: 13.sp)),
+                      .copyWith(color: colors.text, fontSize: 13.sp)),
               const Spacer(),
               TextButton(
                 onPressed: () => setState(() => _editing = !_editing),
                 child: Text(
                   _editing ? 'حفظ' : 'تعديل',
                   style: AppTextStyles.cairoMedium16
-                      .copyWith(color: AppColors.primaryGreen, fontSize: 12.sp),
+                      .copyWith(color: colors.primary, fontSize: 12.sp),
                 ),
               ),
             ],
@@ -61,11 +62,10 @@ class _CustomerNotesSectionState extends State<CustomerNotesSection> {
               controller: _controller,
               maxLines: 4,
               textAlign: TextAlign.right,
-              style: AppTextStyles.cairoRegular14
-                  .copyWith(color: AppColors.primary),
+              style: AppTextStyles.cairoRegular14.copyWith(color: colors.text),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: AppColors.backgroundLight,
+                fillColor: colors.background,
                 contentPadding: EdgeInsets.all(12.w),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -77,7 +77,7 @@ class _CustomerNotesSectionState extends State<CustomerNotesSection> {
             Text(
               _controller.text.isEmpty ? 'لا توجد ملاحظات' : _controller.text,
               style: AppTextStyles.almaraiRegular14.copyWith(
-                  color: AppColors.navInactive, fontSize: 12.sp, height: 1.6),
+                  color: colors.textMuted, fontSize: 12.sp, height: 1.6),
             ),
         ],
       ),

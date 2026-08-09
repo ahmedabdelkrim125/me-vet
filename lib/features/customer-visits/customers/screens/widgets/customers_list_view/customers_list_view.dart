@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../../../../../../core/theme/app_color_scheme_extension.dart';
 import '../../../domain/mock_customers_repository.dart';
 import '../../../domain/models/customer_model.dart';
 import '../../../domain/models/customer_status.dart';
@@ -121,7 +121,7 @@ class _CustomersListViewState extends State<CustomersListView>
                       child: Text(
                         'لا يوجد عملاء مطابقين',
                         style: AppTextStyles.cairoMedium16.copyWith(
-                          color: AppColors.navInactive,
+                          color: context.colors.textMuted,
                           fontSize: 13.sp,
                         ),
                       ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../domain/mock_customers_repository.dart';
 import '../domain/models/customer_detail_model.dart';
@@ -24,7 +23,6 @@ class CustomerDetailScreen extends StatelessWidget {
     final detail = CustomerDetailModel.mock(currentCustomer);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
       body: SafeArea(
         child: Column(
           children: [

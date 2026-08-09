@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../domain/models/customer_detail_model.dart';
+import 'customer_products_section/info_row.dart';
+import 'customer_products_section/info_tile.dart';
 
 class CustomerFinancialInfoCard extends StatelessWidget {
   final CustomerDetailModel detail;
@@ -14,6 +16,7 @@ class CustomerFinancialInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final customer = detail.customer;
     final creditUsage = customer.creditLimit == 0
         ? 0.0
@@ -22,9 +25,9 @@ class CustomerFinancialInfoCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -32,21 +35,24 @@ class CustomerFinancialInfoCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                  child: _InfoTile(
-                      label: 'الرصيد الحالي',
-                      value:
-                          '${detail.currentBalance.toStringAsFixed(0)} ج.م')),
+                child: InfoTile(
+                  label: 'الرصيد الحالي',
+                  value: '${detail.currentBalance.toStringAsFixed(0)} ج.م',
+                ),
+              ),
               Expanded(
-                  child: _InfoTile(
-                      label: 'حد الائتمان',
-                      value: '${customer.creditLimit.toStringAsFixed(0)} ج.م')),
+                child: InfoTile(
+                  label: 'حد الائتمان',
+                  value: '${customer.creditLimit.toStringAsFixed(0)} ج.م',
+                ),
+              ),
             ],
           ),
           SizedBox(height: 12.h),
           Row(
             children: [
               Expanded(
-                child: _InfoTile(
+                child: InfoTile(
                   label: 'آخر تحصيل',
                   value: detail.lastCollectionDate == null
                       ? '—'
@@ -54,88 +60,42 @@ class CustomerFinancialInfoCard extends StatelessWidget {
                 ),
               ),
               Expanded(
-                  child: _InfoTile(
-                      label: 'متوسط الطلب',
-                      value: '${detail.averageOrder.toStringAsFixed(0)} ج.م')),
+                child: InfoTile(
+                  label: 'متوسط الطلب',
+                  value: '${detail.averageOrder.toStringAsFixed(0)} ج.م',
+                ),
+              ),
             ],
           ),
           SizedBox(height: 14.h),
           Text('استهلاك حد الائتمان',
               style: AppTextStyles.cairoMedium16
-                  .copyWith(color: AppColors.navInactive, fontSize: 11.sp)),
+                  .copyWith(color: colors.textMuted, fontSize: 11.sp)),
           SizedBox(height: 6.h),
           ClipRRect(
             borderRadius: BorderRadius.circular(20.r),
             child: LinearProgressIndicator(
               value: creditUsage,
               minHeight: 8.h,
-              backgroundColor: AppColors.cardBorder,
-              valueColor: AlwaysStoppedAnimation(creditUsage > 0.8
-                  ? AppColors.statusNotReached
-                  : AppColors.primaryGreen),
+              backgroundColor: colors.border,
+              valueColor: AlwaysStoppedAnimation(
+                  creditUsage > 0.8 ? colors.statusNotReached : colors.primary),
             ),
           ),
           SizedBox(height: 14.h),
           Text('البيانات الأساسية',
               style: AppTextStyles.cairoMedium16
-                  .copyWith(color: AppColors.primary, fontSize: 12.sp)),
+                  .copyWith(color: colors.text, fontSize: 12.sp)),
           SizedBox(height: 8.h),
-          _InfoRow(
-              label: 'الهاتف',
-              value: customer.phone.isEmpty ? '—' : customer.phone),
-          _InfoRow(
-              label: 'العنوان',
-              value:
-                  customer.address.isEmpty ? customer.area : customer.address),
-          _InfoRow(label: 'التصنيف', value: customer.category),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoTile extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _InfoTile({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: AppTextStyles.almaraiRegular14
-                .copyWith(color: AppColors.navInactive, fontSize: 10.sp)),
-        SizedBox(height: 4.h),
-        Text(value,
-            style: AppTextStyles.cairoBold18
-                .copyWith(color: AppColors.primary, fontSize: 14.sp)),
-      ],
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _InfoRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 6.h),
-      child: Row(
-        children: [
-          Text(label,
-              style: AppTextStyles.almaraiRegular14
-                  .copyWith(color: AppColors.navInactive, fontSize: 11.sp)),
-          const Spacer(),
-          Text(value,
-              style: AppTextStyles.cairoMedium16
-                  .copyWith(color: AppColors.primary, fontSize: 11.sp)),
+          InfoRow(
+            label: 'الهاتف',
+            value: customer.phone.isEmpty ? '—' : customer.phone,
+          ),
+          InfoRow(
+            label: 'العنوان',
+            value: customer.address.isEmpty ? customer.area : customer.address,
+          ),
+          InfoRow(label: 'التصنيف', value: customer.category),
         ],
       ),
     );

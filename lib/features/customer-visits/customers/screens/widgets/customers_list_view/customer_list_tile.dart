@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../domain/mock_customers_repository.dart';
@@ -16,10 +16,10 @@ class CustomerListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = customerStatusColor(customer.status);
+    final color = customerStatusColor(context, customer.status);
 
     return Material(
-      color: Colors.white,
+      color: context.colors.surface,
       borderRadius: BorderRadius.circular(16.r),
       child: InkWell(
         borderRadius: BorderRadius.circular(16.r),
@@ -31,7 +31,7 @@ class CustomerListTile extends StatelessWidget {
           padding: EdgeInsets.all(14.w),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.colors.border),
           ),
           child: Row(
             children: [
@@ -53,7 +53,7 @@ class CustomerListTile extends StatelessWidget {
                     Text(
                       customer.name,
                       style: AppTextStyles.cairoMedium16.copyWith(
-                        color: AppColors.primary,
+                        color: context.colors.text,
                         fontSize: 13.sp,
                       ),
                     ),
@@ -61,7 +61,7 @@ class CustomerListTile extends StatelessWidget {
                     Text(
                       '${customer.category} — ${customer.area}',
                       style: AppTextStyles.almaraiRegular14.copyWith(
-                        color: AppColors.navInactive,
+                        color: context.colors.textMuted,
                         fontSize: 11.sp,
                       ),
                     ),
@@ -87,9 +87,9 @@ class CustomerListTile extends StatelessWidget {
                       .updateCustomerStatus(customer.id, status);
                 },
                 itemBuilder: (context) => [
-                  _buildMenuItem(CustomerStatus.active),
-                  _buildMenuItem(CustomerStatus.needsFollowUp),
-                  _buildMenuItem(CustomerStatus.stopped),
+                  _buildMenuItem(context, CustomerStatus.active),
+                  _buildMenuItem(context, CustomerStatus.needsFollowUp),
+                  _buildMenuItem(context, CustomerStatus.stopped),
                 ],
               ),
             ],
@@ -99,14 +99,15 @@ class CustomerListTile extends StatelessWidget {
     );
   }
 
-  PopupMenuEntry<CustomerStatus> _buildMenuItem(CustomerStatus status) {
+  PopupMenuEntry<CustomerStatus> _buildMenuItem(
+      BuildContext context, CustomerStatus status) {
     return PopupMenuItem<CustomerStatus>(
       value: status,
       child: Row(
         children: [
           Icon(
             status == customer.status ? CupertinoIcons.checkmark_alt : null,
-            color: customerStatusColor(status),
+            color: customerStatusColor(context, status),
           ),
           SizedBox(width: 8.w),
           Text(status.label),

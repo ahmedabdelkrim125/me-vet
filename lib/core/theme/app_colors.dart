@@ -15,4 +15,9 @@ abstract class AppColors {
   static const Color statOrange = Color(0xFFE0862F);
   static const Color statusNotReached = Color(0xFFE0473F);
   static const Color cardBorder = Color(0xFFE7EFEC);
+
+  static const Color backgroundDark = Color(0xFF0A0B0F);
+  static const Color surfaceDark = Color(0xFF15161C);
+  static const Color cardBorderDark = Color(0xFF23252E);
+  static const Color navInactiveDark = Color(0xFF6B6E78);
 }

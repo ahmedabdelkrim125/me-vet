@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/arabic_date_utils.dart';
@@ -40,26 +42,26 @@ class _HomeHeaderState extends State<HomeHeader> {
             Text(
               greeting,
               style: AppTextStyles.cairoBold18.copyWith(
-                color: AppColors.primary,
+                color: context.colors.text,
               ),
             ),
             SizedBox(height: 4.h),
             Text(
               arabicDateLabel(),
               style: AppTextStyles.almaraiRegular14.copyWith(
-                color: AppColors.navInactive,
+                color: context.colors.textMuted,
               ),
             ),
           ],
         ),
         const Spacer(),
         const _ActionButton(
-          icon: Icons.sync_rounded,
+          icon: HugeIcons.strokeRoundedRefresh,
           hasBadge: false,
         ),
         SizedBox(width: 12.w),
         const _ActionButton(
-          icon: Icons.notifications_none_rounded,
+          icon: HugeIcons.strokeRoundedNotification01,
           hasBadge: true,
         ),
       ],
@@ -68,7 +70,7 @@ class _HomeHeaderState extends State<HomeHeader> {
 }
 
 class _ActionButton extends StatelessWidget {
-  final IconData icon;
+  final List<List<dynamic>> icon;
   final bool hasBadge;
 
   const _ActionButton({required this.icon, required this.hasBadge});
@@ -76,7 +78,7 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: context.colors.surface,
       borderRadius: BorderRadius.circular(16.r),
       child: InkWell(
         borderRadius: BorderRadius.circular(16.r),
@@ -86,14 +88,14 @@ class _ActionButton extends StatelessWidget {
           height: 48.w,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.colors.border),
           ),
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Icon(
-                icon,
-                color: AppColors.primary,
+              HugeIcon(
+                icon: icon,
+                color: context.colors.primary,
                 size: 22.sp,
               ),
               if (hasBadge)

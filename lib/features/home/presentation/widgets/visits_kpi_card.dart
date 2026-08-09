@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -22,9 +23,9 @@ class VisitsKpiCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(18.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,7 +41,7 @@ class VisitsKpiCard extends StatelessWidget {
               Text(
                 'مؤشر الزيارات الشهرية',
                 style: AppTextStyles.cairoMedium16.copyWith(
-                  color: AppColors.primary,
+                  color: context.colors.text,
                   fontSize: 14.sp,
                 ),
               ),
@@ -60,7 +61,7 @@ class VisitsKpiCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8.h,
-              backgroundColor: AppColors.backgroundLight,
+              backgroundColor: context.colors.background,
               valueColor: const AlwaysStoppedAnimation(AppColors.primaryGreen),
             ),
           ),

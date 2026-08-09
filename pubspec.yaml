@@ -17,6 +17,8 @@ dependencies:
   hugeicons: ^1.1.7
   shared_preferences: ^2.5.5
   flutter_launcher_icons: ^0.14.4
+  liquid_glass_bottom_nav: ^0.0.9
+  flashy_tab_bar2: ^0.0.10
 
 dev_dependencies:
   flutter_test:

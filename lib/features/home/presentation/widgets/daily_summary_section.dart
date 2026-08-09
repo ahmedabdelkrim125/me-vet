@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../domain/models/daily_stat_model.dart';
@@ -13,19 +14,22 @@ class DailySummarySection extends StatelessWidget {
       const DailyStatModel(
         label: 'إجمالي المبيعات',
         value: '18,450 ج.م',
-        icon: Icons.trending_up_rounded,
+        icon: HugeIcons.strokeRoundedChartUp,
         color: AppColors.primaryGreen,
+        trendPercent: 25,
       ),
       const DailyStatModel(
+        trendPercent: 25,
         label: 'إجمالي المرتجعات',
         value: '620 ج.م',
-        icon: Icons.undo_rounded,
+        icon: HugeIcons.strokeRoundedUndo,
         color: AppColors.statOrange,
       ),
       const DailyStatModel(
+        trendPercent: 10,
         label: 'إجمالي التحصيل',
         value: '15,900 ج.م',
-        icon: Icons.account_balance_wallet_outlined,
+        icon: HugeIcons.strokeRoundedWallet01,
         color: AppColors.statBlue,
       ),
     ];

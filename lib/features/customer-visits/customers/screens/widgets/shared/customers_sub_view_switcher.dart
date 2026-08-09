@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
@@ -19,9 +19,9 @@ class CustomersSubViewSwitcher extends StatelessWidget {
       height: 52.h,
       padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.colors.border),
       ),
       child: Stack(
         children: [
@@ -36,7 +36,7 @@ class CustomersSubViewSwitcher extends StatelessWidget {
               child: Container(
                 margin: EdgeInsets.symmetric(horizontal: 2.w),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGreen,
+                  color: context.colors.primary,
                   borderRadius: BorderRadius.circular(12.r),
                 ),
               ),
@@ -85,7 +85,7 @@ class _SegmentLabel extends StatelessWidget {
             child: AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 250),
               style: AppTextStyles.cairoMedium16.copyWith(
-                color: isSelected ? Colors.white : AppColors.navInactive,
+                color: isSelected ? Colors.white : context.colors.textMuted,
                 fontSize: 13.sp,
               ),
               child: Text(label),

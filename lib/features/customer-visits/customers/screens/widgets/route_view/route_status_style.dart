@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import '../../../domain/models/visit_status.dart';
 
-Color routeStatusColor(RouteVisitStatus status) {
+Color routeStatusColor(BuildContext context, RouteVisitStatus status) {
   switch (status) {
     case RouteVisitStatus.pending:
-      return AppColors.navInactive;
+      return context.colors.textMuted;
     case RouteVisitStatus.completed:
-      return AppColors.primaryGreen;
+      return context.colors.primary;
     case RouteVisitStatus.sold:
-      return AppColors.statBlue;
+      return context.colors.statBlue;
     case RouteVisitStatus.noOrder:
-      return AppColors.statOrange;
+      return context.colors.statOrange;
     case RouteVisitStatus.notReached:
-      return AppColors.statusNotReached;
+      return context.colors.statusNotReached;
   }
 }
