@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/mock_inventory_repository.dart';
 import '../../domain/models/product_category.dart';
 import '../../domain/models/product_model.dart';
@@ -12,6 +12,7 @@ import '../widgets/inventory_category_filter.dart';
 import '../widgets/inventory_search_bar.dart';
 import '../widgets/inventory_stat_row.dart';
 import '../widgets/low_stock_alert_banner.dart';
+import '../widgets/product_detail_sheet.dart';
 import '../widgets/product_tile.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -183,6 +184,7 @@ class _AnimatedProductTile extends StatelessWidget {
         child: ProductTile(
           product: product,
           stock: stock,
+          onTap: () => showProductDetailSheet(context, product),
           onAddToVehicle: () {
             showAddToVehicleDialog(
               context,

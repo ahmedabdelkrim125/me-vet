@@ -6,45 +6,81 @@ import '../../domain/mock_inventory_repository.dart';
 import '../../domain/models/product_category.dart';
 import '../../domain/models/product_model.dart';
 import '../../domain/models/product_unit.dart';
+import 'product_image_picker.dart';
 
-Future<void> showAddProductSheet(BuildContext context) {
+Future<void> showAddProductSheet(BuildContext context,
+    {ProductModel? productToEdit}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => const _AddProductSheet(),
+    builder: (context) => _AddProductSheet(productToEdit: productToEdit),
   );
 }
 
 class _AddProductSheet extends StatefulWidget {
-  const _AddProductSheet();
+  final ProductModel? productToEdit;
+
+  const _AddProductSheet({this.productToEdit});
 
   @override
   State<_AddProductSheet> createState() => _AddProductSheetState();
 }
 
 class _AddProductSheetState extends State<_AddProductSheet> {
-  final _nameController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _thresholdController = TextEditingController(text: '5');
-  ProductCategory _category = ProductCategory.poultry;
-  ProductUnit _unit = ProductUnit.piece;
+  late final TextEditingController _nameController;
+  late final TextEditingController _priceController;
+  late final TextEditingController _thresholdController;
+  late ProductCategory _category;
+  late ProductUnit _unit;
+  String? _imagePath;
+
+  bool get _isEditing => widget.productToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final product = widget.productToEdit;
+    _nameController = TextEditingController(text: product?.name ?? '');
+    _priceController = TextEditingController(
+        text: product != null ? product.basePrice.toStringAsFixed(0) : '');
+    _thresholdController =
+        TextEditingController(text: '${product?.minStockThreshold ?? 5}');
+    _category = product?.category ?? ProductCategory.poultry;
+    _unit = product?.unit ?? ProductUnit.piece;
+    _imagePath = product?.imagePath;
+  }
 
   Future<void> _submit() async {
     if (_nameController.text.trim().isEmpty) return;
     final price = double.tryParse(_priceController.text) ?? 0;
     final threshold = int.tryParse(_thresholdController.text) ?? 5;
 
-    await MockInventoryRepository.instance.addProduct(
-      ProductModel(
-        id: 'P-${DateTime.now().millisecondsSinceEpoch}',
-        name: _nameController.text.trim(),
-        category: _category,
-        unit: _unit,
-        basePrice: price,
-        minStockThreshold: threshold,
-      ),
-    );
+    if (_isEditing) {
+      await MockInventoryRepository.instance.updateProduct(
+        widget.productToEdit!.copyWith(
+          name: _nameController.text.trim(),
+          imagePath: _imagePath,
+          category: _category,
+          unit: _unit,
+          basePrice: price,
+          minStockThreshold: threshold,
+        ),
+      );
+    } else {
+      await MockInventoryRepository.instance.addProduct(
+        ProductModel(
+          id: 'P-${DateTime.now().millisecondsSinceEpoch}',
+          name: _nameController.text.trim(),
+          imagePath: _imagePath,
+          category: _category,
+          unit: _unit,
+          basePrice: price,
+          minStockThreshold: threshold,
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -52,7 +88,7 @@ class _AddProductSheetState extends State<_AddProductSheet> {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.78,
+      initialChildSize: 0.8,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
@@ -76,9 +112,14 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                 ),
               ),
               SizedBox(height: 14.h),
-              Text('إضافة صنف جديد',
+              Text(_isEditing ? 'تعديل الصنف' : 'إضافة صنف جديد',
                   style: AppTextStyles.cairoBold18
                       .copyWith(color: context.colors.text, fontSize: 16.sp)),
+              SizedBox(height: 18.h),
+              ProductImagePicker(
+                imagePath: _imagePath,
+                onChanged: (path) => setState(() => _imagePath = path),
+              ),
               SizedBox(height: 18.h),
               _Field(label: 'اسم الصنف', controller: _nameController),
               SizedBox(height: 14.h),
@@ -135,7 +176,7 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                   child: Container(
                     alignment: Alignment.center,
                     padding: EdgeInsets.symmetric(vertical: 15.h),
-                    child: Text('حفظ الصنف',
+                    child: Text(_isEditing ? 'حفظ التعديلات' : 'حفظ الصنف',
                         style: AppTextStyles.cairoMedium16
                             .copyWith(color: Colors.white, fontSize: 14.sp)),
                   ),

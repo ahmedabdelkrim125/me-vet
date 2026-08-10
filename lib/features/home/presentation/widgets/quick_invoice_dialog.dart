@@ -645,7 +645,8 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final filtered = widget.customers
-        .where((c) => c.customer.name.toLowerCase().contains(query.toLowerCase()))
+        .where(
+            (c) => c.customer.name.toLowerCase().contains(query.toLowerCase()))
         .toList();
 
     return _BottomSheetShell(
@@ -975,7 +976,8 @@ class _FinancialSummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final nearLimit = invoice.customer.currentBalance > invoice.customer.creditLimit * 0.8;
+    final nearLimit =
+        invoice.customer.currentBalance > invoice.customer.creditLimit * 0.8;
     return Row(
       children: [
         Expanded(
@@ -999,7 +1001,8 @@ class _FinancialSummaryRow extends StatelessWidget {
         Expanded(
           child: _FinancialCard(
             title: 'آخر سداد',
-            value: _date(invoice.customer.lastCollectionDate ?? DateTime(2024,6,6)),
+            value: _date(
+                invoice.customer.lastCollectionDate ?? DateTime(2024, 6, 6)),
             icon: Icons.event_available_outlined,
             color: colors.primary,
           ),

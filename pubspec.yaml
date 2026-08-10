@@ -20,6 +20,7 @@ dependencies:
   liquid_glass_bottom_nav: ^0.0.9
   flashy_tab_bar2: ^0.0.10
   url_launcher: ^6.3.1
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:

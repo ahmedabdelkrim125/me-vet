@@ -38,7 +38,8 @@ class CustomAlertDialog extends StatelessWidget {
           children: [
             Text(
               title,
-              style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text),
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: context.colors.text),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 16.h),

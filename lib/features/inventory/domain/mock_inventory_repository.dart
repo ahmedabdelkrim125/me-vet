@@ -61,6 +61,24 @@ class MockInventoryRepository {
     _refreshAlerts();
   }
 
+  Future<void> updateProduct(ProductModel product) async {
+    products.value = [
+      for (final p in products.value)
+        if (p.id == product.id) product else p,
+    ];
+    await _persistProducts();
+    _refreshAlerts();
+  }
+
+  Future<void> deleteProduct(String id) async {
+    products.value = products.value.where((p) => p.id != id).toList();
+    vehicleStock.value =
+        vehicleStock.value.where((s) => s.productId != id).toList();
+    await _persistProducts();
+    await _persistStock();
+    _refreshAlerts();
+  }
+
   ProductModel? productById(String id) {
     for (final p in products.value) {
       if (p.id == id) return p;
@@ -158,6 +176,7 @@ class MockInventoryRepository {
         'unit': p.unit.name,
         'basePrice': p.basePrice,
         'minStockThreshold': p.minStockThreshold,
+        'createdAt': p.createdAt.toIso8601String(),
       };
 
   ProductModel _productFromJson(dynamic json) {
@@ -171,6 +190,9 @@ class MockInventoryRepository {
       unit: ProductUnit.values.firstWhere((u) => u.name == map['unit']),
       basePrice: (map['basePrice'] as num).toDouble(),
       minStockThreshold: map['minStockThreshold'] as int,
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'] as String)
+          : DateTime.now(),
     );
   }
 
@@ -190,42 +212,48 @@ class MockInventoryRepository {
   }
 
   List<ProductModel> _seedProducts() {
-    return const [
+    final now = DateTime.now();
+    return [
       ProductModel(
           id: 'P-1',
           name: 'فيتامين أ د3 إي',
           category: ProductCategory.poultry,
           unit: ProductUnit.bottle,
           basePrice: 180,
-          minStockThreshold: 5),
+          minStockThreshold: 5,
+          createdAt: now.subtract(const Duration(days: 40))),
       ProductModel(
           id: 'P-2',
           name: 'مضاد حيوي واسع المجال',
           category: ProductCategory.largeAnimal,
           unit: ProductUnit.vial,
           basePrice: 320,
-          minStockThreshold: 4),
+          minStockThreshold: 4,
+          createdAt: now.subtract(const Duration(days: 25))),
       ProductModel(
           id: 'P-3',
           name: 'لقاح نيوكاسل',
           category: ProductCategory.poultry,
           unit: ProductUnit.box,
           basePrice: 850,
-          minStockThreshold: 3),
+          minStockThreshold: 3,
+          createdAt: now.subtract(const Duration(days: 18))),
       ProductModel(
           id: 'P-4',
           name: 'محلول ترطيب وريدي',
           category: ProductCategory.largeAnimal,
           unit: ProductUnit.bottle,
           basePrice: 210,
-          minStockThreshold: 6),
+          minStockThreshold: 6,
+          createdAt: now.subtract(const Duration(days: 10))),
       ProductModel(
           id: 'P-5',
           name: 'مكمل كالسيوم',
           category: ProductCategory.supplies,
           unit: ProductUnit.box,
           basePrice: 130,
-          minStockThreshold: 8),
+          minStockThreshold: 8,
+          createdAt: now.subtract(const Duration(days: 3))),
     ];
   }
 

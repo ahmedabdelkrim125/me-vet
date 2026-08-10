@@ -25,7 +25,7 @@ class CustomerDetailScreen extends StatelessWidget {
       customer: c,
       topPurchasedProducts: detail.topProducts.map((p) => p.name).toList(),
       notPurchasedRecently:
-      detail.notBoughtRecently.map((p) => p.name).toList(),
+          detail.notBoughtRecently.map((p) => p.name).toList(),
     );
   }
 
@@ -50,24 +50,23 @@ class CustomerDetailScreen extends StatelessWidget {
                     onInvoiceTap: () => showDialog(
                       context: context,
                       builder: (_) => QuickInvoiceDialog(
-                        initialCustomer: _toInvoiceCustomer(detail),
-                        onIssued: (info) async{
-                          final repo = MockCustomersRepository.instance;
-                          await repo.adjustBalance(
-                              currentCustomer.id, info.amount);
-                          await repo.addInvoice(
-                            currentCustomer.id,
-                            InvoiceRecordModel(
-                              code: info.invoiceNumber,
-                              date: info.date,
-                              amount: info.amount,
-                              status: info.saleType == 'نقدي'
-                                  ? InvoiceStatus.paid
-                                  : InvoiceStatus.deferred,
-                            ),
-                          );
-                        }
-                      ),
+                          initialCustomer: _toInvoiceCustomer(detail),
+                          onIssued: (info) async {
+                            final repo = MockCustomersRepository.instance;
+                            await repo.adjustBalance(
+                                currentCustomer.id, info.amount);
+                            await repo.addInvoice(
+                              currentCustomer.id,
+                              InvoiceRecordModel(
+                                code: info.invoiceNumber,
+                                date: info.date,
+                                amount: info.amount,
+                                status: info.saleType == 'نقدي'
+                                    ? InvoiceStatus.paid
+                                    : InvoiceStatus.deferred,
+                              ),
+                            );
+                          }),
                     ),
                     onCollectTap: () => showCustomerCollectPaymentSheet(
                       context,

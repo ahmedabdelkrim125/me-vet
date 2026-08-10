@@ -81,10 +81,14 @@ class MockCustomersRepository {
   /// يعدّل رصيد العميل الحالي. [delta] موجب = دين جديد (فاتورة)،
   /// سالب = سداد (تحصيل). لو [isCollection] بقى true بيحدّث كمان
   /// تاريخ آخر تحصيل للنهاردة.
-  Future<void> adjustBalance(String customerId, double delta, {bool isCollection = false,}) async {
+  Future<void> adjustBalance(
+    String customerId,
+    double delta, {
+    bool isCollection = false,
+  }) async {
     await initialize();
     final index =
-    _customers.indexWhere((customer) => customer.id == customerId);
+        _customers.indexWhere((customer) => customer.id == customerId);
     if (index == -1) return;
 
     final current = _customers[index];
@@ -94,7 +98,7 @@ class MockCustomersRepository {
     _customers[index] = current.copyWith(
       currentBalance: clamped,
       lastCollectionDate:
-      isCollection ? DateTime.now() : current.lastCollectionDate,
+          isCollection ? DateTime.now() : current.lastCollectionDate,
     );
     await _persist();
     customersNotifier.value = List<CustomerModel>.from(_customers);
@@ -102,8 +106,7 @@ class MockCustomersRepository {
 
   /// يسجل فاتورة جديدة لعميل معين — بيتخزن عشان نقدر نحسب منه
   /// "متوسط الطلب" الحقيقي، ولاحقًا يتستخدم في كشف الحساب.
-  Future<void> addInvoice(
-      String customerId, InvoiceRecordModel invoice) async {
+  Future<void> addInvoice(String customerId, InvoiceRecordModel invoice) async {
     await initialize();
     final list = _invoicesByCustomer.putIfAbsent(customerId, () => []);
     list.insert(0, invoice);
@@ -176,7 +179,7 @@ class MockCustomersRepository {
 
   Future<void> _persistInvoices(SharedPreferences prefs) async {
     final encoded = _invoicesByCustomer.map(
-          (key, value) => MapEntry(key, value.map((e) => e.toJson()).toList()),
+      (key, value) => MapEntry(key, value.map((e) => e.toJson()).toList()),
     );
     await prefs.setString(_invoicesStorageKey, jsonEncode(encoded));
   }
