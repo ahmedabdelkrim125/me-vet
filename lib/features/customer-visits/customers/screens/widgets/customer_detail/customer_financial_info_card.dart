@@ -20,7 +20,7 @@ class CustomerFinancialInfoCard extends StatelessWidget {
     final customer = detail.customer;
     final creditUsage = customer.creditLimit == 0
         ? 0.0
-        : (detail.currentBalance / customer.creditLimit).clamp(0.0, 1.0);
+        : (customer.currentBalance / customer.creditLimit).clamp(0.0, 1.0);
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -37,7 +37,7 @@ class CustomerFinancialInfoCard extends StatelessWidget {
               Expanded(
                 child: InfoTile(
                   label: 'الرصيد الحالي',
-                  value: '${detail.currentBalance.toStringAsFixed(0)} ج.م',
+                  value: '${customer.currentBalance.toStringAsFixed(0)} ج.م',
                 ),
               ),
               Expanded(
@@ -54,15 +54,17 @@ class CustomerFinancialInfoCard extends StatelessWidget {
               Expanded(
                 child: InfoTile(
                   label: 'آخر تحصيل',
-                  value: detail.lastCollectionDate == null
+                  value: customer.lastCollectionDate == null
                       ? '—'
-                      : _formatDate(detail.lastCollectionDate!),
+                      : _formatDate(customer.lastCollectionDate!),
                 ),
               ),
               Expanded(
                 child: InfoTile(
                   label: 'متوسط الطلب',
-                  value: '${detail.averageOrder.toStringAsFixed(0)} ج.م',
+                  value: detail.averageOrder == 0
+                      ? '—'
+                      : '${detail.averageOrder.toStringAsFixed(0)} ج.م',
                 ),
               ),
             ],
