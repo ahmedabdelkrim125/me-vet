@@ -999,7 +999,7 @@ class _FinancialSummaryRow extends StatelessWidget {
         Expanded(
           child: _FinancialCard(
             title: 'آخر سداد',
-            value: _date(invoice.customer.lastCollectionDate!),
+            value: _date(invoice.customer.lastCollectionDate ?? DateTime(2024,6,6)),
             icon: Icons.event_available_outlined,
             color: colors.primary,
           ),
