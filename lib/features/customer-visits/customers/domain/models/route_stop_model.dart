@@ -30,4 +30,25 @@ class RouteStopModel {
       status: status ?? this.status,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'customerId': customerId,
+    'order': order,
+    'customerName': customerName,
+    'area': area,
+    'status': status.name,
+  };
+
+  factory RouteStopModel.fromJson(Map<String, dynamic> json) {
+    return RouteStopModel(
+      customerId: json['customerId'] as String,
+      order: json['order'] as int,
+      customerName: json['customerName'] as String,
+      area: json['area'] as String,
+      status: RouteVisitStatus.values.firstWhere(
+            (v) => v.name == json['status'],
+        orElse: () => RouteVisitStatus.pending,
+      ),
+    );
+  }
 }

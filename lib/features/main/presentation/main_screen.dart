@@ -25,7 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildPage(int index) {
     switch (index) {
       case 0:
-        return const HomeScreen();
+        return HomeScreen(onNavigateToCustomers: () => _onTabChange(1),);
       case 1:
         return const CustomersScreen();
       case 5:
