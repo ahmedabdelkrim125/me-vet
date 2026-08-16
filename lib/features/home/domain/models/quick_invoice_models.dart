@@ -13,8 +13,8 @@ class InvoiceCustomerModel {
   });
 
   /// Remaining credit the customer can still purchase on.
-  double get availableCredit =>
-      (customer.creditLimit - customer.currentBalance).clamp(0, customer.creditLimit);
+  double get availableCredit => (customer.creditLimit - customer.currentBalance)
+      .clamp(0, customer.creditLimit);
 }
 
 class InvoiceProductModel {

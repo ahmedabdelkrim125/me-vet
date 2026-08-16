@@ -6,9 +6,9 @@ import '../../../domain/mock_customers_repository.dart';
 import '../../../domain/models/customer_detail_model.dart';
 
 Future<void> showCustomerCollectPaymentSheet(
-    BuildContext context, {
-      required CustomerDetailModel detail,
-    }) {
+  BuildContext context, {
+  required CustomerDetailModel detail,
+}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -35,7 +35,7 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
     super.dispose();
   }
 
-  void _confirm() async{
+  void _confirm() async {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -63,7 +63,7 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
     final colors = context.colors;
     return Padding(
       padding:
-      EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: BoxDecoration(
           color: colors.background,
@@ -100,7 +100,7 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
             TextField(
               controller: _amountController,
               keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+                  const TextInputType.numberWithOptions(decimal: true),
               textAlign: TextAlign.center,
               autofocus: true,
               style: AppTextStyles.cairoBold18

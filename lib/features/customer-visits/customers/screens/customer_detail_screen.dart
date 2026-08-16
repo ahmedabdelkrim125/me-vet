@@ -13,6 +13,7 @@ import 'widgets/customer_detail/customer_financial_info_card.dart';
 import 'widgets/customer_detail/customer_notes_section.dart';
 import 'widgets/customer_detail/customer_products_section.dart';
 import 'widgets/customer_detail/customer_quick_actions_bar.dart';
+import 'widgets/customer_detail/customer_visit_history_section.dart';
 
 class CustomerDetailScreen extends StatelessWidget {
   final CustomerModel customer;
@@ -25,7 +26,7 @@ class CustomerDetailScreen extends StatelessWidget {
       customer: c,
       topPurchasedProducts: detail.topProducts.map((p) => p.name).toList(),
       notPurchasedRecently:
-      detail.notBoughtRecently.map((p) => p.name).toList(),
+          detail.notBoughtRecently.map((p) => p.name).toList(),
     );
   }
 
@@ -50,24 +51,26 @@ class CustomerDetailScreen extends StatelessWidget {
                     onInvoiceTap: () => showDialog(
                       context: context,
                       builder: (_) => QuickInvoiceDialog(
-                        initialCustomer: _toInvoiceCustomer(detail),
-                        onIssued: (info) async{
-                          final repo = MockCustomersRepository.instance;
-                          await repo.adjustBalance(
-                              currentCustomer.id, info.amount);
-                          await repo.addInvoice(
-                            currentCustomer.id,
-                            InvoiceRecordModel(
-                              code: info.invoiceNumber,
-                              date: info.date,
-                              amount: info.amount,
-                              status: info.saleType == 'نقدي'
-                                  ? InvoiceStatus.paid
-                                  : InvoiceStatus.deferred,
-                            ),
-                          );
-                        }
-                      ),
+                          initialCustomer: _toInvoiceCustomer(detail),
+                          onIssued: (info) async {
+                            final repo = MockCustomersRepository.instance;
+                            final isCashSale = info.saleType == 'نقدي';
+                            if (!isCashSale) {
+                              await repo.adjustBalance(
+                                  currentCustomer.id, info.amount);
+                            }
+                            await repo.addInvoice(
+                              currentCustomer.id,
+                              InvoiceRecordModel(
+                                code: info.invoiceNumber,
+                                date: info.date,
+                                amount: info.amount,
+                                status: isCashSale
+                                    ? InvoiceStatus.paid
+                                    : InvoiceStatus.deferred,
+                              ),
+                            );
+                          }),
                     ),
                     onCollectTap: () => showCustomerCollectPaymentSheet(
                       context,
@@ -85,6 +88,8 @@ class CustomerDetailScreen extends StatelessWidget {
                       suggestions: detail.seasonalSuggestions),
                   SizedBox(height: 16.h),
                   CustomerNotesSection(initialNotes: detail.notes),
+                  SizedBox(height: 16.h),
+                  CustomerVisitHistorySection(customerId: currentCustomer.id),
                   SizedBox(height: 16.h),
                   CustomerAccountStatementSection(invoices: detail.invoices),
                 ],

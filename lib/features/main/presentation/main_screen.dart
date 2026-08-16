@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../customer-visits/customers/screens/customers_screen.dart';
 import '../../home/presentation/home_screen.dart';
+import '../../inventory/presentation/screens/inventory_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import 'widgets/app_bottom_nav_bar.dart';
 import 'widgets/app_side_nav_bar.dart';
@@ -28,6 +29,8 @@ class _MainScreenState extends State<MainScreen> {
         return const HomeScreen();
       case 1:
         return const CustomersScreen();
+      case 2:
+        return const InventoryScreen();
       case 5:
         return const SettingsScreen();
       default:

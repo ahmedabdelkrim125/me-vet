@@ -15,6 +15,7 @@ class CustomerModel {
   final double creditLimit;
   final double currentBalance;
   final DateTime? lastCollectionDate;
+  final double averageOrder;
 
   const CustomerModel({
     required this.id,
@@ -29,6 +30,7 @@ class CustomerModel {
     this.creditLimit = 0,
     this.currentBalance = 0,
     this.lastCollectionDate,
+    this.averageOrder = 0,
   });
 
   CustomerModel copyWith({
@@ -44,6 +46,7 @@ class CustomerModel {
     double? creditLimit,
     double? currentBalance,
     DateTime? lastCollectionDate,
+    double? averageOrder,
   }) {
     return CustomerModel(
       id: id ?? this.id,
@@ -58,6 +61,7 @@ class CustomerModel {
       creditLimit: creditLimit ?? this.creditLimit,
       currentBalance: currentBalance ?? this.currentBalance,
       lastCollectionDate: lastCollectionDate ?? this.lastCollectionDate,
+      averageOrder: averageOrder ?? this.averageOrder,
     );
   }
 
@@ -75,6 +79,7 @@ class CustomerModel {
       'creditLimit': creditLimit,
       'currentBalance': currentBalance,
       'lastCollectionDate': lastCollectionDate?.toIso8601String(),
+      'averageOrder': averageOrder,
     };
   }
 
@@ -97,6 +102,7 @@ class CustomerModel {
       lastCollectionDate: json['lastCollectionDate'] == null
           ? null
           : DateTime.parse(json['lastCollectionDate'] as String),
+      averageOrder: (json['averageOrder'] as num?)?.toDouble() ?? 0,
     );
   }
 

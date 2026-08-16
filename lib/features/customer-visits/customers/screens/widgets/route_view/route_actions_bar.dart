@@ -6,12 +6,12 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 class RouteActionsBar extends StatelessWidget {
   final VoidCallback onReportTap;
-  final VoidCallback onReloadTap;
+  final VoidCallback onIncompleteTap;
 
   const RouteActionsBar({
     super.key,
     required this.onReportTap,
-    required this.onReloadTap,
+    required this.onIncompleteTap,
   });
 
   @override
@@ -33,12 +33,12 @@ class RouteActionsBar extends StatelessWidget {
         SizedBox(width: 10.w),
         Expanded(
           child: _ActionButton(
-            label: 'طلب إعادة تحميل العربية',
+            label: 'عملاء لم تتم زيارتهم',
             filled: false,
-            onTap: onReloadTap,
-            iconBuilder: (color) => HugeIcon(
-              icon: HugeIcons.strokeRoundedCircleArrowReload01,
-              size: 15.sp,
+            onTap: onIncompleteTap,
+            iconBuilder: (color) => Icon(
+              Icons.person_off_outlined,
+              size: 16.sp,
               color: color,
             ),
           ),
