@@ -53,15 +53,18 @@ class CustomerDetailScreen extends StatelessWidget {
                           initialCustomer: _toInvoiceCustomer(detail),
                           onIssued: (info) async {
                             final repo = MockCustomersRepository.instance;
-                            await repo.adjustBalance(
-                                currentCustomer.id, info.amount);
+                            final isCashSale = info.saleType == 'نقدي';
+                            if (!isCashSale) {
+                              await repo.adjustBalance(
+                                  currentCustomer.id, info.amount);
+                            }
                             await repo.addInvoice(
                               currentCustomer.id,
                               InvoiceRecordModel(
                                 code: info.invoiceNumber,
                                 date: info.date,
                                 amount: info.amount,
-                                status: info.saleType == 'نقدي'
+                                status: isCashSale
                                     ? InvoiceStatus.paid
                                     : InvoiceStatus.deferred,
                               ),

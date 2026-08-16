@@ -9,6 +9,7 @@ class RouteProgressCard extends StatelessWidget {
   final int totalVisits;
   final int completedVisits;
   final String buttonText;
+  final VoidCallback? onButtonTap;
 
   const RouteProgressCard({
     super.key,
@@ -17,6 +18,7 @@ class RouteProgressCard extends StatelessWidget {
     required this.totalVisits,
     required this.completedVisits,
     required this.buttonText,
+    this.onButtonTap,
   });
 
   @override
@@ -115,7 +117,11 @@ class RouteProgressCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 20.h),
-          _StartButton(buttonText: buttonText, expand: true),
+          _StartButton(
+            buttonText: buttonText,
+            expand: true,
+            onTap: onButtonTap,
+          ),
         ],
       ),
     );
@@ -228,8 +234,13 @@ class _RouteStat extends StatelessWidget {
 class _StartButton extends StatelessWidget {
   final String buttonText;
   final bool expand;
+  final VoidCallback? onTap;
 
-  const _StartButton({required this.buttonText, this.expand = false});
+  const _StartButton({
+    required this.buttonText,
+    this.expand = false,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -238,7 +249,7 @@ class _StartButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(14.r),
       child: InkWell(
         borderRadius: BorderRadius.circular(14.r),
-        onTap: () {},
+        onTap: onTap,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
           child: Row(

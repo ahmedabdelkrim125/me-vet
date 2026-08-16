@@ -57,8 +57,8 @@ class CustomerDetailModel {
 
     return CustomerDetailModel(
       customer: customer,
-      currentBalance: customer.creditLimit * 0.4,
-      lastCollectionDate: now.subtract(const Duration(days: 12)),
+      currentBalance: customer.currentBalance,
+      lastCollectionDate: customer.lastCollectionDate,
       averageOrder: averageOrder,
       topProducts: [
         ProductPurchaseModel(

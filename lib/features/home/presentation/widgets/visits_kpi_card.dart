@@ -39,7 +39,7 @@ class VisitsKpiCard extends StatelessWidget {
               ),
               SizedBox(width: 8.w),
               Text(
-                'مؤشر الزيارات الشهرية',
+                'مؤشر زيارات اليوم',
                 style: AppTextStyles.cairoMedium16.copyWith(
                   color: context.colors.text,
                   fontSize: 14.sp,
@@ -67,7 +67,9 @@ class VisitsKpiCard extends StatelessWidget {
           ),
           SizedBox(height: 8.h),
           Text(
-            'الهدف الشهري لكل عميل من 3 إلى 4 زيارات',
+            targetVisits == 0
+                ? 'اختار عملاء اليوم عشان يبدأ المؤشر يتحرك'
+                : 'المؤشر بيتحدث حسب حالات زيارات خط اليوم',
             style: AppTextStyles.almaraiRegular14.copyWith(
               color: AppColors.navInactive,
               fontSize: 11.sp,

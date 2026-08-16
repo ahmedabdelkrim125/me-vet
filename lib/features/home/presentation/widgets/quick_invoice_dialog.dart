@@ -4,6 +4,9 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../customer-visits/customers/domain/models/customer_model.dart';
+import '../../../inventory/domain/mock_inventory_repository.dart';
+import '../../../inventory/domain/models/product_model.dart';
+import '../../../inventory/domain/models/product_unit.dart';
 import '../../domain/models/quick_invoice_models.dart';
 
 /// ---------------------------------------------------------------------
@@ -66,17 +69,14 @@ final List<InvoiceCustomerModel> _mockCustomers = [
   ),
 ];
 
-const List<InvoiceProductModel> _mockCatalog = [
-  InvoiceProductModel(id: 'p1', name: 'Enrofloxacin 10% — 1لتر', price: 125),
-  InvoiceProductModel(id: 'p2', name: 'AD3E Injectable', price: 65),
-  InvoiceProductModel(id: 'p3', name: 'Liver Tonic 1L', price: 90),
-  InvoiceProductModel(
-      id: 'p4', name: 'فيتامين C بيطري', price: 45, unit: 'كيس'),
-  InvoiceProductModel(id: 'p5', name: 'مضاد حيوي شامل', price: 110),
-  InvoiceProductModel(id: 'p6', name: 'كالسيوم بلس', price: 55, unit: 'كيس'),
-  InvoiceProductModel(id: 'p7', name: 'خافض حرارة بيطري', price: 38),
-  InvoiceProductModel(id: 'p8', name: 'مضاد سموم', price: 70),
-];
+InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
+  return InvoiceProductModel(
+    id: product.id,
+    name: product.name,
+    price: product.basePrice,
+    unit: product.unit.label,
+  );
+}
 
 List<PastInvoiceSummaryModel> _mockStatementFor(InvoiceCustomerModel invoice) {
   final rnd = Random(invoice.customer.id.hashCode);
@@ -147,6 +147,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     super.initState();
     invoiceNumber = 'INV-${invoiceDate.year}-${100 + Random().nextInt(900)}';
     customer = widget.initialCustomer;
+    MockInventoryRepository.instance.init();
   }
 
   @override
@@ -185,6 +186,8 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   }
 
   Future<void> _openAddProducts() async {
+    await MockInventoryRepository.instance.init();
+    if (!mounted) return;
     final added = await showModalBottomSheet<List<InvoiceLineItemModel>>(
       context: context,
       isScrollControlled: true,
@@ -221,6 +224,11 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       return;
     }
     final total = grandTotal;
+    final isDeferredSale = saleType != 'نقدي';
+    if (isDeferredSale && total > customer!.availableCredit) {
+      _toast('قيمة الفاتورة الآجلة تتجاوز حد الائتمان المتاح');
+      return;
+    }
     widget.onIssued?.call(IssuedInvoiceInfo(
       invoiceNumber: invoiceNumber,
       amount: total,
@@ -1503,7 +1511,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final filtered = _mockCatalog
+    final filtered = MockInventoryRepository.instance.products.value
+        .map(_invoiceProductFromInventory)
         .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
         .toList();
 
