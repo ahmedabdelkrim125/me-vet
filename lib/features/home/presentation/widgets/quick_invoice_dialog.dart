@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../../../customer-visits/customers/domain/models/customer_model.dart';
+import '../../../inventory/domain/mock_inventory_repository.dart';
+import '../../../inventory/domain/models/product_model.dart';
+import '../../../inventory/domain/models/product_unit.dart';
 import '../../domain/models/quick_invoice_models.dart';
 
 /// ---------------------------------------------------------------------
@@ -13,54 +17,69 @@ const _currentRepName = 'أحمد محمود';
 
 final List<InvoiceCustomerModel> _mockCustomers = [
   InvoiceCustomerModel(
-    id: 'c1',
-    name: 'عيادة د. خالد سليم',
-    phone: '01012345678',
-    address: 'المنصورة، شارع الجمهورية',
-    creditLimit: 10000,
-    currentBalance: 4500,
-    lastPaymentDate: DateTime(2026, 7, 10),
+    customer: CustomerModel(
+      id: 'c1',
+      name: 'عيادة د. خالد سليم',
+      phone: '01012345678',
+      address: 'المنصورة، شارع الجمهورية',
+      creditLimit: 10000,
+      currentBalance: 4500,
+      lastCollectionDate: DateTime(2026, 7, 10),
+      code: '',
+      area: '',
+      category: '',
+      visitsThisMonth: 0,
+    ),
     topPurchasedProducts: const ['فيتامين C بيطري', 'مضاد حيوي شامل'],
     notPurchasedRecently: const ['كالسيوم بلس', 'مضاد سموم'],
   ),
   InvoiceCustomerModel(
-    id: 'c2',
-    name: 'صيدلية الشفاء البيطرية',
-    phone: '01098765432',
-    address: 'طلخا، شارع النصر',
-    creditLimit: 15000,
-    currentBalance: 12300,
-    lastPaymentDate: DateTime(2026, 6, 22),
+    customer: CustomerModel(
+      id: 'c2',
+      name: 'صيدلية الشفاء البيطرية',
+      phone: '01098765432',
+      address: 'طلخا، شارع النصر',
+      creditLimit: 15000,
+      currentBalance: 12300,
+      lastCollectionDate: DateTime(2026, 6, 22),
+      code: '',
+      area: '',
+      category: '',
+      visitsThisMonth: 0,
+    ),
     topPurchasedProducts: const ['Liver Tonic 1L', 'AD3E Injectable'],
     notPurchasedRecently: const ['فيتامين B12'],
   ),
   InvoiceCustomerModel(
-    id: 'c3',
-    name: 'مزرعة النيل للدواجن',
-    phone: '01234567890',
-    address: 'ميت غمر، طريق الزراعة',
-    creditLimit: 25000,
-    currentBalance: 3100,
-    lastPaymentDate: DateTime(2026, 7, 30),
+    customer: CustomerModel(
+      id: 'c3',
+      name: 'مزرعة النيل للدواجن',
+      phone: '01234567890',
+      address: 'ميت غمر، طريق الزراعة',
+      creditLimit: 25000,
+      currentBalance: 3100,
+      lastCollectionDate: DateTime(2026, 7, 30),
+      code: '',
+      area: '',
+      category: '',
+      visitsThisMonth: 0,
+    ),
     topPurchasedProducts: const ['Enrofloxacin 10%', 'خافض حرارة بيطري'],
     notPurchasedRecently: const ['مضاد فطريات'],
   ),
 ];
 
-const List<InvoiceProductModel> _mockCatalog = [
-  InvoiceProductModel(id: 'p1', name: 'Enrofloxacin 10% — 1لتر', price: 125),
-  InvoiceProductModel(id: 'p2', name: 'AD3E Injectable', price: 65),
-  InvoiceProductModel(id: 'p3', name: 'Liver Tonic 1L', price: 90),
-  InvoiceProductModel(
-      id: 'p4', name: 'فيتامين C بيطري', price: 45, unit: 'كيس'),
-  InvoiceProductModel(id: 'p5', name: 'مضاد حيوي شامل', price: 110),
-  InvoiceProductModel(id: 'p6', name: 'كالسيوم بلس', price: 55, unit: 'كيس'),
-  InvoiceProductModel(id: 'p7', name: 'خافض حرارة بيطري', price: 38),
-  InvoiceProductModel(id: 'p8', name: 'مضاد سموم', price: 70),
-];
+InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
+  return InvoiceProductModel(
+    id: product.id,
+    name: product.name,
+    price: product.basePrice,
+    unit: product.unit.label,
+  );
+}
 
-List<PastInvoiceSummaryModel> _mockStatementFor(InvoiceCustomerModel customer) {
-  final rnd = Random(customer.id.hashCode);
+List<PastInvoiceSummaryModel> _mockStatementFor(InvoiceCustomerModel invoice) {
+  final rnd = Random(invoice.customer.id.hashCode);
   final now = DateTime(2026, 8, 6);
   return List.generate(6, (i) {
     final month = DateTime(now.year, now.month - i, min(now.day, 28));
@@ -104,8 +123,9 @@ class QuickInvoiceDialog extends StatefulWidget {
   /// If a customer is already known (e.g. opened from a customer profile),
   /// pass it here to skip the picker step.
   final InvoiceCustomerModel? initialCustomer;
+  final ValueChanged<IssuedInvoiceInfo>? onIssued;
 
-  const QuickInvoiceDialog({super.key, this.initialCustomer});
+  const QuickInvoiceDialog({super.key, this.initialCustomer, this.onIssued});
 
   @override
   State<QuickInvoiceDialog> createState() => _QuickInvoiceDialogState();
@@ -113,7 +133,8 @@ class QuickInvoiceDialog extends StatefulWidget {
 
 class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   late final String invoiceNumber;
-  DateTime invoiceDate = DateTime(2026, 8, 6);
+  DateTime now = DateTime.now();
+  late DateTime invoiceDate = DateTime(now.year, now.month, now.day);
   String saleType = 'آجل';
 
   InvoiceCustomerModel? customer;
@@ -126,6 +147,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     super.initState();
     invoiceNumber = 'INV-${invoiceDate.year}-${100 + Random().nextInt(900)}';
     customer = widget.initialCustomer;
+    MockInventoryRepository.instance.init();
   }
 
   @override
@@ -164,6 +186,8 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   }
 
   Future<void> _openAddProducts() async {
+    await MockInventoryRepository.instance.init();
+    if (!mounted) return;
     final added = await showModalBottomSheet<List<InvoiceLineItemModel>>(
       context: context,
       isScrollControlled: true,
@@ -183,7 +207,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _StatementSheet(
-        customer: customer!,
+        invoice: customer!,
         entries: _mockStatementFor(customer!),
       ),
     );
@@ -199,12 +223,25 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       _toast('أضف صنفًا واحدًا على الأقل للفاتورة');
       return;
     }
+    final total = grandTotal;
+    final isDeferredSale = saleType != 'نقدي';
+    if (isDeferredSale && total > customer!.availableCredit) {
+      _toast('قيمة الفاتورة الآجلة تتجاوز حد الائتمان المتاح');
+      return;
+    }
+    widget.onIssued?.call(IssuedInvoiceInfo(
+      invoiceNumber: invoiceNumber,
+      amount: total,
+      saleType: saleType,
+      date: invoiceDate,
+    ));
+
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: colors.primary,
         content: Text(
-          'تم إصدار الفاتورة $invoiceNumber بإجمالي ${_money(grandTotal)}',
+          'تم إصدار الفاتورة $invoiceNumber بإجمالي ${_money(total)}',
           style: AppTextStyles.cairoMedium16
               .copyWith(color: Colors.white, fontSize: 13.sp),
         ),
@@ -248,7 +285,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                         child: customer == null
                             ? _CustomerEmptyState(onPick: _pickCustomer)
                             : _CustomerInfo(
-                                customer: customer!,
+                                invoice: customer!,
                                 onChange: _pickCustomer,
                               ),
                       ),
@@ -265,7 +302,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                           ),
                         ),
                         SizedBox(height: 14.h),
-                        _FinancialSummaryRow(customer: customer!),
+                        _FinancialSummaryRow(invoice: customer!),
                         SizedBox(height: 14.h),
                         _StatementTile(onTap: _openStatement),
                         SizedBox(height: 14.h),
@@ -537,10 +574,10 @@ class _CustomerEmptyState extends StatelessWidget {
 }
 
 class _CustomerInfo extends StatelessWidget {
-  final InvoiceCustomerModel customer;
+  final InvoiceCustomerModel invoice;
   final VoidCallback onChange;
 
-  const _CustomerInfo({required this.customer, required this.onChange});
+  const _CustomerInfo({required this.invoice, required this.onChange});
 
   @override
   Widget build(BuildContext context) {
@@ -552,7 +589,7 @@ class _CustomerInfo extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                customer.name,
+                invoice.customer.name,
                 style: AppTextStyles.cairoBold18
                     .copyWith(color: colors.text, fontSize: 15.sp),
               ),
@@ -577,7 +614,7 @@ class _CustomerInfo extends StatelessWidget {
             SizedBox(width: 4.w),
             Expanded(
               child: Text(
-                customer.address,
+                invoice.customer.address,
                 style: AppTextStyles.almaraiRegular14
                     .copyWith(color: colors.textMuted, fontSize: 12.sp),
               ),
@@ -590,7 +627,7 @@ class _CustomerInfo extends StatelessWidget {
             Icon(Icons.call_outlined, size: 14.sp, color: colors.textMuted),
             SizedBox(width: 4.w),
             Text(
-              customer.phone,
+              invoice.customer.phone,
               style: AppTextStyles.almaraiRegular14
                   .copyWith(color: colors.textMuted, fontSize: 12.sp),
             ),
@@ -616,7 +653,8 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final filtered = widget.customers
-        .where((c) => c.name.toLowerCase().contains(query.toLowerCase()))
+        .where(
+            (c) => c.customer.name.toLowerCase().contains(query.toLowerCase()))
         .toList();
 
     return _BottomSheetShell(
@@ -673,7 +711,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                c.name,
+                                c.customer.name,
                                 style: AppTextStyles.cairoMedium16.copyWith(
                                   color: colors.text,
                                   fontSize: 13.sp,
@@ -681,7 +719,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
                               ),
                               SizedBox(height: 2.h),
                               Text(
-                                c.address,
+                                c.customer.address,
                                 style: AppTextStyles.almaraiRegular14.copyWith(
                                   color: colors.textMuted,
                                   fontSize: 11.sp,
@@ -940,19 +978,20 @@ class _SaleTypeOption extends StatelessWidget {
 /// ---------------------------------------------------------------------
 
 class _FinancialSummaryRow extends StatelessWidget {
-  final InvoiceCustomerModel customer;
-  const _FinancialSummaryRow({required this.customer});
+  final InvoiceCustomerModel invoice;
+  const _FinancialSummaryRow({required this.invoice});
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final nearLimit = customer.currentBalance > customer.creditLimit * 0.8;
+    final nearLimit =
+        invoice.customer.currentBalance > invoice.customer.creditLimit * 0.8;
     return Row(
       children: [
         Expanded(
           child: _FinancialCard(
             title: 'حد الائتمان',
-            value: _money(customer.creditLimit),
+            value: _money(invoice.customer.creditLimit),
             icon: Icons.verified_user_outlined,
             color: colors.statBlue,
           ),
@@ -961,7 +1000,7 @@ class _FinancialSummaryRow extends StatelessWidget {
         Expanded(
           child: _FinancialCard(
             title: 'الرصيد الحالي',
-            value: _money(customer.currentBalance),
+            value: _money(invoice.customer.currentBalance),
             icon: Icons.account_balance_wallet_outlined,
             color: nearLimit ? colors.statusNotReached : colors.statOrange,
           ),
@@ -970,7 +1009,8 @@ class _FinancialSummaryRow extends StatelessWidget {
         Expanded(
           child: _FinancialCard(
             title: 'آخر سداد',
-            value: _date(customer.lastPaymentDate),
+            value: _date(
+                invoice.customer.lastCollectionDate ?? DateTime(2024, 6, 6)),
             icon: Icons.event_available_outlined,
             color: colors.primary,
           ),
@@ -1072,16 +1112,16 @@ class _StatementTile extends StatelessWidget {
 }
 
 class _StatementSheet extends StatelessWidget {
-  final InvoiceCustomerModel customer;
+  final InvoiceCustomerModel invoice;
   final List<PastInvoiceSummaryModel> entries;
 
-  const _StatementSheet({required this.customer, required this.entries});
+  const _StatementSheet({required this.invoice, required this.entries});
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return _BottomSheetShell(
-      title: 'كشف حساب — ${customer.name}',
+      title: 'كشف حساب — ${invoice.customer.name}',
       icon: Icons.receipt_long_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1471,7 +1511,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final filtered = _mockCatalog
+    final filtered = MockInventoryRepository.instance.products.value
+        .map(_invoiceProductFromInventory)
         .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
         .toList();
 

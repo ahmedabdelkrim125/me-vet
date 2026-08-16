@@ -1,32 +1,20 @@
-class InvoiceCustomerModel {
-  final String id;
-  final String name;
-  final String phone;
-  final String address;
+import 'package:mivet_app/features/customer-visits/customers/domain/models/customer_model.dart';
 
-  /// Set by management — never editable by the sales rep on this screen.
-  final double creditLimit;
-  final double currentBalance;
-  final DateTime lastPaymentDate;
+class InvoiceCustomerModel {
+  final CustomerModel customer;
 
   final List<String> topPurchasedProducts;
   final List<String> notPurchasedRecently;
 
   const InvoiceCustomerModel({
-    required this.id,
-    required this.name,
-    required this.phone,
-    required this.address,
-    required this.creditLimit,
-    required this.currentBalance,
-    required this.lastPaymentDate,
+    required this.customer,
     this.topPurchasedProducts = const [],
     this.notPurchasedRecently = const [],
   });
 
   /// Remaining credit the customer can still purchase on.
-  double get availableCredit =>
-      (creditLimit - currentBalance).clamp(0, creditLimit);
+  double get availableCredit => (customer.creditLimit - customer.currentBalance)
+      .clamp(0, customer.creditLimit);
 }
 
 class InvoiceProductModel {
@@ -64,5 +52,21 @@ class PastInvoiceSummaryModel {
     required this.date,
     required this.total,
     required this.status,
+  });
+}
+
+/// معلومات الفاتورة بعد إصدارها — بترجع عن طريق onIssued عشان أي
+/// حد مستخدم للـ dialog يقدر يحدّث رصيد العميل ويسجل الفاتورة.
+class IssuedInvoiceInfo {
+  final String invoiceNumber;
+  final double amount;
+  final String saleType;
+  final DateTime date;
+
+  const IssuedInvoiceInfo({
+    required this.invoiceNumber,
+    required this.amount,
+    required this.saleType,
+    required this.date,
   });
 }

@@ -1,4 +1,5 @@
 import 'customer_model.dart';
+import '../mock_customers_repository.dart';
 
 class ProductPurchaseModel {
   final String name;
@@ -51,11 +52,14 @@ class CustomerDetailModel {
 
   factory CustomerDetailModel.mock(CustomerModel customer) {
     final now = DateTime.now();
+    final averageOrder =
+        MockCustomersRepository.instance.getAverageOrder(customer.id);
+
     return CustomerDetailModel(
       customer: customer,
-      currentBalance: customer.creditLimit * 0.4,
-      lastCollectionDate: now.subtract(const Duration(days: 12)),
-      averageOrder: 1450,
+      currentBalance: customer.currentBalance,
+      lastCollectionDate: customer.lastCollectionDate,
+      averageOrder: averageOrder,
       topProducts: [
         ProductPurchaseModel(
             name: 'فيتامين أ د3 إي',
