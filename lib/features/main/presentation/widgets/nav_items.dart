@@ -9,7 +9,7 @@ const List<NavItemModel> appNavItems = [
   ),
   NavItemModel(
     icon: HugeIcons.strokeRoundedInvoice01,
-    label: 'المبيعات والفواتير',
+    label: 'اضافة المنتجات',
   ),
   NavItemModel(
     icon: HugeIcons.strokeRoundedPackage,
