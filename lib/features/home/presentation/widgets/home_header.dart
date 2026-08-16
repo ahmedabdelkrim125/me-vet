@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/arabic_date_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../../../notification/domain/models/app_notification_model.dart';
+import '../../../notification/domain/notification_repository.dart';
+import '../../../notification/presentation/screens/notifications_screen.dart';
 import '../../../rep_session/data/rep_session_store.dart';
 
 class HomeHeader extends StatefulWidget {
@@ -21,6 +23,7 @@ class _HomeHeaderState extends State<HomeHeader> {
   void initState() {
     super.initState();
     _loadActiveRep();
+    NotificationRepository.instance.initialize();
   }
 
   Future<void> _loadActiveRep() async {
@@ -55,14 +58,28 @@ class _HomeHeaderState extends State<HomeHeader> {
           ],
         ),
         const Spacer(),
-        const _ActionButton(
+        _ActionButton(
           icon: HugeIcons.strokeRoundedRefresh,
-          hasBadge: false,
+          onTap: () {},
         ),
         SizedBox(width: 12.w),
-        const _ActionButton(
-          icon: HugeIcons.strokeRoundedNotification01,
-          hasBadge: true,
+        ValueListenableBuilder<List<AppNotificationModel>>(
+          valueListenable:
+              NotificationRepository.instance.notificationsNotifier,
+          builder: (context, notifications, _) {
+            final unreadCount = notifications.where((n) => !n.isRead).length;
+            return _ActionButton(
+              icon: HugeIcons.strokeRoundedNotification01,
+              badgeCount: unreadCount,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen(),
+                  ),
+                );
+              },
+            );
+          },
         ),
       ],
     );
@@ -71,9 +88,14 @@ class _HomeHeaderState extends State<HomeHeader> {
 
 class _ActionButton extends StatelessWidget {
   final List<List<dynamic>> icon;
-  final bool hasBadge;
+  final VoidCallback onTap;
+  final int badgeCount;
 
-  const _ActionButton({required this.icon, required this.hasBadge});
+  const _ActionButton({
+    required this.icon,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +104,7 @@ class _ActionButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(16.r),
       child: InkWell(
         borderRadius: BorderRadius.circular(16.r),
-        onTap: () {},
+        onTap: onTap,
         child: Container(
           width: 48.w,
           height: 48.w,
@@ -91,6 +113,7 @@ class _ActionButton extends StatelessWidget {
             border: Border.all(color: context.colors.border),
           ),
           child: Stack(
+            clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
               HugeIcon(
@@ -98,19 +121,48 @@ class _ActionButton extends StatelessWidget {
                 color: context.colors.primary,
                 size: 22.sp,
               ),
-              if (hasBadge)
-                Positioned(
-                  top: 10.h,
-                  right: 10.w,
-                  child: Container(
-                    width: 8.w,
-                    height: 8.w,
-                    decoration: const BoxDecoration(
-                      color: AppColors.statOrange,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+              Positioned(
+                top: -2.h,
+                right: -2.w,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  transitionBuilder: (child, animation) =>
+                      ScaleTransition(scale: animation, child: child),
+                  child: badgeCount > 0
+                      ? Container(
+                          key: ValueKey(badgeCount),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: badgeCount > 9 ? 5.w : 0,
+                          ),
+                          constraints: BoxConstraints(
+                            minWidth: 18.w,
+                            minHeight: 18.w,
+                          ),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF16B5E),
+                            shape: badgeCount > 9
+                                ? BoxShape.rectangle
+                                : BoxShape.circle,
+                            borderRadius: badgeCount > 9
+                                ? BorderRadius.circular(10.r)
+                                : null,
+                            border: Border.all(
+                              color: context.colors.surface,
+                              width: 1.6,
+                            ),
+                          ),
+                          child: Text(
+                            badgeCount > 9 ? '9+' : '$badgeCount',
+                            style: AppTextStyles.cairoBold18.copyWith(
+                              color: Colors.white,
+                              fontSize: 9.sp,
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(key: ValueKey('no-badge')),
                 ),
+              ),
             ],
           ),
         ),
