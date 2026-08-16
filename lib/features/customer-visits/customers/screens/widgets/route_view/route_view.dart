@@ -8,6 +8,7 @@ import '../../../domain/models/route_stop_model.dart';
 import '../../../domain/models/visit_status.dart';
 import '../../../domain/today_route_controller.dart';
 import 'route_actions_bar.dart';
+import 'route_incomplete_customers_sheet.dart';
 import 'route_report_sheet.dart';
 import 'route_stop_tile.dart';
 import 'route_summary_card.dart';
@@ -27,6 +28,7 @@ class _RouteViewState extends State<RouteView>
   late final AnimationController _entranceController;
 
   final TodayRouteController _routeController = TodayRouteController.instance;
+  bool _showedNewDayDecision = false;
 
   @override
   void initState() {
@@ -37,7 +39,18 @@ class _RouteViewState extends State<RouteView>
           Duration(milliseconds: 500 + _routeController.stops.length * 80),
     )..forward();
     _routeController.stopsNotifier.addListener(_restartEntranceAnimation);
-    _routeController.initialize();
+    _loadRoute();
+  }
+
+  Future<void> _loadRoute() async {
+    await _routeController.initialize();
+    if (!mounted || !_routeController.shouldAskForNewDayDecision) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _showedNewDayDecision) return;
+      _showedNewDayDecision = true;
+      _showNewDayDecisionDialog();
+    });
   }
 
   void _restartEntranceAnimation() {
@@ -82,6 +95,53 @@ class _RouteViewState extends State<RouteView>
 
   void _removeStop(String customerId) {
     _routeController.removeStop(customerId);
+  }
+
+  Future<void> _carryIncompleteToNextDay() async {
+    final count = _routeController.incompleteStops.length;
+    await _routeController.carryIncompleteToNewDay();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('تم ترحيل $count عميل لليوم التالي')),
+    );
+  }
+
+  Future<void> _showIncompleteCustomers() async {
+    await showIncompleteRouteCustomersSheet(
+      context,
+      stops: _routeController.incompleteStops,
+      onCarryToNextDay: _carryIncompleteToNextDay,
+    );
+  }
+
+  Future<void> _showNewDayDecisionDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('خط اليوم قديم'),
+          content: const Text(
+            'مر أكتر من 24 ساعة على خط اليوم. تحب ترحل العملاء غير المكتملين لليوم الجديد ولا تمسح الخط وتبدأ من جديد؟',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await _routeController.clearTodayRoute();
+                if (context.mounted) Navigator.of(context).pop();
+              },
+              child: const Text('مسح وبدء جديد'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                await _routeController.carryIncompleteToNewDay();
+                if (context.mounted) Navigator.of(context).pop();
+              },
+              child: const Text('ترحيل المتبقي'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -177,12 +237,7 @@ class _RouteViewState extends State<RouteView>
             SizedBox(height: 8.h),
             RouteActionsBar(
               onReportTap: () => showRouteReportSheet(context, stops),
-              onReloadTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('تم إرسال طلب إعادة تحميل العربية')),
-                );
-              },
+              onIncompleteTap: _showIncompleteCustomers,
             ),
           ],
         );

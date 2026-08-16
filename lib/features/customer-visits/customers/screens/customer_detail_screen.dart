@@ -13,6 +13,7 @@ import 'widgets/customer_detail/customer_financial_info_card.dart';
 import 'widgets/customer_detail/customer_notes_section.dart';
 import 'widgets/customer_detail/customer_products_section.dart';
 import 'widgets/customer_detail/customer_quick_actions_bar.dart';
+import 'widgets/customer_detail/customer_visit_history_section.dart';
 
 class CustomerDetailScreen extends StatelessWidget {
   final CustomerModel customer;
@@ -87,6 +88,8 @@ class CustomerDetailScreen extends StatelessWidget {
                       suggestions: detail.seasonalSuggestions),
                   SizedBox(height: 16.h),
                   CustomerNotesSection(initialNotes: detail.notes),
+                  SizedBox(height: 16.h),
+                  CustomerVisitHistorySection(customerId: currentCustomer.id),
                   SizedBox(height: 16.h),
                   CustomerAccountStatementSection(invoices: detail.invoices),
                 ],
