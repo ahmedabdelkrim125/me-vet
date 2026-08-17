@@ -143,6 +143,22 @@ class ProductDetailSheet extends StatelessWidget {
                   icon: Icons.access_time_rounded,
                   label: 'وقت الإضافة',
                   value: DateFormat('hh:mm a').format(product.createdAt)),
+                  if (product.expiryDate != null)
+  _DetailRow(
+    icon: Icons.event_busy_outlined,
+    label: 'تاريخ الصلاحية',
+    value: DateFormat('yyyy/MM/dd').format(product.expiryDate!),
+  ),
+Builder(
+  builder: (context) {
+    final warehouse = MockInventoryRepository.instance.warehouseStockOf(product.id);
+    return _DetailRow(
+      icon: Icons.warehouse_outlined,
+      label: 'الكمية بالمخزن الرئيسي',
+      value: warehouse == null ? '0 ${product.unit.label}' : '${warehouse.quantity} ${product.unit.label}',
+    );
+  },
+),
               SizedBox(height: 20.h),
               Row(
                 children: [

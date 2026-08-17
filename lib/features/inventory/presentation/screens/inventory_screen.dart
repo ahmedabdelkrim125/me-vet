@@ -185,18 +185,17 @@ class _AnimatedProductTile extends StatelessWidget {
           product: product,
           stock: stock,
           onTap: () => showProductDetailSheet(context, product),
-          onAddToVehicle: () {
-            showAddToVehicleDialog(
-              context,
-              product: product,
-              onConfirm: (quantity, threshold) =>
-                  MockInventoryRepository.instance.addToVehicle(
-                productId: product.id,
-                quantity: quantity,
-                minThreshold: threshold,
-              ),
-            );
-          },
+         onAddToVehicle: () {
+  showAddToVehicleDialog(
+    context,
+    product: product,
+    onConfirm: (quantity, threshold) => MockInventoryRepository.instance.loadToVehicle(
+      productId: product.id,
+      quantity: quantity,
+      minThreshold: threshold,
+    ),
+  );
+},
         ),
       ),
     );
