@@ -6,7 +6,8 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../inventory/domain/models/stock_movement_model.dart';
 import '../../../inventory/domain/models/stock_movement_type.dart';
 
-Future<void> showStockMovementLogSheet(BuildContext context, List<StockMovementModel> movements) {
+Future<void> showStockMovementLogSheet(
+    BuildContext context, List<StockMovementModel> movements) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -41,15 +42,20 @@ class _StockMovementLogSheet extends StatelessWidget {
                 child: Container(
                   width: 42.w,
                   height: 4.h,
-                  decoration: BoxDecoration(color: context.colors.border, borderRadius: BorderRadius.circular(10.r)),
+                  decoration: BoxDecoration(
+                      color: context.colors.border,
+                      borderRadius: BorderRadius.circular(10.r)),
                 ),
               ),
               SizedBox(height: 14.h),
-              Text('سجل حركة المخزون', style: AppTextStyles.cairoBold18.copyWith(color: context.colors.text, fontSize: 16.sp)),
+              Text('سجل حركة المخزون',
+                  style: AppTextStyles.cairoBold18
+                      .copyWith(color: context.colors.text, fontSize: 16.sp)),
               SizedBox(height: 4.h),
               Text(
                 'كل عملية تحميل أو إضافة موثقة بتاريخها ووقتها',
-                style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp),
+                style: AppTextStyles.almaraiRegular14
+                    .copyWith(color: context.colors.textMuted, fontSize: 11.sp),
               ),
               SizedBox(height: 16.h),
               Expanded(
@@ -57,14 +63,16 @@ class _StockMovementLogSheet extends StatelessWidget {
                     ? Center(
                         child: Text(
                           'مفيش حركة مسجلة لسه',
-                          style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.textMuted, fontSize: 13.sp),
+                          style: AppTextStyles.cairoMedium16.copyWith(
+                              color: context.colors.textMuted, fontSize: 13.sp),
                         ),
                       )
                     : ListView.separated(
                         controller: scrollController,
                         itemCount: movements.length,
                         separatorBuilder: (_, __) => SizedBox(height: 8.h),
-                        itemBuilder: (context, index) => _MovementRow(movement: movements[index]),
+                        itemBuilder: (context, index) =>
+                            _MovementRow(movement: movements[index]),
                       ),
               ),
             ],
@@ -84,7 +92,8 @@ class _MovementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLoad = movement.type == StockMovementType.loadedToVehicle;
     final color = isLoad ? context.colors.primary : context.colors.statBlue;
-    final icon = isLoad ? Icons.local_shipping_outlined : Icons.warehouse_outlined;
+    final icon =
+        isLoad ? Icons.local_shipping_outlined : Icons.warehouse_outlined;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
@@ -98,7 +107,9 @@ class _MovementRow extends StatelessWidget {
           Container(
             width: 36.w,
             height: 36.w,
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(11.r)),
+            decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(11.r)),
             child: Icon(icon, color: color, size: 16.sp),
           ),
           SizedBox(width: 10.w),
@@ -106,16 +117,21 @@ class _MovementRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(movement.productName, style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text, fontSize: 12.sp)),
+                Text(movement.productName,
+                    style: AppTextStyles.cairoMedium16
+                        .copyWith(color: context.colors.text, fontSize: 12.sp)),
                 SizedBox(height: 2.h),
                 Text(
                   '${movement.type.label} — ${DateFormat('yyyy/MM/dd hh:mm a').format(movement.createdAt)}',
-                  style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 10.sp),
+                  style: AppTextStyles.almaraiRegular14.copyWith(
+                      color: context.colors.textMuted, fontSize: 10.sp),
                 ),
               ],
             ),
           ),
-          Text('+${movement.quantity}', style: AppTextStyles.cairoBold18.copyWith(color: color, fontSize: 13.sp)),
+          Text('+${movement.quantity}',
+              style: AppTextStyles.cairoBold18
+                  .copyWith(color: color, fontSize: 13.sp)),
         ],
       ),
     );

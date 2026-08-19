@@ -139,7 +139,8 @@ Future<void> showAddToVehicleDialog(
 }) {
   return showDialog(
     context: context,
-    builder: (context) => _AddToVehicleDialog(product: product, onConfirm: onConfirm),
+    builder: (context) =>
+        _AddToVehicleDialog(product: product, onConfirm: onConfirm),
   );
 }
 
@@ -163,12 +164,14 @@ class _AddToVehicleDialogState extends State<_AddToVehicleDialog> {
   void initState() {
     super.initState();
     _quantityController = TextEditingController();
-    _thresholdController = TextEditingController(text: '${widget.product.minStockThreshold}');
+    _thresholdController =
+        TextEditingController(text: '${widget.product.minStockThreshold}');
   }
 
   Future<void> _submit() async {
     final quantity = int.tryParse(_quantityController.text) ?? 0;
-    final threshold = int.tryParse(_thresholdController.text) ?? widget.product.minStockThreshold;
+    final threshold = int.tryParse(_thresholdController.text) ??
+        widget.product.minStockThreshold;
 
     if (quantity <= 0) {
       setState(() => _errorMessage = 'أدخل كمية صحيحة');
@@ -197,7 +200,8 @@ class _AddToVehicleDialogState extends State<_AddToVehicleDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final warehouse = MockInventoryRepository.instance.warehouseStockOf(widget.product.id);
+    final warehouse =
+        MockInventoryRepository.instance.warehouseStockOf(widget.product.id);
     final available = warehouse?.quantity ?? 0;
 
     return Dialog(
@@ -211,48 +215,61 @@ class _AddToVehicleDialogState extends State<_AddToVehicleDialog> {
           children: [
             Text(
               'تحميل ${widget.product.name} للعربية',
-              style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text, fontSize: 15.sp),
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: context.colors.text, fontSize: 15.sp),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8.h),
             Text(
               'المتاح بالمخزن الرئيسي: $available ${widget.product.unit.label}',
-              style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp),
+              style: AppTextStyles.almaraiRegular14
+                  .copyWith(color: context.colors.textMuted, fontSize: 11.sp),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 18.h),
-            Text('الكمية', style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
+            Text('الكمية',
+                style: AppTextStyles.almaraiRegular14.copyWith(
+                    color: context.colors.textMuted, fontSize: 11.sp)),
             SizedBox(height: 6.h),
             TextField(
               controller: _quantityController,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text),
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: context.colors.text),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: context.colors.background,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: context.colors.border)),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: context.colors.border)),
               ),
             ),
             SizedBox(height: 14.h),
-            Text('الحد الأدنى في العربية', style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
+            Text('الحد الأدنى في العربية',
+                style: AppTextStyles.almaraiRegular14.copyWith(
+                    color: context.colors.textMuted, fontSize: 11.sp)),
             SizedBox(height: 6.h),
             TextField(
               controller: _thresholdController,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text),
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: context.colors.text),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: context.colors.background,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: context.colors.border)),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: context.colors.border)),
               ),
             ),
             if (_errorMessage != null) ...[
               SizedBox(height: 10.h),
               Text(
                 _errorMessage!,
-                style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.statusNotReached, fontSize: 11.sp),
+                style: AppTextStyles.almaraiRegular14.copyWith(
+                    color: context.colors.statusNotReached, fontSize: 11.sp),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -261,7 +278,9 @@ class _AddToVehicleDialogState extends State<_AddToVehicleDialog> {
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                    onTap: _isSubmitting
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     child: Container(
                       padding: EdgeInsets.symmetric(vertical: 12.h),
                       decoration: BoxDecoration(
@@ -269,7 +288,9 @@ class _AddToVehicleDialogState extends State<_AddToVehicleDialog> {
                         borderRadius: BorderRadius.circular(10.r),
                       ),
                       alignment: Alignment.center,
-                      child: Text('إلغاء', style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text)),
+                      child: Text('إلغاء',
+                          style: AppTextStyles.cairoMedium16
+                              .copyWith(color: context.colors.text)),
                     ),
                   ),
                 ),
@@ -288,9 +309,12 @@ class _AddToVehicleDialogState extends State<_AddToVehicleDialog> {
                           ? SizedBox(
                               width: 16.w,
                               height: 16.w,
-                              child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: const CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
                             )
-                          : Text('تحميل', style: AppTextStyles.cairoMedium16.copyWith(color: Colors.white)),
+                          : Text('تحميل',
+                              style: AppTextStyles.cairoMedium16
+                                  .copyWith(color: Colors.white)),
                     ),
                   ),
                 ),

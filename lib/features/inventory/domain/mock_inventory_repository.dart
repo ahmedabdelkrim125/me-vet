@@ -289,7 +289,8 @@ class MockInventoryRepository {
 
   final ValueNotifier<List<ProductModel>> products = ValueNotifier([]);
   final ValueNotifier<List<VehicleStockModel>> vehicleStock = ValueNotifier([]);
-  final ValueNotifier<List<MainWarehouseStockModel>> mainWarehouseStock = ValueNotifier([]);
+  final ValueNotifier<List<MainWarehouseStockModel>> mainWarehouseStock =
+      ValueNotifier([]);
   final ValueNotifier<List<StockMovementModel>> movements = ValueNotifier([]);
   final ValueNotifier<List<StockAlertModel>> alerts = ValueNotifier([]);
 
@@ -346,19 +347,22 @@ class MockInventoryRepository {
 
     if (storedMovements != null) {
       final decoded = jsonDecode(storedMovements) as List;
-      movements.value =
-          decoded.map((e) => StockMovementModel.fromJson(e as Map<String, dynamic>)).toList();
+      movements.value = decoded
+          .map((e) => StockMovementModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
 
     await NotificationRepository.instance.initialize();
     _refreshAlerts();
   }
 
-  Future<void> addProduct(ProductModel product, {int initialWarehouseQuantity = 0}) async {
+  Future<void> addProduct(ProductModel product,
+      {int initialWarehouseQuantity = 0}) async {
     products.value = [...products.value, product];
     mainWarehouseStock.value = [
       ...mainWarehouseStock.value,
-      MainWarehouseStockModel(productId: product.id, quantity: initialWarehouseQuantity),
+      MainWarehouseStockModel(
+          productId: product.id, quantity: initialWarehouseQuantity),
     ];
     await _persistProducts();
     await _persistWarehouseStock();
@@ -376,8 +380,10 @@ class MockInventoryRepository {
 
   Future<void> deleteProduct(String id) async {
     products.value = products.value.where((p) => p.id != id).toList();
-    vehicleStock.value = vehicleStock.value.where((s) => s.productId != id).toList();
-    mainWarehouseStock.value = mainWarehouseStock.value.where((s) => s.productId != id).toList();
+    vehicleStock.value =
+        vehicleStock.value.where((s) => s.productId != id).toList();
+    mainWarehouseStock.value =
+        mainWarehouseStock.value.where((s) => s.productId != id).toList();
     await _persistProducts();
     await _persistVehicleStock();
     await _persistWarehouseStock();
@@ -425,8 +431,10 @@ class MockInventoryRepository {
     }
 
     final updatedWarehouse = [...mainWarehouseStock.value];
-    final warehouseIndex = updatedWarehouse.indexWhere((s) => s.productId == productId);
-    updatedWarehouse[warehouseIndex] = updatedWarehouse[warehouseIndex].copyWith(
+    final warehouseIndex =
+        updatedWarehouse.indexWhere((s) => s.productId == productId);
+    updatedWarehouse[warehouseIndex] =
+        updatedWarehouse[warehouseIndex].copyWith(
       quantity: availableInWarehouse - quantity,
     );
     mainWarehouseStock.value = updatedWarehouse;
@@ -474,9 +482,11 @@ class MockInventoryRepository {
 
     if (existing != null) {
       final index = updated.indexWhere((s) => s.productId == productId);
-      updated[index] = existing.copyWith(quantity: existing.quantity + quantity);
+      updated[index] =
+          existing.copyWith(quantity: existing.quantity + quantity);
     } else {
-      updated.add(MainWarehouseStockModel(productId: productId, quantity: quantity));
+      updated.add(
+          MainWarehouseStockModel(productId: productId, quantity: quantity));
     }
 
     mainWarehouseStock.value = updated;
@@ -499,7 +509,8 @@ class MockInventoryRepository {
 
     final updated = [...vehicleStock.value];
     final index = updated.indexWhere((s) => s.productId == productId);
-    final newQuantity = (existing.quantity - quantity).clamp(0, existing.quantity);
+    final newQuantity =
+        (existing.quantity - quantity).clamp(0, existing.quantity);
     updated[index] = existing.copyWith(quantity: newQuantity);
 
     vehicleStock.value = updated;
@@ -548,7 +559,8 @@ class MockInventoryRepository {
             NotificationRepository.instance.push(
               type: NotificationType.vehicleStockLow,
               title: 'مخزون العربية منخفض',
-              message: 'صنف "${product.name}" في عربيتك قل عن الحد الأدنى (متبقي ${stock.quantity}).',
+              message:
+                  'صنف "${product.name}" في عربيتك قل عن الحد الأدنى (متبقي ${stock.quantity}).',
             );
           }
         }
@@ -571,7 +583,8 @@ class MockInventoryRepository {
           NotificationRepository.instance.push(
             type: NotificationType.mainStockLow,
             title: 'مخزون المخزن الرئيسي منخفض',
-            message: 'صنف "${product.name}" في المخزن الرئيسي قل عن الحد الأدنى (متبقي ${stock.quantity}).',
+            message:
+                'صنف "${product.name}" في المخزن الرئيسي قل عن الحد الأدنى (متبقي ${stock.quantity}).',
           );
         }
       }
@@ -622,13 +635,15 @@ class MockInventoryRepository {
 
   Future<void> _persistVehicleStock() async {
     final prefs = await SharedPreferences.getInstance();
-    final encoded = jsonEncode(vehicleStock.value.map(_vehicleStockToJson).toList());
+    final encoded =
+        jsonEncode(vehicleStock.value.map(_vehicleStockToJson).toList());
     await prefs.setString(_vehicleStockKey, encoded);
   }
 
   Future<void> _persistWarehouseStock() async {
     final prefs = await SharedPreferences.getInstance();
-    final encoded = jsonEncode(mainWarehouseStock.value.map(_warehouseStockToJson).toList());
+    final encoded = jsonEncode(
+        mainWarehouseStock.value.map(_warehouseStockToJson).toList());
     await prefs.setString(_warehouseStockKey, encoded);
   }
 
@@ -656,11 +671,14 @@ class MockInventoryRepository {
       id: map['id'] as String,
       name: map['name'] as String,
       imagePath: map['imagePath'] as String?,
-      category: ProductCategory.values.firstWhere((c) => c.name == map['category']),
+      category:
+          ProductCategory.values.firstWhere((c) => c.name == map['category']),
       unit: ProductUnit.values.firstWhere((u) => u.name == map['unit']),
       basePrice: (map['basePrice'] as num).toDouble(),
       minStockThreshold: map['minStockThreshold'] as int,
-      expiryDate: map['expiryDate'] != null ? DateTime.parse(map['expiryDate'] as String) : null,
+      expiryDate: map['expiryDate'] != null
+          ? DateTime.parse(map['expiryDate'] as String)
+          : null,
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'] as String)
           : DateTime.now(),
@@ -698,11 +716,49 @@ class MockInventoryRepository {
   List<ProductModel> _seedProducts() {
     final now = DateTime.now();
     return [
-      ProductModel(id: 'P-1', name: 'فيتامين أ د3 إي', category: ProductCategory.poultry, unit: ProductUnit.bottle, basePrice: 180, minStockThreshold: 5, expiryDate: now.add(const Duration(days: 200)), createdAt: now.subtract(const Duration(days: 40))),
-      ProductModel(id: 'P-2', name: 'مضاد حيوي واسع المجال', category: ProductCategory.largeAnimal, unit: ProductUnit.vial, basePrice: 320, minStockThreshold: 4, expiryDate: now.add(const Duration(days: 20)), createdAt: now.subtract(const Duration(days: 25))),
-      ProductModel(id: 'P-3', name: 'لقاح نيوكاسل', category: ProductCategory.poultry, unit: ProductUnit.box, basePrice: 850, minStockThreshold: 3, expiryDate: now.subtract(const Duration(days: 2)), createdAt: now.subtract(const Duration(days: 18))),
-      ProductModel(id: 'P-4', name: 'محلول ترطيب وريدي', category: ProductCategory.largeAnimal, unit: ProductUnit.bottle, basePrice: 210, minStockThreshold: 6, createdAt: now.subtract(const Duration(days: 10))),
-      ProductModel(id: 'P-5', name: 'مكمل كالسيوم', category: ProductCategory.supplies, unit: ProductUnit.box, basePrice: 130, minStockThreshold: 8, createdAt: now.subtract(const Duration(days: 3))),
+      ProductModel(
+          id: 'P-1',
+          name: 'فيتامين أ د3 إي',
+          category: ProductCategory.poultry,
+          unit: ProductUnit.bottle,
+          basePrice: 180,
+          minStockThreshold: 5,
+          expiryDate: now.add(const Duration(days: 200)),
+          createdAt: now.subtract(const Duration(days: 40))),
+      ProductModel(
+          id: 'P-2',
+          name: 'مضاد حيوي واسع المجال',
+          category: ProductCategory.largeAnimal,
+          unit: ProductUnit.vial,
+          basePrice: 320,
+          minStockThreshold: 4,
+          expiryDate: now.add(const Duration(days: 20)),
+          createdAt: now.subtract(const Duration(days: 25))),
+      ProductModel(
+          id: 'P-3',
+          name: 'لقاح نيوكاسل',
+          category: ProductCategory.poultry,
+          unit: ProductUnit.box,
+          basePrice: 850,
+          minStockThreshold: 3,
+          expiryDate: now.subtract(const Duration(days: 2)),
+          createdAt: now.subtract(const Duration(days: 18))),
+      ProductModel(
+          id: 'P-4',
+          name: 'محلول ترطيب وريدي',
+          category: ProductCategory.largeAnimal,
+          unit: ProductUnit.bottle,
+          basePrice: 210,
+          minStockThreshold: 6,
+          createdAt: now.subtract(const Duration(days: 10))),
+      ProductModel(
+          id: 'P-5',
+          name: 'مكمل كالسيوم',
+          category: ProductCategory.supplies,
+          unit: ProductUnit.box,
+          basePrice: 130,
+          minStockThreshold: 8,
+          createdAt: now.subtract(const Duration(days: 3))),
     ];
   }
 

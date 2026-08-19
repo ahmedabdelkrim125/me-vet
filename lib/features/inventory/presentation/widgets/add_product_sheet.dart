@@ -281,7 +281,8 @@ import '../../domain/models/product_model.dart';
 import '../../domain/models/product_unit.dart';
 import 'product_image_picker.dart';
 
-Future<void> showAddProductSheet(BuildContext context, {ProductModel? productToEdit}) {
+Future<void> showAddProductSheet(BuildContext context,
+    {ProductModel? productToEdit}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -318,7 +319,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
     _nameController = TextEditingController(text: product?.name ?? '');
     _priceController = TextEditingController(
         text: product != null ? product.basePrice.toStringAsFixed(0) : '');
-    _thresholdController = TextEditingController(text: '${product?.minStockThreshold ?? 5}');
+    _thresholdController =
+        TextEditingController(text: '${product?.minStockThreshold ?? 5}');
     _warehouseQtyController = TextEditingController(text: '0');
     _category = product?.category ?? ProductCategory.poultry;
     _unit = product?.unit ?? ProductUnit.piece;
@@ -396,12 +398,14 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                   width: 42.w,
                   height: 4.h,
                   decoration: BoxDecoration(
-                      color: context.colors.border, borderRadius: BorderRadius.circular(10.r)),
+                      color: context.colors.border,
+                      borderRadius: BorderRadius.circular(10.r)),
                 ),
               ),
               SizedBox(height: 14.h),
               Text(_isEditing ? 'تعديل الصنف' : 'إضافة صنف جديد',
-                  style: AppTextStyles.cairoBold18.copyWith(color: context.colors.text, fontSize: 16.sp)),
+                  style: AppTextStyles.cairoBold18
+                      .copyWith(color: context.colors.text, fontSize: 16.sp)),
               SizedBox(height: 18.h),
               ProductImagePicker(
                 imagePath: _imagePath,
@@ -410,9 +414,15 @@ class _AddProductSheetState extends State<_AddProductSheet> {
               SizedBox(height: 18.h),
               _Field(label: 'اسم الصنف', controller: _nameController),
               SizedBox(height: 14.h),
-              _Field(label: 'السعر الأساسي', controller: _priceController, keyboardType: TextInputType.number),
+              _Field(
+                  label: 'السعر الأساسي',
+                  controller: _priceController,
+                  keyboardType: TextInputType.number),
               SizedBox(height: 14.h),
-              _Field(label: 'الحد الأدنى العام', controller: _thresholdController, keyboardType: TextInputType.number),
+              _Field(
+                  label: 'الحد الأدنى العام',
+                  controller: _thresholdController,
+                  keyboardType: TextInputType.number),
               if (!_isEditing) ...[
                 SizedBox(height: 14.h),
                 _Field(
@@ -423,7 +433,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
               ],
               SizedBox(height: 14.h),
               Text('تاريخ الصلاحية (اختياري)',
-                  style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
+                  style: AppTextStyles.almaraiRegular14.copyWith(
+                      color: context.colors.textMuted, fontSize: 11.sp)),
               SizedBox(height: 6.h),
               Row(
                 children: [
@@ -431,7 +442,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                     child: GestureDetector(
                       onTap: _pickExpiryDate,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 14.w, vertical: 13.h),
                         decoration: BoxDecoration(
                           color: context.colors.surface,
                           borderRadius: BorderRadius.circular(12.r),
@@ -439,13 +451,16 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.calendar_today_outlined, size: 16.sp, color: context.colors.textMuted),
+                            Icon(Icons.calendar_today_outlined,
+                                size: 16.sp, color: context.colors.textMuted),
                             SizedBox(width: 10.w),
                             Text(
                               _expiryDate == null
                                   ? 'اختر التاريخ'
-                                  : DateFormat('yyyy/MM/dd').format(_expiryDate!),
-                              style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text, fontSize: 13.sp),
+                                  : DateFormat('yyyy/MM/dd')
+                                      .format(_expiryDate!),
+                              style: AppTextStyles.cairoMedium16.copyWith(
+                                  color: context.colors.text, fontSize: 13.sp),
                             ),
                           ],
                         ),
@@ -462,7 +477,9 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                         onTap: () => setState(() => _expiryDate = null),
                         child: Padding(
                           padding: EdgeInsets.all(13.w),
-                          child: Icon(Icons.close_rounded, size: 16.sp, color: context.colors.statusNotReached),
+                          child: Icon(Icons.close_rounded,
+                              size: 16.sp,
+                              color: context.colors.statusNotReached),
                         ),
                       ),
                     ),
@@ -471,7 +488,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
               ),
               SizedBox(height: 14.h),
               Text('التصنيف البيطري',
-                  style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
+                  style: AppTextStyles.almaraiRegular14.copyWith(
+                      color: context.colors.textMuted, fontSize: 11.sp)),
               SizedBox(height: 8.h),
               Wrap(
                 spacing: 8.w,
@@ -487,7 +505,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
               ),
               SizedBox(height: 14.h),
               Text('وحدة القياس',
-                  style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
+                  style: AppTextStyles.almaraiRegular14.copyWith(
+                      color: context.colors.textMuted, fontSize: 11.sp)),
               SizedBox(height: 8.h),
               Wrap(
                 spacing: 8.w,
@@ -512,7 +531,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                     alignment: Alignment.center,
                     padding: EdgeInsets.symmetric(vertical: 15.h),
                     child: Text(_isEditing ? 'حفظ التعديلات' : 'حفظ الصنف',
-                        style: AppTextStyles.cairoMedium16.copyWith(color: Colors.white, fontSize: 14.sp)),
+                        style: AppTextStyles.cairoMedium16
+                            .copyWith(color: Colors.white, fontSize: 14.sp)),
                   ),
                 ),
               ),
@@ -529,27 +549,38 @@ class _Field extends StatelessWidget {
   final TextEditingController controller;
   final TextInputType? keyboardType;
 
-  const _Field({required this.label, required this.controller, this.keyboardType});
+  const _Field(
+      {required this.label, required this.controller, this.keyboardType});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
+        Text(label,
+            style: AppTextStyles.almaraiRegular14
+                .copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
         SizedBox(height: 6.h),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
           textAlign: TextAlign.right,
-          style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text),
+          style:
+              AppTextStyles.cairoMedium16.copyWith(color: context.colors.text),
           decoration: InputDecoration(
             filled: true,
             fillColor: context.colors.surface,
-            contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: context.colors.border)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: context.colors.border)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: context.colors.primary)),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: context.colors.border)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: context.colors.border)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: context.colors.primary)),
           ),
         ),
       ],
@@ -562,7 +593,8 @@ class _SelectChip extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _SelectChip({required this.label, required this.isSelected, required this.onTap});
+  const _SelectChip(
+      {required this.label, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -572,14 +604,19 @@ class _SelectChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
         decoration: BoxDecoration(
-          color: isSelected ? context.colors.primary.withOpacity(0.12) : context.colors.surface,
+          color: isSelected
+              ? context.colors.primary.withOpacity(0.12)
+              : context.colors.surface,
           borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: isSelected ? context.colors.primary : context.colors.border),
+          border: Border.all(
+              color:
+                  isSelected ? context.colors.primary : context.colors.border),
         ),
         child: Text(
           label,
           style: AppTextStyles.cairoMedium16.copyWith(
-            color: isSelected ? context.colors.primary : context.colors.textMuted,
+            color:
+                isSelected ? context.colors.primary : context.colors.textMuted,
             fontSize: 12.sp,
           ),
         ),

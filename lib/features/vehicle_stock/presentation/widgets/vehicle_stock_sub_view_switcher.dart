@@ -28,7 +28,9 @@ class VehicleStockSubViewSwitcher extends StatelessWidget {
           AnimatedAlign(
             duration: const Duration(milliseconds: 320),
             curve: Curves.easeOutCubic,
-            alignment: selectedIndex == 0 ? Alignment.centerRight : Alignment.centerLeft,
+            alignment: selectedIndex == 0
+                ? Alignment.centerRight
+                : Alignment.centerLeft,
             child: FractionallySizedBox(
               widthFactor: 0.5,
               child: Container(
@@ -65,7 +67,8 @@ class _SegmentLabel extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _SegmentLabel({required this.label, required this.isSelected, required this.onTap});
+  const _SegmentLabel(
+      {required this.label, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

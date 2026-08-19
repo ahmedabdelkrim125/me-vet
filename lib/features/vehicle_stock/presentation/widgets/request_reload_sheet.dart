@@ -180,8 +180,10 @@ import '../../../inventory/domain/mock_inventory_repository.dart';
 import '../../../inventory/domain/models/product_unit.dart';
 import '../../../inventory/domain/models/stock_alert_model.dart';
 
-Future<void> showRequestReloadSheet(BuildContext context, {required List<StockAlertModel> alerts}) {
-  final vehicleAlerts = alerts.where((a) => a.level == StockAlertLevel.vehicle).toList();
+Future<void> showRequestReloadSheet(BuildContext context,
+    {required List<StockAlertModel> alerts}) {
+  final vehicleAlerts =
+      alerts.where((a) => a.level == StockAlertLevel.vehicle).toList();
 
   return showModalBottomSheet(
     context: context,
@@ -206,7 +208,8 @@ class _RequestReloadSheetState extends State<_RequestReloadSheet> {
   int _suggestedQuantity(StockAlertModel alert) {
     final target = alert.threshold * 2;
     final needed = target - alert.currentQuantity;
-    final warehouse = MockInventoryRepository.instance.warehouseStockOf(alert.productId);
+    final warehouse =
+        MockInventoryRepository.instance.warehouseStockOf(alert.productId);
     final available = warehouse?.quantity ?? 0;
     return needed.clamp(1, available > 0 ? available : 1);
   }
@@ -218,11 +221,13 @@ class _RequestReloadSheetState extends State<_RequestReloadSheet> {
     var failed = 0;
 
     for (final alert in widget.alerts) {
-      final product = MockInventoryRepository.instance.productById(alert.productId);
+      final product =
+          MockInventoryRepository.instance.productById(alert.productId);
       if (product == null) continue;
 
       final quantity = _suggestedQuantity(alert);
-      final vehicleStock = MockInventoryRepository.instance.stockOf(alert.productId);
+      final vehicleStock =
+          MockInventoryRepository.instance.stockOf(alert.productId);
       final threshold = vehicleStock?.minThreshold ?? product.minStockThreshold;
 
       final error = await MockInventoryRepository.instance.loadToVehicle(
@@ -250,7 +255,8 @@ class _RequestReloadSheetState extends State<_RequestReloadSheet> {
               : 'تم تحميل $succeeded صنف، وتعذر تحميل $failed (رصيد المخزن غير كافٍ)',
           style: AppTextStyles.cairoMedium16.copyWith(color: Colors.white),
         ),
-        backgroundColor: failed == 0 ? context.colors.primary : context.colors.statOrange,
+        backgroundColor:
+            failed == 0 ? context.colors.primary : context.colors.statOrange,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -277,15 +283,20 @@ class _RequestReloadSheetState extends State<_RequestReloadSheet> {
                 child: Container(
                   width: 42.w,
                   height: 4.h,
-                  decoration: BoxDecoration(color: context.colors.border, borderRadius: BorderRadius.circular(10.r)),
+                  decoration: BoxDecoration(
+                      color: context.colors.border,
+                      borderRadius: BorderRadius.circular(10.r)),
                 ),
               ),
               SizedBox(height: 14.h),
-              Text('طلب إعادة تحميل العربية', style: AppTextStyles.cairoBold18.copyWith(color: context.colors.text, fontSize: 16.sp)),
+              Text('طلب إعادة تحميل العربية',
+                  style: AppTextStyles.cairoBold18
+                      .copyWith(color: context.colors.text, fontSize: 16.sp)),
               SizedBox(height: 4.h),
               Text(
                 'هيتم تحميل الكميات المقترحة من المخزن الرئيسي مباشرة للعربية',
-                style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp),
+                style: AppTextStyles.almaraiRegular14
+                    .copyWith(color: context.colors.textMuted, fontSize: 11.sp),
               ),
               SizedBox(height: 16.h),
               Expanded(
@@ -293,7 +304,8 @@ class _RequestReloadSheetState extends State<_RequestReloadSheet> {
                     ? Center(
                         child: Text(
                           'مفيش أصناف ناقصة في العربية دلوقتي',
-                          style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.textMuted, fontSize: 13.sp),
+                          style: AppTextStyles.cairoMedium16.copyWith(
+                              color: context.colors.textMuted, fontSize: 13.sp),
                         ),
                       )
                     : ListView.separated(
@@ -302,39 +314,57 @@ class _RequestReloadSheetState extends State<_RequestReloadSheet> {
                         separatorBuilder: (_, __) => SizedBox(height: 8.h),
                         itemBuilder: (context, index) {
                           final alert = widget.alerts[index];
-                          final product = MockInventoryRepository.instance.productById(alert.productId);
+                          final product = MockInventoryRepository.instance
+                              .productById(alert.productId);
                           final suggested = _suggestedQuantity(alert);
-                          final warehouse = MockInventoryRepository.instance.warehouseStockOf(alert.productId);
+                          final warehouse = MockInventoryRepository.instance
+                              .warehouseStockOf(alert.productId);
                           final available = warehouse?.quantity ?? 0;
 
                           return Container(
-                            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 14.w, vertical: 12.h),
                             decoration: BoxDecoration(
                               color: context.colors.surface,
                               borderRadius: BorderRadius.circular(14.r),
                               border: Border.all(
-                                color: available == 0 ? context.colors.statusNotReached.withOpacity(0.4) : context.colors.border,
+                                color: available == 0
+                                    ? context.colors.statusNotReached
+                                        .withOpacity(0.4)
+                                    : context.colors.border,
                               ),
                             ),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(alert.productName, style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text, fontSize: 12.sp)),
+                                      Text(alert.productName,
+                                          style: AppTextStyles.cairoMedium16
+                                              .copyWith(
+                                                  color: context.colors.text,
+                                                  fontSize: 12.sp)),
                                       SizedBox(height: 2.h),
                                       Text(
                                         'متبقي ${alert.currentQuantity} — متاح بالمخزن $available',
-                                        style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 10.sp),
+                                        style: AppTextStyles.almaraiRegular14
+                                            .copyWith(
+                                                color: context.colors.textMuted,
+                                                fontSize: 10.sp),
                                       ),
                                     ],
                                   ),
                                 ),
                                 Text(
-                                  available == 0 ? 'غير متاح' : 'هيتحمل +$suggested ${product?.unit.label ?? ''}',
+                                  available == 0
+                                      ? 'غير متاح'
+                                      : 'هيتحمل +$suggested ${product?.unit.label ?? ''}',
                                   style: AppTextStyles.cairoMedium16.copyWith(
-                                    color: available == 0 ? context.colors.statusNotReached : context.colors.primary,
+                                    color: available == 0
+                                        ? context.colors.statusNotReached
+                                        : context.colors.primary,
                                     fontSize: 11.sp,
                                   ),
                                 ),
@@ -346,11 +376,15 @@ class _RequestReloadSheetState extends State<_RequestReloadSheet> {
               ),
               SizedBox(height: 14.h),
               Material(
-                color: widget.alerts.isEmpty ? context.colors.border : context.colors.primary,
+                color: widget.alerts.isEmpty
+                    ? context.colors.border
+                    : context.colors.primary,
                 borderRadius: BorderRadius.circular(14.r),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14.r),
-                  onTap: widget.alerts.isEmpty || _isProcessing ? null : _executeReload,
+                  onTap: widget.alerts.isEmpty || _isProcessing
+                      ? null
+                      : _executeReload,
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 15.h),
                     child: _isProcessing
@@ -358,15 +392,19 @@ class _RequestReloadSheetState extends State<_RequestReloadSheet> {
                             child: SizedBox(
                               width: 20.w,
                               height: 20.w,
-                              child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: const CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
                             ),
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.local_shipping_outlined, color: Colors.white, size: 16.sp),
+                              Icon(Icons.local_shipping_outlined,
+                                  color: Colors.white, size: 16.sp),
                               SizedBox(width: 8.w),
-                              Text('تنفيذ التحميل الآن', style: AppTextStyles.cairoMedium16.copyWith(color: Colors.white, fontSize: 14.sp)),
+                              Text('تنفيذ التحميل الآن',
+                                  style: AppTextStyles.cairoMedium16.copyWith(
+                                      color: Colors.white, fontSize: 14.sp)),
                             ],
                           ),
                   ),

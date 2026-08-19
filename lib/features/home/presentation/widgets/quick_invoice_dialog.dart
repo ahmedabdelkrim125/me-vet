@@ -10,8 +10,7 @@ import '../../../inventory/domain/models/product_unit.dart';
 import '../../domain/models/quick_invoice_models.dart';
 
 /// ---------------------------------------------------------------------
-/// Mock data — replace with real repositories when wiring this up.
-/// ---------------------------------------------------------------------
+ /// ---------------------------------------------------------------------
 
 const _currentRepName = 'أحمد محمود';
 

@@ -5,14 +5,16 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../inventory/domain/mock_inventory_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
 
-Future<void> showAddToWarehouseDialog(BuildContext context, {required ProductModel product}) {
+Future<void> showAddToWarehouseDialog(BuildContext context,
+    {required ProductModel product}) {
   final controller = TextEditingController();
 
   return showDialog(
     context: context,
     builder: (context) {
       return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
         backgroundColor: context.colors.surface,
         child: Padding(
           padding: EdgeInsets.all(20.w),
@@ -22,22 +24,28 @@ Future<void> showAddToWarehouseDialog(BuildContext context, {required ProductMod
             children: [
               Text(
                 'إضافة ${product.name} للمخزن الرئيسي',
-                style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text, fontSize: 15.sp),
+                style: AppTextStyles.cairoMedium16
+                    .copyWith(color: context.colors.text, fontSize: 15.sp),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 18.h),
-              Text('الكمية', style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
+              Text('الكمية',
+                  style: AppTextStyles.almaraiRegular14.copyWith(
+                      color: context.colors.textMuted, fontSize: 11.sp)),
               SizedBox(height: 6.h),
               TextField(
                 controller: controller,
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 autofocus: true,
-                style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text),
+                style: AppTextStyles.cairoMedium16
+                    .copyWith(color: context.colors.text),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: context.colors.background,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: context.colors.border)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(color: context.colors.border)),
                 ),
               ),
               SizedBox(height: 22.h),
@@ -53,7 +61,9 @@ Future<void> showAddToWarehouseDialog(BuildContext context, {required ProductMod
                           borderRadius: BorderRadius.circular(10.r),
                         ),
                         alignment: Alignment.center,
-                        child: Text('إلغاء', style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text)),
+                        child: Text('إلغاء',
+                            style: AppTextStyles.cairoMedium16
+                                .copyWith(color: context.colors.text)),
                       ),
                     ),
                   ),
@@ -76,7 +86,9 @@ Future<void> showAddToWarehouseDialog(BuildContext context, {required ProductMod
                           borderRadius: BorderRadius.circular(10.r),
                         ),
                         alignment: Alignment.center,
-                        child: Text('إضافة', style: AppTextStyles.cairoMedium16.copyWith(color: Colors.white)),
+                        child: Text('إضافة',
+                            style: AppTextStyles.cairoMedium16
+                                .copyWith(color: Colors.white)),
                       ),
                     ),
                   ),

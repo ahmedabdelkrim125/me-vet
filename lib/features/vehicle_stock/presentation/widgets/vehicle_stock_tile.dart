@@ -150,7 +150,9 @@ class VehicleStockTile extends StatelessWidget {
         : isLow
             ? context.colors.statOrange
             : context.colors.primary;
-    final progress = stock.minThreshold == 0 ? 1.0 : (stock.quantity / (stock.minThreshold * 2)).clamp(0.0, 1.0);
+    final progress = stock.minThreshold == 0
+        ? 1.0
+        : (stock.quantity / (stock.minThreshold * 2)).clamp(0.0, 1.0);
     final daysLeft = product.daysUntilExpiry;
 
     return Container(
@@ -172,7 +174,8 @@ class VehicleStockTile extends StatelessWidget {
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(13.r),
                 ),
-                child: Icon(CupertinoIcons.bandage_fill, color: statusColor, size: 18.sp),
+                child: Icon(CupertinoIcons.bandage_fill,
+                    color: statusColor, size: 18.sp),
               ),
               SizedBox(width: 12.w),
               Expanded(
@@ -183,18 +186,24 @@ class VehicleStockTile extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(product.name,
-                              style: AppTextStyles.cairoMedium16.copyWith(color: context.colors.text, fontSize: 13.sp)),
+                              style: AppTextStyles.cairoMedium16.copyWith(
+                                  color: context.colors.text, fontSize: 13.sp)),
                         ),
                         if (product.isExpired)
-                          _Badge(label: 'منتهي', color: context.colors.statusNotReached)
+                          _Badge(
+                              label: 'منتهي',
+                              color: context.colors.statusNotReached)
                         else if (daysLeft != null && daysLeft <= 30)
-                          _Badge(label: 'صلاحية قربت', color: context.colors.statOrange),
+                          _Badge(
+                              label: 'صلاحية قربت',
+                              color: context.colors.statOrange),
                       ],
                     ),
                     SizedBox(height: 2.h),
                     Text(
                       '${product.category.label} — ${product.unit.label}',
-                      style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 10.sp),
+                      style: AppTextStyles.almaraiRegular14.copyWith(
+                          color: context.colors.textMuted, fontSize: 10.sp),
                     ),
                   ],
                 ),
@@ -202,9 +211,12 @@ class VehicleStockTile extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('${stock.quantity}', style: AppTextStyles.cairoBold18.copyWith(color: statusColor, fontSize: 16.sp)),
+                  Text('${stock.quantity}',
+                      style: AppTextStyles.cairoBold18
+                          .copyWith(color: statusColor, fontSize: 16.sp)),
                   Text('الحد ${stock.minThreshold}',
-                      style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted, fontSize: 9.sp)),
+                      style: AppTextStyles.almaraiRegular14.copyWith(
+                          color: context.colors.textMuted, fontSize: 9.sp)),
                 ],
               ),
               SizedBox(width: 10.w),
@@ -216,7 +228,8 @@ class VehicleStockTile extends StatelessWidget {
                   onTap: onLoadMore,
                   child: Padding(
                     padding: EdgeInsets.all(8.w),
-                    child: Icon(CupertinoIcons.add, color: Colors.white, size: 14.sp),
+                    child: Icon(CupertinoIcons.add,
+                        color: Colors.white, size: 14.sp),
                   ),
                 ),
               ),
@@ -249,8 +262,12 @@ class _Badge extends StatelessWidget {
     return Container(
       margin: EdgeInsets.only(right: 6.w),
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8.r)),
-      child: Text(label, style: AppTextStyles.cairoMedium16.copyWith(color: color, fontSize: 9.sp)),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(8.r)),
+      child: Text(label,
+          style: AppTextStyles.cairoMedium16
+              .copyWith(color: color, fontSize: 9.sp)),
     );
   }
 }
