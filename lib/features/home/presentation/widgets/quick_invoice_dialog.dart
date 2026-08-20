@@ -3,70 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../customer-visits/customers/domain/models/customer_model.dart';
+import '../../../customer-visits/customers/domain/mock_customers_repository.dart';
+import '../../../customer-visits/customers/domain/models/invoice_record_model.dart';
 import '../../../inventory/domain/mock_inventory_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
 import '../../../inventory/domain/models/product_unit.dart';
 import '../../domain/models/quick_invoice_models.dart';
 
 /// ---------------------------------------------------------------------
- /// ---------------------------------------------------------------------
+/// Repository-backed data sources
+/// ---------------------------------------------------------------------
 
 const _currentRepName = 'أحمد محمود';
 
-final List<InvoiceCustomerModel> _mockCustomers = [
-  InvoiceCustomerModel(
-    customer: CustomerModel(
-      id: 'c1',
-      name: 'عيادة د. خالد سليم',
-      phone: '01012345678',
-      address: 'المنصورة، شارع الجمهورية',
-      creditLimit: 10000,
-      currentBalance: 4500,
-      lastCollectionDate: DateTime(2026, 7, 10),
-      code: '',
-      area: '',
-      category: '',
-      visitsThisMonth: 0,
-    ),
-    topPurchasedProducts: const ['فيتامين C بيطري', 'مضاد حيوي شامل'],
-    notPurchasedRecently: const ['كالسيوم بلس', 'مضاد سموم'],
-  ),
-  InvoiceCustomerModel(
-    customer: CustomerModel(
-      id: 'c2',
-      name: 'صيدلية الشفاء البيطرية',
-      phone: '01098765432',
-      address: 'طلخا، شارع النصر',
-      creditLimit: 15000,
-      currentBalance: 12300,
-      lastCollectionDate: DateTime(2026, 6, 22),
-      code: '',
-      area: '',
-      category: '',
-      visitsThisMonth: 0,
-    ),
-    topPurchasedProducts: const ['Liver Tonic 1L', 'AD3E Injectable'],
-    notPurchasedRecently: const ['فيتامين B12'],
-  ),
-  InvoiceCustomerModel(
-    customer: CustomerModel(
-      id: 'c3',
-      name: 'مزرعة النيل للدواجن',
-      phone: '01234567890',
-      address: 'ميت غمر، طريق الزراعة',
-      creditLimit: 25000,
-      currentBalance: 3100,
-      lastCollectionDate: DateTime(2026, 7, 30),
-      code: '',
-      area: '',
-      category: '',
-      visitsThisMonth: 0,
-    ),
-    topPurchasedProducts: const ['Enrofloxacin 10%', 'خافض حرارة بيطري'],
-    notPurchasedRecently: const ['مضاد فطريات'],
-  ),
-];
+List<InvoiceCustomerModel> _customersFromRepository() {
+  return MockCustomersRepository.instance.customers
+      .map((c) => InvoiceCustomerModel(customer: c))
+      .toList();
+}
 
 InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
   return InvoiceProductModel(
@@ -77,18 +31,19 @@ InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
   );
 }
 
-List<PastInvoiceSummaryModel> _mockStatementFor(InvoiceCustomerModel invoice) {
-  final rnd = Random(invoice.customer.id.hashCode);
-  final now = DateTime(2026, 8, 6);
-  return List.generate(6, (i) {
-    final month = DateTime(now.year, now.month - i, min(now.day, 28));
-    return PastInvoiceSummaryModel(
-      invoiceNumber: 'INV-${month.year}-${100 + rnd.nextInt(800)}',
-      date: month,
-      total: (500 + rnd.nextInt(4000)).toDouble(),
-      status: rnd.nextBool() ? 'مدفوعة' : 'آجل',
-    );
-  });
+List<PastInvoiceSummaryModel> _statementFor(InvoiceCustomerModel invoice) {
+  final records = MockCustomersRepository.instance
+      .getInvoices(invoice.customer.id)
+      .take(6)
+      .toList();
+  return records
+      .map((r) => PastInvoiceSummaryModel(
+            invoiceNumber: r.code,
+            date: r.date,
+            total: r.amount,
+            status: r.status.label,
+          ))
+      .toList();
 }
 
 /// ---------------------------------------------------------------------
@@ -140,6 +95,8 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   final List<InvoiceLineItemModel> lineItems = [];
   double discountPercent = 0;
   final notesController = TextEditingController();
+  final paidNowController = TextEditingController(text: '0');
+  bool _isIssuing = false;
 
   @override
   void initState() {
@@ -147,17 +104,27 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     invoiceNumber = 'INV-${invoiceDate.year}-${100 + Random().nextInt(900)}';
     customer = widget.initialCustomer;
     MockInventoryRepository.instance.init();
+    MockCustomersRepository.instance.initialize();
   }
 
   @override
   void dispose() {
     notesController.dispose();
+    paidNowController.dispose();
     super.dispose();
   }
 
   double get subtotal => lineItems.fold(0, (sum, item) => sum + item.total);
   double get discountAmount => subtotal * (discountPercent / 100);
   double get grandTotal => subtotal - discountAmount;
+
+  double get previousBalance => customer?.customer.currentBalance ?? 0;
+  double get paidNow => double.tryParse(paidNowController.text) ?? 0;
+  double get totalDue => previousBalance + grandTotal;
+  double get remainingBalance {
+    final value = totalDue - paidNow;
+    return value < 0 ? 0 : value;
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -170,16 +137,20 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   }
 
   Future<void> _pickCustomer() async {
+    await MockCustomersRepository.instance.initialize();
+    if (!mounted) return;
     final picked = await showModalBottomSheet<InvoiceCustomerModel>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _CustomerPickerSheet(customers: _mockCustomers),
+      builder: (_) =>
+          _CustomerPickerSheet(customers: _customersFromRepository()),
     );
     if (picked != null) {
       setState(() {
         customer = picked;
         lineItems.clear();
+        paidNowController.text = '0';
       });
     }
   }
@@ -207,12 +178,12 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       backgroundColor: Colors.transparent,
       builder: (_) => _StatementSheet(
         invoice: customer!,
-        entries: _mockStatementFor(customer!),
+        entries: _statementFor(customer!),
       ),
     );
   }
 
-  void _issueInvoice() {
+  Future<void> _issueInvoice() async {
     final colors = context.colors;
     if (customer == null) {
       _toast('اختر العميل أولًا');
@@ -228,6 +199,52 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       _toast('قيمة الفاتورة الآجلة تتجاوز حد الائتمان المتاح');
       return;
     }
+
+    for (final item in lineItems) {
+      final stock = MockInventoryRepository.instance.stockOf(item.product.id);
+      final available = stock?.quantity ?? 0;
+      if (item.quantity > available) {
+        _toast(
+          'الكمية المطلوبة من "${item.product.name}" أكبر من المتاح في العربية (متاح $available ${item.product.unit})',
+        );
+        return;
+      }
+    }
+
+    setState(() => _isIssuing = true);
+
+    for (final item in lineItems) {
+      await MockInventoryRepository.instance
+          .consumeFromVehicle(item.product.id, item.quantity);
+    }
+
+    final paid = paidNow;
+    final customerId = customer!.customer.id;
+
+    await MockCustomersRepository.instance.adjustBalance(
+      customerId,
+      total - paid,
+      isCollection: paid > 0,
+    );
+
+    final status = paid >= total
+        ? InvoiceStatus.paid
+        : paid > 0
+            ? InvoiceStatus.partial
+            : InvoiceStatus.deferred;
+
+    await MockCustomersRepository.instance.addInvoice(
+      customerId,
+      InvoiceRecordModel(
+        code: invoiceNumber,
+        date: invoiceDate,
+        amount: total,
+        status: status,
+      ),
+    );
+
+    if (!mounted) return;
+
     widget.onIssued?.call(IssuedInvoiceInfo(
       invoiceNumber: invoiceNumber,
       amount: total,
@@ -240,7 +257,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       SnackBar(
         backgroundColor: colors.primary,
         content: Text(
-          'تم إصدار الفاتورة $invoiceNumber بإجمالي ${_money(total)}',
+          'تم إصدار الفاتورة $invoiceNumber بإجمالي ${_money(total)} — المتبقي على العميل ${_money(remainingBalance)}',
           style: AppTextStyles.cairoMedium16
               .copyWith(color: Colors.white, fontSize: 13.sp),
         ),
@@ -326,6 +343,18 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                             grandTotal: grandTotal,
                           ),
                         ),
+                        if (lineItems.isNotEmpty) ...[
+                          SizedBox(height: 14.h),
+                          _SectionCard(
+                            child: _AccountSummarySection(
+                              previousBalance: previousBalance,
+                              invoiceTotal: grandTotal,
+                              paidController: paidNowController,
+                              onPaidChanged: (_) => setState(() {}),
+                              remaining: remainingBalance,
+                            ),
+                          ),
+                        ],
                         SizedBox(height: 14.h),
                         _SectionCard(
                           child: _NotesField(controller: notesController),
@@ -342,7 +371,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                 ),
               ),
               _FooterActions(
-                canIssue: customer != null && lineItems.isNotEmpty,
+                canIssue:
+                    customer != null && lineItems.isNotEmpty && !_isIssuing,
+                isIssuing: _isIssuing,
                 onSave: _issueInvoice,
               ),
             ],
@@ -1500,7 +1531,18 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     return match.isEmpty ? 0 : match.first.quantity;
   }
 
+  int _availableFor(InvoiceProductModel p) {
+    return MockInventoryRepository.instance.stockOf(p.id)?.quantity ?? 0;
+  }
+
   void _setQuantity(InvoiceProductModel p, int qty) {
+    final available = _availableFor(p);
+    if (qty > available) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('الكمية المتاحة في العربية $available فقط')),
+      );
+      return;
+    }
     setState(() {
       cart.removeWhere((c) => c.product.id == p.id);
       if (qty > 0) cart.add(InvoiceLineItemModel(product: p, quantity: qty));
@@ -1542,6 +1584,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
           SizedBox(height: 12.h),
           ...filtered.map((p) {
             final qty = _quantityFor(p);
+            final available = _availableFor(p);
+            final isOut = available == 0;
             return Padding(
               padding: EdgeInsets.only(bottom: 10.h),
               child: Container(
@@ -1557,57 +1601,68 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                         : Colors.transparent,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(p.name,
-                              style: AppTextStyles.cairoMedium16.copyWith(
-                                  color: colors.text, fontSize: 12.5.sp)),
-                          SizedBox(height: 2.h),
-                          Text('${_money(p.price)} / ${p.unit}',
+                child: Opacity(
+                  opacity: isOut ? 0.5 : 1,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(p.name,
+                                style: AppTextStyles.cairoMedium16.copyWith(
+                                    color: colors.text, fontSize: 12.5.sp)),
+                            SizedBox(height: 2.h),
+                            Text(
+                              isOut
+                                  ? '${_money(p.price)} / ${p.unit} · غير متوفر بالعربية'
+                                  : '${_money(p.price)} / ${p.unit} · المتاح: $available',
                               style: AppTextStyles.almaraiRegular14.copyWith(
-                                  color: colors.textMuted, fontSize: 10.5.sp)),
-                        ],
-                      ),
-                    ),
-                    if (qty == 0)
-                      Material(
-                        color: colors.primary,
-                        borderRadius: BorderRadius.circular(10.r),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(10.r),
-                          onTap: () => _setQuantity(p, 1),
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 12.w, vertical: 8.h),
-                            child: Text('إضافة',
-                                style: AppTextStyles.cairoMedium16.copyWith(
-                                    color: Colors.white, fontSize: 11.sp)),
-                          ),
+                                color: isOut
+                                    ? colors.statusNotReached
+                                    : colors.textMuted,
+                                fontSize: 10.5.sp,
+                              ),
+                            ),
+                          ],
                         ),
-                      )
-                    else
-                      Row(
-                        children: [
-                          _StepButton(
-                              icon: Icons.remove_rounded,
-                              onTap: () => _setQuantity(p, qty - 1)),
-                          Container(
-                            width: 28.w,
-                            alignment: Alignment.center,
-                            child: Text('$qty',
-                                style: AppTextStyles.cairoMedium16.copyWith(
-                                    color: colors.text, fontSize: 12.sp)),
-                          ),
-                          _StepButton(
-                              icon: Icons.add_rounded,
-                              onTap: () => _setQuantity(p, qty + 1)),
-                        ],
                       ),
-                  ],
+                      if (qty == 0)
+                        Material(
+                          color: colors.primary,
+                          borderRadius: BorderRadius.circular(10.r),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(10.r),
+                            onTap: isOut ? null : () => _setQuantity(p, 1),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12.w, vertical: 8.h),
+                              child: Text('إضافة',
+                                  style: AppTextStyles.cairoMedium16.copyWith(
+                                      color: Colors.white, fontSize: 11.sp)),
+                            ),
+                          ),
+                        )
+                      else
+                        Row(
+                          children: [
+                            _StepButton(
+                                icon: Icons.remove_rounded,
+                                onTap: () => _setQuantity(p, qty - 1)),
+                            Container(
+                              width: 28.w,
+                              alignment: Alignment.center,
+                              child: Text('$qty',
+                                  style: AppTextStyles.cairoMedium16.copyWith(
+                                      color: colors.text, fontSize: 12.sp)),
+                            ),
+                            _StepButton(
+                                icon: Icons.add_rounded,
+                                onTap: () => _setQuantity(p, qty + 1)),
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -1632,6 +1687,98 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// ---------------------------------------------------------------------
+/// Account summary (previous balance + invoice total + paid now)
+/// ---------------------------------------------------------------------
+
+class _AccountSummarySection extends StatelessWidget {
+  final double previousBalance;
+  final double invoiceTotal;
+  final TextEditingController paidController;
+  final ValueChanged<String> onPaidChanged;
+  final double remaining;
+
+  const _AccountSummarySection({
+    required this.previousBalance,
+    required this.invoiceTotal,
+    required this.paidController,
+    required this.onPaidChanged,
+    required this.remaining,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final totalDue = previousBalance + invoiceTotal;
+    final isSettled = remaining <= 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionTitle(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'ملخص الحساب',
+        ),
+        SizedBox(height: 12.h),
+        _TotalsRow(label: 'قيمة الفاتورة الحالية', value: _money(invoiceTotal)),
+        SizedBox(height: 8.h),
+        _TotalsRow(label: 'حساب سابق', value: _money(previousBalance)),
+        SizedBox(height: 10.h),
+        Divider(height: 1, color: colors.border),
+        SizedBox(height: 10.h),
+        _TotalsRow(label: 'إجمالي المستحق على العميل', value: _money(totalDue)),
+        SizedBox(height: 14.h),
+        Text('المدفوع الآن',
+            style: AppTextStyles.almaraiRegular14
+                .copyWith(color: colors.textMuted, fontSize: 12.sp)),
+        SizedBox(height: 6.h),
+        TextField(
+          controller: paidController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: onPaidChanged,
+          style: AppTextStyles.cairoMedium16.copyWith(color: colors.text),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: colors.background,
+            prefixIcon: Icon(Icons.payments_outlined,
+                size: 18.sp, color: colors.textMuted),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+          ),
+        ),
+        SizedBox(height: 14.h),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+          decoration: BoxDecoration(
+            color: (isSettled ? colors.primary : colors.statusNotReached)
+                .withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Row(
+            children: [
+              Text('المتبقي على العميل',
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(color: colors.text, fontSize: 13.sp)),
+              const Spacer(),
+              Text(
+                _money(remaining),
+                style: AppTextStyles.cairoBold18.copyWith(
+                  color: isSettled ? colors.primary : colors.statusNotReached,
+                  fontSize: 17.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1800,9 +1947,14 @@ class _InsightBadge extends StatelessWidget {
 
 class _FooterActions extends StatelessWidget {
   final bool canIssue;
+  final bool isIssuing;
   final VoidCallback onSave;
 
-  const _FooterActions({required this.canIssue, required this.onSave});
+  const _FooterActions({
+    required this.canIssue,
+    required this.onSave,
+    this.isIssuing = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1825,10 +1977,17 @@ class _FooterActions extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r)),
               ),
-              icon: Icon(Icons.save_alt_rounded,
-                  color: Colors.white, size: 20.sp),
+              icon: isIssuing
+                  ? SizedBox(
+                      width: 16.w,
+                      height: 16.w,
+                      child: const CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : Icon(Icons.save_alt_rounded,
+                      color: Colors.white, size: 20.sp),
               label: Text(
-                'حفظ وإصدار الفاتورة',
+                isIssuing ? 'جاري الحفظ...' : 'حفظ وإصدار الفاتورة',
                 style: AppTextStyles.cairoMedium16
                     .copyWith(color: Colors.white, fontSize: 13.sp),
               ),
