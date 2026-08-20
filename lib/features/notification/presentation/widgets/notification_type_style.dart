@@ -17,6 +17,10 @@ List<List<dynamic>> notificationTypeIcon(NotificationType type) {
       return HugeIcons.strokeRoundedDeliveryBox01;
     case NotificationType.vehicleStockLow:
       return HugeIcons.strokeRoundedDeliveryTruck01;
+    case NotificationType.productExpiringSoon:
+      return HugeIcons.strokeRoundedCalendar01;
+    case NotificationType.productExpired:
+      return HugeIcons.strokeRoundedAlertCircle;
     case NotificationType.dailyReportReminder:
       return HugeIcons.strokeRoundedDoc01;
   }
@@ -36,6 +40,10 @@ Color notificationTypeColor(BuildContext context, NotificationType type) {
       return context.colors.statOrange;
     case NotificationType.vehicleStockLow:
       return context.colors.statOrange;
+    case NotificationType.productExpiringSoon:
+      return context.colors.statOrange;
+    case NotificationType.productExpired:
+      return context.colors.statusNotReached;
     case NotificationType.dailyReportReminder:
       return context.colors.primary;
   }

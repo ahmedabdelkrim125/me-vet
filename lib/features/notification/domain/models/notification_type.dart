@@ -5,6 +5,8 @@ enum NotificationType {
   creditLimitExceeded,
   mainStockLow,
   vehicleStockLow,
+  productExpiringSoon,
+  productExpired,
   dailyReportReminder,
 }
 
@@ -23,6 +25,10 @@ extension NotificationTypeX on NotificationType {
         return 'مخزون منخفض';
       case NotificationType.vehicleStockLow:
         return 'مخزون العربية منخفض';
+      case NotificationType.productExpiringSoon:
+        return 'صلاحية قربت تخلص';
+      case NotificationType.productExpired:
+        return 'صنف منتهي الصلاحية';
       case NotificationType.dailyReportReminder:
         return 'تذكير بتقرير اليوم';
     }

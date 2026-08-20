@@ -190,7 +190,7 @@ class _AnimatedProductTile extends StatelessWidget {
               context,
               product: product,
               onConfirm: (quantity, threshold) =>
-                  MockInventoryRepository.instance.addToVehicle(
+                  MockInventoryRepository.instance.loadToVehicle(
                 productId: product.id,
                 quantity: quantity,
                 minThreshold: threshold,
