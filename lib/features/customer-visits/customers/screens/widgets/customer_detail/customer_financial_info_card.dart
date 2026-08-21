@@ -36,7 +36,7 @@ class CustomerFinancialInfoCard extends StatelessWidget {
             children: [
               Expanded(
                 child: InfoTile(
-                  label: 'الرصيد الحالي',
+                  label: 'المديونية الحالية',
                   value: '${customer.currentBalance.toStringAsFixed(0)} ج.م',
                 ),
               ),

@@ -1,13 +1,17 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import 'package:printing/printing.dart';
 import '../../../customer-visits/customers/domain/mock_customers_repository.dart';
 import '../../../customer-visits/customers/domain/models/invoice_record_model.dart';
 import '../../../inventory/domain/mock_inventory_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
 import '../../../inventory/domain/models/product_unit.dart';
+import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../../domain/models/quick_invoice_models.dart';
 
 /// ---------------------------------------------------------------------
@@ -271,6 +275,54 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     );
   }
 
+  bool _canBuildPdf() {
+    if (customer == null) {
+      _toast('اختر العميل أولًا');
+      return false;
+    }
+    if (lineItems.isEmpty) {
+      _toast('أضف صنفًا واحدًا على الأقل للفاتورة');
+      return false;
+    }
+    return true;
+  }
+
+  Future<Uint8List> _buildInvoicePdfBytes() {
+    return InvoicePdfBuilder.build(
+      InvoicePdfData(
+        invoiceNumber: invoiceNumber,
+        date: invoiceDate,
+        customerName: customer?.customer.name ?? '',
+        repName: _currentRepName,
+        items: lineItems
+            .map((item) => InvoicePdfLineItem(
+                  name: item.product.name,
+                  quantity: item.quantity,
+                  price: item.product.price,
+                  total: item.total,
+                ))
+            .toList(),
+        invoiceTotal: grandTotal,
+        previousBalance: previousBalance,
+        totalDue: totalDue,
+        paidNow: paidNow,
+        remaining: remainingBalance,
+      ),
+    );
+  }
+
+  Future<void> _printInvoice() async {
+    if (!_canBuildPdf()) return;
+    final bytes = await _buildInvoicePdfBytes();
+    await Printing.layoutPdf(onLayout: (_) async => bytes);
+  }
+
+  Future<void> _shareInvoiceOnWhatsapp() async {
+    if (!_canBuildPdf()) return;
+    final bytes = await _buildInvoicePdfBytes();
+    await Printing.sharePdf(bytes: bytes, filename: '$invoiceNumber.pdf');
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -375,6 +427,8 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                     customer != null && lineItems.isNotEmpty && !_isIssuing,
                 isIssuing: _isIssuing,
                 onSave: _issueInvoice,
+                onPrint: _printInvoice,
+                onShareWhatsapp: _shareInvoiceOnWhatsapp,
               ),
             ],
           ),
@@ -1949,10 +2003,14 @@ class _FooterActions extends StatelessWidget {
   final bool canIssue;
   final bool isIssuing;
   final VoidCallback onSave;
+  final VoidCallback onPrint;
+  final VoidCallback onShareWhatsapp;
 
   const _FooterActions({
     required this.canIssue,
     required this.onSave,
+    required this.onPrint,
+    required this.onShareWhatsapp,
     this.isIssuing = false,
   });
 
@@ -1995,12 +2053,24 @@ class _FooterActions extends StatelessWidget {
           ),
           SizedBox(width: 10.w),
           _OutlinedIconButton(
-              icon: Icons.print_outlined, color: colors.text, onTap: () {}),
+            icon: Icon(
+              Icons.print_outlined,
+              color: colors.text,
+              size: 22.sp,
+            ),
+            color: colors.text,
+            onTap: onPrint,
+          ),
           SizedBox(width: 8.w),
           _OutlinedIconButton(
-              icon: Icons.chat_outlined,
+            icon: FaIcon(
+              FontAwesomeIcons.whatsapp,
               color: const Color(0xFF25D366),
-              onTap: () {}),
+              size: 22.sp,
+            ),
+            color: const Color(0xFF25D366),
+            onTap: onShareWhatsapp,
+          ),
         ],
       ),
     );
@@ -2008,12 +2078,15 @@ class _FooterActions extends StatelessWidget {
 }
 
 class _OutlinedIconButton extends StatelessWidget {
-  final IconData icon;
+  final Widget icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _OutlinedIconButton(
-      {required this.icon, required this.color, required this.onTap});
+  const _OutlinedIconButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2024,8 +2097,11 @@ class _OutlinedIconButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-          child: Icon(icon, color: color, size: 22.sp),
+          padding: EdgeInsets.symmetric(
+            horizontal: 14.w,
+            vertical: 14.h,
+          ),
+          child: icon,
         ),
       ),
     );
