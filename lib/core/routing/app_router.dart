@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/owner_login_screen.dart';
 import '../../features/main/presentation/main_screen.dart';
+import '../../features/owner_dashboard/presentation/owner_dashboard_screen.dart';
 import '../../features/rep_session/presentation/rep_entry_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import 'routes.dart';
@@ -12,6 +14,10 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const SplashScreen());
       case Routes.loginScreen:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
+      case Routes.ownerLoginScreen:
+        return MaterialPageRoute(builder: (_) => const OwnerLoginScreen());
+      case Routes.ownerDashboard:
+        return MaterialPageRoute(builder: (_) => const OwnerDashboardScreen());
       case Routes.repEntryScreen:
         return MaterialPageRoute(builder: (_) => const RepEntryScreen());
       case Routes.mainScreen:

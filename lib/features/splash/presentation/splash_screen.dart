@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/routing/routes.dart';
 import 'package:mivet_app/features/auth/data/auth_service.dart';
+import 'package:mivet_app/features/auth/domain/models/user_profile.dart';
 
 import '../../../core/utils/extensions.dart';
 import 'widgets/splash_body.dart';
@@ -41,10 +42,24 @@ class _SplashScreenState extends State<SplashScreen>
     final hasSession = AuthService.instance.hasActiveSession;
     
     if (hasSession) {
-      // يوجد session، الانتقال للصفحة الرئيسية
-      context.pushReplacementNamed(Routes.mainScreen);
+      // جلب بيانات المستخدم لمعرفة الدور
+      final user = await AuthService.instance.getCurrentUser();
+      
+      if (!mounted) return;
+      
+      if (user != null) {
+        // توجيه حسب الدور
+        if (user.role == UserRole.owner) {
+          context.pushReplacementNamed(Routes.ownerDashboard);
+        } else {
+          context.pushReplacementNamed(Routes.mainScreen);
+        }
+      } else {
+        // لو فشل جلب البيانات، نرجع للـ login
+        context.pushReplacementNamed(Routes.loginScreen);
+      }
     } else {
-      // لا يوجد session، الانتقال لشاشة تسجيل الدخول
+      // لا يوجد session، الانتقال لشاشة تسجيل دخول المندوب
       context.pushReplacementNamed(Routes.loginScreen);
     }
   }

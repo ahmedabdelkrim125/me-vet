@@ -13,7 +13,7 @@ class AuthService {
     return '$cleaned@mivet.app';
   }
 
-  /// تسجيل الدخول برقم الموبايل + PIN
+  /// تسجيل الدخول برقم الموبايل + PIN (للمندوبين)
   Future<UserProfile?> signInWithPhone(String phone, String pin) async {
     try {
       final email = _phoneToEmail(phone);
@@ -33,6 +33,44 @@ class AuthService {
           .single();
 
       final profile = UserProfile.fromJson(profileData);
+
+      // تحديث آخر تسجيل دخول
+      await _client.from('profiles').update({
+        'last_login_at': DateTime.now().toIso8601String(),
+      }).eq('id', profile.id);
+
+      return profile;
+    } on AuthException catch (e) {
+      throw AuthException(e.message);
+    } catch (e) {
+      throw Exception('فشل تسجيل الدخول: $e');
+    }
+  }
+
+  /// تسجيل الدخول بالإيميل + Password (للأونر)
+  Future<UserProfile?> signInWithEmail(String email, String password) async {
+    try {
+      final authResponse = await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (authResponse.user == null) return null;
+
+      // جلب بيانات المستخدم من جدول profiles
+      final profileData = await _client
+          .from('profiles')
+          .select()
+          .eq('id', authResponse.user!.id)
+          .single();
+
+      final profile = UserProfile.fromJson(profileData);
+
+      // التأكد أن المستخدم owner
+      if (profile.role != UserRole.owner) {
+        await signOut();
+        throw Exception('هذا الحساب ليس حساب مدير');
+      }
 
       // تحديث آخر تسجيل دخول
       await _client.from('profiles').update({
