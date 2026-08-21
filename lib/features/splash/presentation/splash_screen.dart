@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/routing/routes.dart';
+import 'package:mivet_app/features/auth/data/auth_service.dart';
 
 import '../../../core/utils/extensions.dart';
 import 'widgets/splash_body.dart';
@@ -28,9 +29,24 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 1400),
     )..repeat();
 
-    Future.delayed(const Duration(milliseconds: 2800), () {
-      if (mounted) context.pushReplacementNamed(Routes.repEntryScreen);
-    });
+    _checkAuthAndNavigate();
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    await Future.delayed(const Duration(milliseconds: 2800));
+    
+    if (!mounted) return;
+
+    // التحقق من وجود session نشطة
+    final hasSession = AuthService.instance.hasActiveSession;
+    
+    if (hasSession) {
+      // يوجد session، الانتقال للصفحة الرئيسية
+      context.pushReplacementNamed(Routes.mainScreen);
+    } else {
+      // لا يوجد session، الانتقال لشاشة تسجيل الدخول
+      context.pushReplacementNamed(Routes.loginScreen);
+    }
   }
 
   @override

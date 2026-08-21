@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../features/auth/presentation/login_screen.dart';
 import '../../features/main/presentation/main_screen.dart';
 import '../../features/rep_session/presentation/rep_entry_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
@@ -9,6 +10,8 @@ class AppRouter {
     switch (settings.name) {
       case Routes.splashScreen:
         return MaterialPageRoute(builder: (_) => const SplashScreen());
+      case Routes.loginScreen:
+        return MaterialPageRoute(builder: (_) => const LoginScreen());
       case Routes.repEntryScreen:
         return MaterialPageRoute(builder: (_) => const RepEntryScreen());
       case Routes.mainScreen:
