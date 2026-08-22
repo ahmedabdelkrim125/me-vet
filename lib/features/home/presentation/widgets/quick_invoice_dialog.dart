@@ -7,6 +7,7 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
 import '../../../customer-visits/customers/domain/mock_customers_repository.dart';
+import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../../customer-visits/customers/domain/models/invoice_record_model.dart';
 import '../../../inventory/domain/mock_inventory_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
@@ -229,6 +230,8 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       customerId,
       total - paid,
       isCollection: paid > 0,
+      collectedAmount: paid > 0 ? paid : null,
+      collectionSource: CollectionSource.newInvoicePayment,
     );
 
     final status = paid >= total

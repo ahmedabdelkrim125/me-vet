@@ -24,6 +24,8 @@ dependencies:
   pdf: ^3.12.0
   printing: ^5.14.3
   font_awesome_flutter: ^11.0.0
+  fl_chart: ^1.2.0
+  flutter_bloc: ^8.1.6
 
 dev_dependencies:
   flutter_test:
