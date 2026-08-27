@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'models/collection_record_model.dart';
 import 'models/customer_model.dart';
 import 'models/customer_status.dart';
 import 'models/invoice_record_model.dart';
@@ -15,6 +16,9 @@ class MockCustomersRepository {
 
   static const String _storageKey = 'mock_customers';
   static const String _invoicesStorageKey = 'mock_customer_invoices';
+
+  static const String _collectionsStorageKey = 'mock_customer_collections';
+  final List<CollectionRecordModel> _collections = [];
 
   final List<CustomerModel> _customers = [];
   final ValueNotifier<List<CustomerModel>> customersNotifier =
@@ -44,6 +48,7 @@ class MockCustomersRepository {
     }
 
     _loadInvoices(prefs);
+    _loadCollections(prefs);
 
     customersNotifier.value = List<CustomerModel>.from(_customers);
     _initialized = true;
@@ -80,15 +85,18 @@ class MockCustomersRepository {
 
   /// يعدّل رصيد العميل الحالي. [delta] موجب = دين جديد (فاتورة)،
   /// سالب = سداد (تحصيل). لو [isCollection] بقى true بيحدّث كمان
-  /// تاريخ آخر تحصيل للنهاردة.
+  /// تاريخ آخر تحصيل للنهاردة. [collectedAmount] لازم تتبعت صراحة لما
+  /// الكاش المحصّل مش مساوي لـ -delta (زي الدفع الجزئي وقت الفاتورة).
   Future<void> adjustBalance(
-    String customerId,
-    double delta, {
-    bool isCollection = false,
-  }) async {
+      String customerId,
+      double delta, {
+        bool isCollection = false,
+        double? collectedAmount,
+        CollectionSource collectionSource = CollectionSource.oldDebtPayment,
+      }) async {
     await initialize();
     final index =
-        _customers.indexWhere((customer) => customer.id == customerId);
+    _customers.indexWhere((customer) => customer.id == customerId);
     if (index == -1) return;
 
     final current = _customers[index];
@@ -98,10 +106,57 @@ class MockCustomersRepository {
     _customers[index] = current.copyWith(
       currentBalance: clamped,
       lastCollectionDate:
-          isCollection ? DateTime.now() : current.lastCollectionDate,
+      isCollection ? DateTime.now() : current.lastCollectionDate,
     );
+
+    final effectiveCollected =
+        collectedAmount ?? (isCollection && delta < 0 ? -delta : null);
+    if (effectiveCollected != null && effectiveCollected > 0) {
+      _collections.add(CollectionRecordModel(
+        customerId: customerId,
+        amount: effectiveCollected,
+        date: DateTime.now(),
+        source: collectionSource,
+      ));
+      final prefs = await SharedPreferences.getInstance();
+      await _persistCollections(prefs);
+    }
+
     await _persist();
     customersNotifier.value = List<CustomerModel>.from(_customers);
+  }
+
+  List<InvoiceRecordModel> getAllInvoicesInRange(DateTime start, DateTime end) {
+    final result = <InvoiceRecordModel>[];
+    for (final list in _invoicesByCustomer.values) {
+      result.addAll(
+        list.where((inv) => !inv.date.isBefore(start) && inv.date.isBefore(end)),
+      );
+    }
+    return result;
+  }
+
+  List<CollectionRecordModel> getAllCollectionsInRange(
+      DateTime start, DateTime end) {
+    return _collections
+        .where((c) => !c.date.isBefore(start) && c.date.isBefore(end))
+        .toList();
+  }
+
+  void _loadCollections(SharedPreferences prefs) {
+    final raw = prefs.getStringList(_collectionsStorageKey) ?? const [];
+    _collections
+      ..clear()
+      ..addAll(raw.map(
+            (e) => CollectionRecordModel.fromJson(jsonDecode(e) as Map<String, dynamic>),
+      ));
+  }
+
+  Future<void> _persistCollections(SharedPreferences prefs) async {
+    await prefs.setStringList(
+      _collectionsStorageKey,
+      _collections.map((c) => jsonEncode(c.toJson())).toList(),
+    );
   }
 
   /// يسجل فاتورة جديدة لعميل معين — بيتخزن عشان نقدر نحسب منه

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../customer-visits/customers/screens/customers_screen.dart';
+import '../../daily_report/presentation/screens/daily_report_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../inventory/presentation/screens/inventory_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
@@ -34,6 +35,8 @@ class _MainScreenState extends State<MainScreen> {
         return const InventoryScreen();
       case 3:
         return const VehicleStockScreen();
+      case 4:
+        return const DailyReportScreen();
       case 5:
         return const SettingsScreen();
       default:
