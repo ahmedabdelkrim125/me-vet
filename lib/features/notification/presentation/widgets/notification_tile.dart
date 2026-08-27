@@ -3,7 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import 'package:mivet_app/features/customer-visits/customers/domain/mock_customers_repository.dart';
+import 'package:mivet_app/features/customer-visits/customers/data/customers_repository.dart';
 import 'package:mivet_app/features/customer-visits/customers/screens/customer_detail_screen.dart';
 import '../../domain/models/app_notification_model.dart';
 import '../../domain/notification_repository.dart';
@@ -29,7 +29,7 @@ class NotificationTile extends StatelessWidget {
     if (relatedId == null) return;
 
     final customer =
-        MockCustomersRepository.instance.getCustomerById(relatedId);
+        CustomersRepository.instance.getCustomerById(relatedId);
     if (customer == null || customer.id.isEmpty || !context.mounted) return;
 
     Navigator.of(context).push(

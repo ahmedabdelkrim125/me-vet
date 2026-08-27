@@ -4,7 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../domain/mock_customers_repository.dart';
+import '../../../data/customers_repository.dart';
 import '../../../domain/models/customer_model.dart';
 
 Future<List<CustomerModel>?> showSelectRouteCustomersSheet(
@@ -53,7 +53,7 @@ class _SelectRouteCustomersSheetState
 
   @override
   Widget build(BuildContext context) {
-    final allCustomers = MockCustomersRepository.instance.customers
+    final allCustomers = CustomersRepository.instance.customers
         .where((c) =>
             _query.isEmpty ||
             c.name.toLowerCase().contains(_query.toLowerCase()))
@@ -213,7 +213,7 @@ class _SelectRouteCustomersSheetState
             child: InkWell(
               borderRadius: BorderRadius.circular(14.r),
               onTap: () {
-                final selected = MockCustomersRepository.instance.customers
+                final selected = CustomersRepository.instance.customers
                     .where((c) => _selectedIds.contains(c.id))
                     .toList();
                 Navigator.of(context).pop(selected);

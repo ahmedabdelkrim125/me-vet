@@ -1,4 +1,4 @@
-import '../../customer-visits/customers/domain/mock_customers_repository.dart';
+import '../../customer-visits/customers/data/customers_repository.dart';
 import '../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../customer-visits/customers/domain/today_route_controller.dart';
 import '../../customer-visits/customers/domain/models/visit_status.dart';
@@ -27,7 +27,7 @@ class MockDailyReportRepository {
   MockDailyReportRepository._();
 
   Future<void> _ensureSourcesReady() async {
-    await MockCustomersRepository.instance.initialize();
+    await CustomersRepository.instance.initialize();
     await MockInventoryRepository.instance.init();
     await TodayRouteController.instance.initialize();
     await MockStockAdjustmentsRepository.instance.initialize();
@@ -95,9 +95,9 @@ class MockDailyReportRepository {
     );
 
     // --- Cash settlement ---
-    final invoices = MockCustomersRepository.instance
+    final invoices = CustomersRepository.instance
         .getAllInvoicesInRange(bounds.start, bounds.end);
-    final collections = MockCustomersRepository.instance
+    final collections = await CustomersRepository.instance
         .getAllCollectionsInRange(bounds.start, bounds.end);
 
     final cashOnNewInvoices = collections
@@ -107,7 +107,7 @@ class MockDailyReportRepository {
         .where((c) => c.source == CollectionSource.oldDebtPayment)
         .fold(0.0, (sum, c) => sum + c.amount);
 
-    final outstanding = MockCustomersRepository.instance.customers
+    final outstanding = CustomersRepository.instance.customers
         .fold(0.0, (sum, c) => sum + c.currentBalance);
 
     final cashSettlement = CashSettlementModel(
@@ -181,9 +181,12 @@ class MockDailyReportRepository {
       final day = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
       final nextDay = day.add(const Duration(days: 1));
 
-      final invoices = MockCustomersRepository.instance
+      final invoices = CustomersRepository.instance
           .getAllInvoicesInRange(day, nextDay);
-      final collections = MockCustomersRepository.instance
+      // TODO(perf): ده بيعمل query منفصل لكل يوم (30 يوم = 30 request).
+      // لما نهاجر invoices/collections بالكامل، الأحسن نجيب المدى كله
+      // بـ query واحد ونقسّمه محليًا بدل اللوب ده.
+      final collections = await CustomersRepository.instance
           .getAllCollectionsInRange(day, nextDay);
       final visitsCompleted = TodayRouteController
           .instance.visitHistoryNotifier.value

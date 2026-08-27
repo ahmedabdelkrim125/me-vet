@@ -3,7 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../domain/mock_customers_repository.dart';
+import '../../../data/customers_repository.dart';
 import '../../../domain/models/route_stop_model.dart';
 import '../../../domain/models/visit_status.dart';
 import '../../customer_detail_screen.dart';
@@ -116,7 +116,7 @@ class _RouteStopActionsSheet extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(14.r),
               onTap: () {
-                final customer = MockCustomersRepository.instance
+                final customer = CustomersRepository.instance
                     .getCustomerById(stop.customerId);
                 Navigator.of(context).pop();
                 if (customer == null || customer.id.isEmpty) return;

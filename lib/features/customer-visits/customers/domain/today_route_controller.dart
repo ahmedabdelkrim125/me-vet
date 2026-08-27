@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'mock_customers_repository.dart';
+import '../data/customers_repository.dart';
 import 'models/customer_model.dart';
 import 'models/route_stop_model.dart';
 import 'models/visit_status.dart';
@@ -57,7 +57,7 @@ class TodayRouteController {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    await MockCustomersRepository.instance.initialize();
+    await CustomersRepository.instance.initialize();
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_storageKey);
     _routeStartedAt = _dateTimeFromString(prefs.getString(_routeStartedAtKey));
@@ -256,7 +256,7 @@ class TodayRouteController {
   }
 
   CustomerModel? _customerById(String id) {
-    final customer = MockCustomersRepository.instance.getCustomerById(id);
+    final customer = CustomersRepository.instance.getCustomerById(id);
     if (customer == null || customer.id.isEmpty) return null;
     return customer;
   }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/errors/app_error_snackbar.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../../../../core/theme/app_color_scheme_extension.dart';
-import '../../../domain/mock_customers_repository.dart';
+import '../../../data/customers_repository.dart';
 import '../../../domain/models/customer_model.dart';
 import '../../../domain/models/customer_status.dart';
 import 'add_customer_bottom_sheet.dart';
@@ -23,12 +24,12 @@ class _CustomersListViewState extends State<CustomersListView>
   late final AnimationController _entranceController;
   int _filterIndex = 0;
   String _query = '';
-  late final MockCustomersRepository _repository;
+  late final CustomersRepository _repository;
 
   @override
   void initState() {
     super.initState();
-    _repository = MockCustomersRepository.instance;
+    _repository = CustomersRepository.instance;
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -74,7 +75,12 @@ class _CustomersListViewState extends State<CustomersListView>
     final newCustomer = await showAddCustomerBottomSheet(context);
     if (newCustomer == null) return;
 
-    await _repository.addCustomer(newCustomer);
+    try {
+      await _repository.addCustomer(newCustomer);
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+      return;
+    }
     if (mounted) {
       setState(() {
         _entranceController

@@ -6,7 +6,8 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
-import '../../../customer-visits/customers/domain/mock_customers_repository.dart';
+import 'package:mivet_app/core/errors/app_error_snackbar.dart';
+import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../../customer-visits/customers/domain/models/invoice_record_model.dart';
 import '../../../inventory/domain/mock_inventory_repository.dart';
@@ -22,7 +23,7 @@ import '../../domain/models/quick_invoice_models.dart';
 const _currentRepName = 'أحمد محمود';
 
 List<InvoiceCustomerModel> _customersFromRepository() {
-  return MockCustomersRepository.instance.customers
+  return CustomersRepository.instance.customers
       .map((c) => InvoiceCustomerModel(customer: c))
       .toList();
 }
@@ -37,7 +38,7 @@ InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
 }
 
 List<PastInvoiceSummaryModel> _statementFor(InvoiceCustomerModel invoice) {
-  final records = MockCustomersRepository.instance
+  final records = CustomersRepository.instance
       .getInvoices(invoice.customer.id)
       .take(6)
       .toList();
@@ -109,7 +110,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     invoiceNumber = 'INV-${invoiceDate.year}-${100 + Random().nextInt(900)}';
     customer = widget.initialCustomer;
     MockInventoryRepository.instance.init();
-    MockCustomersRepository.instance.initialize();
+    CustomersRepository.instance.initialize();
   }
 
   @override
@@ -142,7 +143,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   }
 
   Future<void> _pickCustomer() async {
-    await MockCustomersRepository.instance.initialize();
+    await CustomersRepository.instance.initialize();
     if (!mounted) return;
     final picked = await showModalBottomSheet<InvoiceCustomerModel>(
       context: context,
@@ -218,37 +219,45 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
     setState(() => _isIssuing = true);
 
-    for (final item in lineItems) {
-      await MockInventoryRepository.instance
-          .consumeFromVehicle(item.product.id, item.quantity);
+    try {
+      for (final item in lineItems) {
+        await MockInventoryRepository.instance
+            .consumeFromVehicle(item.product.id, item.quantity);
+      }
+
+      final paid = paidNow;
+      final customerId = customer!.customer.id;
+
+      await CustomersRepository.instance.adjustBalance(
+        customerId,
+        total - paid,
+        isCollection: paid > 0,
+        collectedAmount: paid > 0 ? paid : null,
+        collectionSource: CollectionSource.newInvoicePayment,
+      );
+
+      final status = paid >= total
+          ? InvoiceStatus.paid
+          : paid > 0
+              ? InvoiceStatus.partial
+              : InvoiceStatus.deferred;
+
+      await CustomersRepository.instance.addInvoice(
+        customerId,
+        InvoiceRecordModel(
+          code: invoiceNumber,
+          date: invoiceDate,
+          amount: total,
+          status: status,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isIssuing = false);
+        showAppError(context, e);
+      }
+      return;
     }
-
-    final paid = paidNow;
-    final customerId = customer!.customer.id;
-
-    await MockCustomersRepository.instance.adjustBalance(
-      customerId,
-      total - paid,
-      isCollection: paid > 0,
-      collectedAmount: paid > 0 ? paid : null,
-      collectionSource: CollectionSource.newInvoicePayment,
-    );
-
-    final status = paid >= total
-        ? InvoiceStatus.paid
-        : paid > 0
-            ? InvoiceStatus.partial
-            : InvoiceStatus.deferred;
-
-    await MockCustomersRepository.instance.addInvoice(
-      customerId,
-      InvoiceRecordModel(
-        code: invoiceNumber,
-        date: invoiceDate,
-        amount: total,
-        status: status,
-      ),
-    );
 
     if (!mounted) return;
 

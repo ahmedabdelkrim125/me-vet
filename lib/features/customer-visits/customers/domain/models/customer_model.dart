@@ -111,4 +111,44 @@ class CustomerModel {
   factory CustomerModel.fromJsonString(String raw) {
     return CustomerModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
+
+  /// يبني الموديل من صف جدول `customers` في Supabase (أعمدة snake_case).
+  ///
+  /// `visitsThisMonth` و `averageOrder` لسه مش متحسوبين من هنا (TODO):
+  /// هيتوصّلوا بجدولي `customer_visits` و `invoices` لما فيتشرات الزيارات
+  /// والفواتير تتهاجر لـ Supabase هي كمان.
+  factory CustomerModel.fromSupabaseRow(Map<String, dynamic> row) {
+    return CustomerModel(
+      id: row['id'] as String,
+      name: row['name'] as String,
+      code: row['code'] as String,
+      area: row['area'] as String? ?? '',
+      category: row['category'] as String? ?? '',
+      status: customerStatusFromDb(row['status'] as String?),
+      visitsThisMonth: 0,
+      phone: row['phone'] as String? ?? '',
+      address: row['address'] as String? ?? '',
+      creditLimit: (row['credit_limit'] as num?)?.toDouble() ?? 0,
+      currentBalance: (row['current_balance'] as num?)?.toDouble() ?? 0,
+      lastCollectionDate: row['last_collection_date'] == null
+          ? null
+          : DateTime.parse(row['last_collection_date'] as String),
+      averageOrder: 0,
+    );
+  }
+
+  /// يجهّز الحقول اللي تُكتب فعليًا عند إضافة عميل جديد. `id` و `code`
+  /// متعمّدين مش موجودين — الداتابيز بتولّدهم (uuid + trigger الكود التلقائي).
+  Map<String, dynamic> toSupabaseInsert() {
+    return {
+      'name': name,
+      'area': area,
+      'category': category,
+      'status': status.dbValue,
+      'phone': phone,
+      'address': address,
+      'credit_limit': creditLimit,
+      'current_balance': currentBalance,
+    };
+  }
 }
