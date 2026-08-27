@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
-class PinInputField extends StatefulWidget {
+class OwnerPasswordInputField extends StatefulWidget {
   final TextEditingController controller;
   final String? errorText;
 
-  const PinInputField({
+  const OwnerPasswordInputField({
     super.key,
     required this.controller,
     this.errorText,
   });
 
   @override
-  State<PinInputField> createState() => _PinInputFieldState();
+  State<OwnerPasswordInputField> createState() =>
+      _OwnerPasswordInputFieldState();
 }
 
-class _PinInputFieldState extends State<PinInputField> {
+class _OwnerPasswordInputFieldState extends State<OwnerPasswordInputField> {
   bool _obscureText = true;
 
   @override
@@ -27,26 +27,21 @@ class _PinInputFieldState extends State<PinInputField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'رمز PIN',
+          'كلمة المرور',
           style: AppTextStyles.cairoMedium16
               .copyWith(color: AppColors.primary, fontSize: 14.sp),
         ),
         SizedBox(height: 8.h),
         TextFormField(
           controller: widget.controller,
-          keyboardType: TextInputType.number,
           obscureText: _obscureText,
           textDirection: TextDirection.ltr,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(4),
-          ],
           style: AppTextStyles.cairoMedium16
               .copyWith(fontSize: 16.sp, color: AppColors.primary),
           decoration: InputDecoration(
-            hintText: '••••',
+            hintText: '••••••••',
             hintStyle: AppTextStyles.cairoMedium16
-                .copyWith(color: AppColors.navInactive),
+                .copyWith(fontSize: 14.sp, color: AppColors.navInactive),
             prefixIcon: Icon(
               Icons.lock_rounded,
               color: AppColors.primaryGreen,
