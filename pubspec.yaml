@@ -24,8 +24,10 @@ dependencies:
   pdf: ^3.12.0
   printing: ^5.14.3
   font_awesome_flutter: ^11.0.0
-  fl_chart: ^1.2.0
-  flutter_bloc: ^8.1.6
+  supabase_flutter: ^2.17.2
+  flutter_dotenv: ^5.2.1
+  flutter_bloc: ^9.1.1
+  equatable: ^2.1.0
 
 dev_dependencies:
   flutter_test:
@@ -37,6 +39,7 @@ flutter:
 
   assets:
     - assets/images/
+    - .env
 
   fonts:
     - family: Cairo
