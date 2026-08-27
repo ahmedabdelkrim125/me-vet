@@ -19,16 +19,19 @@ class CustomerTopProductsSection extends StatelessWidget {
       title: 'أكتر المنتجات شراءً',
       icon: CupertinoIcons.star_fill,
       iconColor: context.colors.primary,
-      child: Column(
-        children: [
-          for (final product in products)
-            _ProductRow(
-              name: product.name,
-              trailing: '${product.price.toStringAsFixed(0)} ج.م',
-              subtitle: 'آخر شراء ${_formatDate(product.lastPurchaseDate)}',
+      child: products.isEmpty
+          ? const _EmptySectionMessage(text: 'لسه مفيش فواتير مسجلة للعميل ده')
+          : Column(
+              children: [
+                for (final product in products)
+                  _ProductRow(
+                    name: product.name,
+                    trailing: '${product.price.toStringAsFixed(0)} ج.م',
+                    subtitle:
+                        'آخر شراء ${_formatDate(product.lastPurchaseDate)}',
+                  ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }
@@ -44,17 +47,20 @@ class CustomerNotBoughtSection extends StatelessWidget {
       title: 'منتجات لم يشترها من فترة',
       icon: CupertinoIcons.exclamationmark_triangle_fill,
       iconColor: context.colors.statOrange,
-      child: Column(
-        children: [
-          for (final product in products)
-            _ProductRow(
-              name: product.name,
-              trailing: '${product.price.toStringAsFixed(0)} ج.م',
-              subtitle: 'آخر شراء ${_formatDate(product.lastPurchaseDate)}',
-              showAddButton: true,
+      child: products.isEmpty
+          ? const _EmptySectionMessage(text: 'لسه مبكّر نحدد ده لحد ما يكون في تاريخ شراء')
+          : Column(
+              children: [
+                for (final product in products)
+                  _ProductRow(
+                    name: product.name,
+                    trailing: '${product.price.toStringAsFixed(0)} ج.م',
+                    subtitle:
+                        'آخر شراء ${_formatDate(product.lastPurchaseDate)}',
+                    showAddButton: true,
+                  ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }
@@ -68,6 +74,8 @@ class CustomerSeasonalSuggestionsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+
     return _SectionCard(
       title: 'اقتراحات بيع موسمية',
       icon: CupertinoIcons.lightbulb_fill,
@@ -90,6 +98,23 @@ class CustomerSeasonalSuggestionsSection extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptySectionMessage extends StatelessWidget {
+  final String text;
+
+  const _EmptySectionMessage({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: AppTextStyles.almaraiRegular14.copyWith(
+        color: context.colors.textMuted,
+        fontSize: 11.sp,
       ),
     );
   }
