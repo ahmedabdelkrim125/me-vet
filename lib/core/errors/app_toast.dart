@@ -26,10 +26,22 @@ _AppToastState? _currentToast;
 /// ```
 void showAppError(BuildContext context, Object error) {
   final appException = mapErrorToAppException(error);
-  _showToast(context, message: appException.message);
+  _showToast(context, message: appException.message, type: _ToastType.error);
 }
 
-void _showToast(BuildContext context, {required String message}) {
+/// نفس شكل [showAppError] بالظبط (توست من فوق) بس للنجاح — لون أخضر
+/// وأيقونة صح، عشان يبقى واضح للمستخدم إن الحفظ حصل فعليًا.
+void showAppSuccess(BuildContext context, String message) {
+  _showToast(context, message: message, type: _ToastType.success);
+}
+
+enum _ToastType { success, error }
+
+void _showToast(
+  BuildContext context, {
+  required String message,
+  required _ToastType type,
+}) {
   // لو فيه توست ظاهر بالفعل، اقفله فورًا قبل ما نطلّع الجديد.
   _currentToast?._dismiss(immediate: true);
 
@@ -39,6 +51,7 @@ void _showToast(BuildContext context, {required String message}) {
   entry = OverlayEntry(
     builder: (_) => _AppToast(
       message: message,
+      type: type,
       onRegister: (state) => _currentToast = state,
       onDismissed: () {
         entry.remove();
@@ -51,11 +64,13 @@ void _showToast(BuildContext context, {required String message}) {
 
 class _AppToast extends StatefulWidget {
   final String message;
+  final _ToastType type;
   final ValueChanged<_AppToastState> onRegister;
   final VoidCallback onDismissed;
 
   const _AppToast({
     required this.message,
+    required this.type,
     required this.onRegister,
     required this.onDismissed,
   });
@@ -114,7 +129,11 @@ class _AppToastState extends State<_AppToast>
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    const accent = Color(0xFFE0473F); // نفس statusNotReached لكن ثابتة هنا
+    final isError = widget.type == _ToastType.error;
+    final accent = isError
+        ? const Color(0xFFE0473F) // نفس statusNotReached لكن ثابتة هنا
+        : colors.primary;
+    final icon = isError ? Icons.error_rounded : Icons.check_circle_rounded;
 
     return Positioned(
       top: MediaQuery.of(context).padding.top + 10.h,
@@ -156,8 +175,7 @@ class _AppToastState extends State<_AppToast>
                         color: accent.withOpacity(0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.error_rounded,
-                          color: accent, size: 19),
+                      child: Icon(icon, color: accent, size: 19),
                     ),
                     SizedBox(width: 10.w),
                     Expanded(
