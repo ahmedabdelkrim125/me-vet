@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../domain/models/user_profile.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/utils/phone_email_mapper.dart';
@@ -30,7 +31,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
     if (profile.role != UserRole.owner) {
       await _supabase.auth.signOut();
-      throw Exception('هذا الحساب ليس حساب أونر');
+      throw const AppException('هذا الحساب ليس حساب أونر');
     }
     return profile;
   }
@@ -43,18 +44,22 @@ class AuthRepositoryImpl implements AuthRepository {
       final response = await _supabase.auth
           .signInWithPassword(email: email, password: password);
       if (response.user == null) {
-        throw Exception('فشل تسجيل الدخول');
+        throw const AppException('فشل تسجيل الدخول');
       }
       return response;
-    } on AuthException catch (e) {
-      throw Exception('خطأ في تسجيل الدخول: ${e.message}');
+    } catch (e) {
+      throw mapErrorToAppException(e);
     }
   }
 
   Future<UserProfile> _profileFor(String userId) async {
-    final row =
-        await _supabase.from('profiles').select().eq('id', userId).single();
-    return UserProfile.fromJson(row);
+    try {
+      final row =
+          await _supabase.from('profiles').select().eq('id', userId).single();
+      return UserProfile.fromJson(row);
+    } catch (e) {
+      throw mapErrorToAppException(e);
+    }
   }
 
   @override

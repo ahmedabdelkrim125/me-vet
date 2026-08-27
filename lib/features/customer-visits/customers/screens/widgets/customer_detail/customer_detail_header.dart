@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/errors/app_error_snackbar.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -59,8 +60,12 @@ class CustomerDetailHeader extends StatelessWidget {
               ),
             ),
             onSelected: (status) async {
-              await CustomersRepository.instance
-                  .updateCustomerStatus(customer.id, status);
+              try {
+                await CustomersRepository.instance
+                    .updateCustomerStatus(customer.id, status);
+              } catch (e) {
+                if (context.mounted) showAppError(context, e);
+              }
             },
             itemBuilder: (context) => [
               _buildMenuItem(context, CustomerStatus.active, customer.status),

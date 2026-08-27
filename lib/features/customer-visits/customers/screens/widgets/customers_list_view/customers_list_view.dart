@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/errors/app_error_snackbar.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../../../../core/theme/app_color_scheme_extension.dart';
@@ -74,7 +75,12 @@ class _CustomersListViewState extends State<CustomersListView>
     final newCustomer = await showAddCustomerBottomSheet(context);
     if (newCustomer == null) return;
 
-    await _repository.addCustomer(newCustomer);
+    try {
+      await _repository.addCustomer(newCustomer);
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+      return;
+    }
     if (mounted) {
       setState(() {
         _entranceController

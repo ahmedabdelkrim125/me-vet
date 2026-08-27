@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
 
@@ -26,7 +27,7 @@ class AuthCubit extends Cubit<AuthState> {
     } catch (e) {
       emit(state.copyWith(
         status: AuthStatus.error,
-        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        errorMessage: mapErrorToAppException(e).message,
       ));
     }
   }
@@ -43,7 +44,7 @@ class AuthCubit extends Cubit<AuthState> {
     } catch (e) {
       emit(state.copyWith(
         status: AuthStatus.error,
-        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        errorMessage: mapErrorToAppException(e).message,
       ));
     }
   }

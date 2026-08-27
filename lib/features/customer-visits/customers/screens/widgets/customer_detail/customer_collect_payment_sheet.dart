@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/errors/app_error_snackbar.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -28,6 +29,7 @@ class _CollectPaymentSheet extends StatefulWidget {
 
 class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
   final _amountController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -35,7 +37,7 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
     super.dispose();
   }
 
-  void _confirm() async {
+  Future<void> _confirm() async {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -43,6 +45,27 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
       );
       return;
     }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      // بنتأكد إن العملية نجحت فعليًا في Supabase الأول، وبعدين نقفل
+      // الشيت ونعرض رسالة النجاح — مش العكس، عشان مانطلعش رسالة "تم"
+      // للمستخدم وهي في الحقيقة فشلت.
+      await CustomersRepository.instance.adjustBalance(
+        widget.detail.customer.id,
+        -amount,
+        isCollection: true,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        showAppError(context, e);
+      }
+      return;
+    }
+
+    if (!mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -50,11 +73,6 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
           'تم تسجيل تحصيل ${amount.toStringAsFixed(0)} ج.م من ${widget.detail.customer.name}',
         ),
       ),
-    );
-    await CustomersRepository.instance.adjustBalance(
-      widget.detail.customer.id,
-      -amount,
-      isCollection: true,
     );
   }
 
@@ -120,18 +138,27 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _confirm,
+                onPressed: _isSubmitting ? null : _confirm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
                   padding: EdgeInsets.symmetric(vertical: 15.h),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14.r)),
                 ),
-                child: Text(
-                  'تأكيد التحصيل',
-                  style: AppTextStyles.cairoMedium16
-                      .copyWith(color: Colors.white, fontSize: 14.sp),
-                ),
+                child: _isSubmitting
+                    ? SizedBox(
+                        width: 20.w,
+                        height: 20.w,
+                        child: const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : Text(
+                        'تأكيد التحصيل',
+                        style: AppTextStyles.cairoMedium16
+                            .copyWith(color: Colors.white, fontSize: 14.sp),
+                      ),
               ),
             ),
           ],

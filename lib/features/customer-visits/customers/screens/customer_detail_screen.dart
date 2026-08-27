@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import 'package:mivet_app/core/errors/app_error_snackbar.dart';
 import '../../../home/domain/models/quick_invoice_models.dart';
 import '../../../home/presentation/widgets/quick_invoice_dialog.dart';
 import '../data/customers_repository.dart';
@@ -53,23 +54,33 @@ class CustomerDetailScreen extends StatelessWidget {
                       builder: (_) => QuickInvoiceDialog(
                           initialCustomer: _toInvoiceCustomer(detail),
                           onIssued: (info) async {
-                            final repo = CustomersRepository.instance;
-                            final isCashSale = info.saleType == 'نقدي';
-                            if (!isCashSale) {
-                              await repo.adjustBalance(
-                                  currentCustomer.id, info.amount);
+                            // ملحوظة: الـ dialog بيقفل نفسه ويعرض رسالة
+                            // "تم الإصدار" قبل ما ينتظر الـ callback ده،
+                            // فلو فشل هنا هيظهر الخطأ للمستخدم بس بعد ما
+                            // شاف رسالة نجاح. ده هيتصلّح بشكل صحيح لما
+                            // ننقل الفاتورة كلها لـ RPC واحدة atomic في
+                            // فرع الفواتير (issue_invoice).
+                            try {
+                              final repo = CustomersRepository.instance;
+                              final isCashSale = info.saleType == 'نقدي';
+                              if (!isCashSale) {
+                                await repo.adjustBalance(
+                                    currentCustomer.id, info.amount);
+                              }
+                              await repo.addInvoice(
+                                currentCustomer.id,
+                                InvoiceRecordModel(
+                                  code: info.invoiceNumber,
+                                  date: info.date,
+                                  amount: info.amount,
+                                  status: isCashSale
+                                      ? InvoiceStatus.paid
+                                      : InvoiceStatus.deferred,
+                                ),
+                              );
+                            } catch (e) {
+                              if (context.mounted) showAppError(context, e);
                             }
-                            await repo.addInvoice(
-                              currentCustomer.id,
-                              InvoiceRecordModel(
-                                code: info.invoiceNumber,
-                                date: info.date,
-                                amount: info.amount,
-                                status: isCashSale
-                                    ? InvoiceStatus.paid
-                                    : InvoiceStatus.deferred,
-                              ),
-                            );
                           }),
                     ),
                     onCollectTap: () => showCustomerCollectPaymentSheet(

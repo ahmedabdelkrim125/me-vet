@@ -6,6 +6,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
+import 'package:mivet_app/core/errors/app_error_snackbar.dart';
 import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../../customer-visits/customers/domain/models/invoice_record_model.dart';
@@ -218,37 +219,45 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
     setState(() => _isIssuing = true);
 
-    for (final item in lineItems) {
-      await MockInventoryRepository.instance
-          .consumeFromVehicle(item.product.id, item.quantity);
+    try {
+      for (final item in lineItems) {
+        await MockInventoryRepository.instance
+            .consumeFromVehicle(item.product.id, item.quantity);
+      }
+
+      final paid = paidNow;
+      final customerId = customer!.customer.id;
+
+      await CustomersRepository.instance.adjustBalance(
+        customerId,
+        total - paid,
+        isCollection: paid > 0,
+        collectedAmount: paid > 0 ? paid : null,
+        collectionSource: CollectionSource.newInvoicePayment,
+      );
+
+      final status = paid >= total
+          ? InvoiceStatus.paid
+          : paid > 0
+              ? InvoiceStatus.partial
+              : InvoiceStatus.deferred;
+
+      await CustomersRepository.instance.addInvoice(
+        customerId,
+        InvoiceRecordModel(
+          code: invoiceNumber,
+          date: invoiceDate,
+          amount: total,
+          status: status,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isIssuing = false);
+        showAppError(context, e);
+      }
+      return;
     }
-
-    final paid = paidNow;
-    final customerId = customer!.customer.id;
-
-    await CustomersRepository.instance.adjustBalance(
-      customerId,
-      total - paid,
-      isCollection: paid > 0,
-      collectedAmount: paid > 0 ? paid : null,
-      collectionSource: CollectionSource.newInvoicePayment,
-    );
-
-    final status = paid >= total
-        ? InvoiceStatus.paid
-        : paid > 0
-            ? InvoiceStatus.partial
-            : InvoiceStatus.deferred;
-
-    await CustomersRepository.instance.addInvoice(
-      customerId,
-      InvoiceRecordModel(
-        code: invoiceNumber,
-        date: invoiceDate,
-        amount: total,
-        status: status,
-      ),
-    );
 
     if (!mounted) return;
 
