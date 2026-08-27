@@ -6,7 +6,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
-import 'package:mivet_app/core/errors/app_error_snackbar.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
 import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../../customer-visits/customers/domain/models/invoice_record_model.dart';

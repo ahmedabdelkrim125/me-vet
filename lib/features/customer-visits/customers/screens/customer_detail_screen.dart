@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import 'package:mivet_app/core/errors/app_error_snackbar.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
 import '../../../home/domain/models/quick_invoice_models.dart';
 import '../../../home/presentation/widgets/quick_invoice_dialog.dart';
 import '../data/customers_repository.dart';
