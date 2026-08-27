@@ -1,5 +1,5 @@
 import 'customer_model.dart';
-import '../mock_customers_repository.dart';
+import '../../data/customers_repository.dart';
 
 class ProductPurchaseModel {
   final String name;
@@ -53,7 +53,7 @@ class CustomerDetailModel {
   factory CustomerDetailModel.mock(CustomerModel customer) {
     final now = DateTime.now();
     final averageOrder =
-        MockCustomersRepository.instance.getAverageOrder(customer.id);
+        CustomersRepository.instance.getAverageOrder(customer.id);
 
     return CustomerDetailModel(
       customer: customer,

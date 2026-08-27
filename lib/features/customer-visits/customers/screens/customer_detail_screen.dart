@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../home/domain/models/quick_invoice_models.dart';
 import '../../../home/presentation/widgets/quick_invoice_dialog.dart';
-import '../domain/mock_customers_repository.dart';
+import '../data/customers_repository.dart';
 import '../domain/models/customer_detail_model.dart';
 import '../domain/models/customer_model.dart';
 import '../domain/models/invoice_record_model.dart';
@@ -33,7 +33,7 @@ class CustomerDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentCustomer =
-        MockCustomersRepository.instance.getCustomerById(customer.id) ??
+        CustomersRepository.instance.getCustomerById(customer.id) ??
             customer;
     final detail = CustomerDetailModel.mock(currentCustomer);
 
@@ -53,7 +53,7 @@ class CustomerDetailScreen extends StatelessWidget {
                       builder: (_) => QuickInvoiceDialog(
                           initialCustomer: _toInvoiceCustomer(detail),
                           onIssued: (info) async {
-                            final repo = MockCustomersRepository.instance;
+                            final repo = CustomersRepository.instance;
                             final isCashSale = info.saleType == 'نقدي';
                             if (!isCashSale) {
                               await repo.adjustBalance(

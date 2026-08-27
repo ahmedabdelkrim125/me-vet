@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../domain/mock_customers_repository.dart';
+import '../../../data/customers_repository.dart';
 import '../../../domain/models/customer_detail_model.dart';
 
 Future<void> showCustomerCollectPaymentSheet(
@@ -51,7 +51,7 @@ class _CollectPaymentSheetState extends State<_CollectPaymentSheet> {
         ),
       ),
     );
-    await MockCustomersRepository.instance.adjustBalance(
+    await CustomersRepository.instance.adjustBalance(
       widget.detail.customer.id,
       -amount,
       isCollection: true,

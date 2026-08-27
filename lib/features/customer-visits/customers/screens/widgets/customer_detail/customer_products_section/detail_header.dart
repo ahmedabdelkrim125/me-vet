@@ -3,7 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../../domain/mock_customers_repository.dart';
+import '../../../../data/customers_repository.dart';
 import '../../../../domain/models/customer_model.dart';
 import '../../../../domain/models/customer_status.dart';
 import '../../customers_list_view/customer_status_style.dart';
@@ -64,7 +64,7 @@ class CustomerDetailHeader extends StatelessWidget {
               ),
             ),
             onSelected: (status) async {
-              await MockCustomersRepository.instance
+              await CustomersRepository.instance
                   .updateCustomerStatus(customer.id, status);
             },
             itemBuilder: (context) => [

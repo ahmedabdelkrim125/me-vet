@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../domain/mock_customers_repository.dart';
+import '../../../data/customers_repository.dart';
 import '../../../domain/models/customer_model.dart';
 import '../../../domain/models/customer_status.dart';
 import '../../customer_detail_screen.dart';
@@ -83,7 +83,7 @@ class CustomerListTile extends StatelessWidget {
                   ),
                 ),
                 onSelected: (status) async {
-                  await MockCustomersRepository.instance
+                  await CustomersRepository.instance
                       .updateCustomerStatus(customer.id, status);
                 },
                 itemBuilder: (context) => [
