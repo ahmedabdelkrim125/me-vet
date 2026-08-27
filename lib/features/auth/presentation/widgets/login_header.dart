@@ -1,37 +1,36 @@
 import 'package:flutter/material.dart';
-import '../../../../core/const/app_images.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/utils/responsive_extension.dart';
+import 'package:mivet_app/core/const/app_images.dart';
+import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_text_styles.dart';
+import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 class LoginHeader extends StatelessWidget {
-  const LoginHeader({super.key});
+  final String title;
+  final String subtitle;
+
+  const LoginHeader({
+    super.key,
+    this.title = 'أهلًا بيك في MIVET',
+    this.subtitle = 'سجّل الدخول للمتابعة',
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Image.asset(
-          AppImages.logo,
-          width: 120.w,
-          height: 120.w,
-        ),
+        Image.asset(AppImages.logoSplash, width: 88.w, height: 88.w),
         SizedBox(height: 16.h),
         Text(
-          'مرحباً بك في MIVET',
-          style: AppTextStyles.cairoMedium16.copyWith(
-            fontSize: 24.sp,
-            color: AppColors.primary,
-          ),
+          title,
+          style: AppTextStyles.cairoBold18
+              .copyWith(color: AppColors.primary, fontSize: 20.sp),
           textAlign: TextAlign.center,
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: 6.h),
         Text(
-          'سجل الدخول للمتابعة',
-          style: AppTextStyles.cairoMedium16.copyWith(
-            color: AppColors.navInactive,
-            fontSize: 14.sp,
-          ),
+          subtitle,
+          style: AppTextStyles.almaraiRegular14
+              .copyWith(color: AppColors.navInactive, fontSize: 12.5.sp),
           textAlign: TextAlign.center,
         ),
       ],

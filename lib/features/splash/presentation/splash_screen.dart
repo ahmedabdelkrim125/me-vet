@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/routing/routes.dart';
-import 'package:mivet_app/features/auth/data/auth_service.dart';
-import 'package:mivet_app/features/auth/domain/models/user_profile.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/utils/extensions.dart';
+import '../../auth/data/repositories/auth_repository_impl.dart';
+import '../../auth/domain/models/user_profile.dart';
 import 'widgets/splash_body.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -30,37 +31,28 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 1400),
     )..repeat();
 
-    _checkAuthAndNavigate();
+    Future.delayed(const Duration(milliseconds: 2800), _redirect);
   }
 
-  Future<void> _checkAuthAndNavigate() async {
-    await Future.delayed(const Duration(milliseconds: 2800));
-    
+  Future<void> _redirect() async {
     if (!mounted) return;
 
-    // التحقق من وجود session نشطة
-    final hasSession = AuthService.instance.hasActiveSession;
-    
-    if (hasSession) {
-      // جلب بيانات المستخدم لمعرفة الدور
-      final user = await AuthService.instance.getCurrentUser();
-      
-      if (!mounted) return;
-      
-      if (user != null) {
-        // توجيه حسب الدور
-        if (user.role == UserRole.owner) {
-          context.pushReplacementNamed(Routes.ownerDashboard);
-        } else {
-          context.pushReplacementNamed(Routes.mainScreen);
-        }
-      } else {
-        // لو فشل جلب البيانات، نرجع للـ login
-        context.pushReplacementNamed(Routes.loginScreen);
-      }
+    final hasSession = Supabase.instance.client.auth.currentSession != null;
+    if (!hasSession) {
+      context.pushReplacementNamed(Routes.loginTypeScreen);
+      return;
+    }
+
+    final profile =
+        await AuthRepositoryImpl(Supabase.instance.client).getCurrentUser();
+    if (!mounted) return;
+
+    if (profile == null) {
+      context.pushReplacementNamed(Routes.loginTypeScreen);
+    } else if (profile.role == UserRole.owner) {
+      context.pushReplacementNamed(Routes.ownerDashboard);
     } else {
-      // لا يوجد session، الانتقال لشاشة تسجيل دخول المندوب
-      context.pushReplacementNamed(Routes.loginScreen);
+      context.pushReplacementNamed(Routes.mainScreen);
     }
   }
 

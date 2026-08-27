@@ -2,5 +2,10 @@
     "cSpell.enabled": false,
     "cSpell.words": [
         "Mevet"
-    ]
+    ],
+    "deno.enable": true,
+    "deno.enablePaths": ["supabase/functions"],
+    "deno.lint": true,
+    "deno.unstable": [],
+    "deno.path": "C:\\Users\\MAC\\.deno\\bin\\deno.exe"
 }

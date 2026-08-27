@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/utils/responsive_extension.dart';
+import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_text_styles.dart';
+import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 class LoginButton extends StatelessWidget {
   final VoidCallback? onPressed;

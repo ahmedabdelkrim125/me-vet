@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/responsive_extension.dart';
+import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_text_styles.dart';
+import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 class OwnerPasswordInputField extends StatefulWidget {
   final TextEditingController controller;
@@ -13,7 +14,8 @@ class OwnerPasswordInputField extends StatefulWidget {
   });
 
   @override
-  State<OwnerPasswordInputField> createState() => _OwnerPasswordInputFieldState();
+  State<OwnerPasswordInputField> createState() =>
+      _OwnerPasswordInputFieldState();
 }
 
 class _OwnerPasswordInputFieldState extends State<OwnerPasswordInputField> {
@@ -26,25 +28,20 @@ class _OwnerPasswordInputFieldState extends State<OwnerPasswordInputField> {
       children: [
         Text(
           'كلمة المرور',
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontWeight: FontWeight.w600,
-            fontSize: 14.sp,
-            color: AppColors.primary,
-          ),
+          style: AppTextStyles.cairoMedium16
+              .copyWith(color: AppColors.primary, fontSize: 14.sp),
         ),
         SizedBox(height: 8.h),
         TextFormField(
           controller: widget.controller,
           obscureText: _obscureText,
           textDirection: TextDirection.ltr,
+          style: AppTextStyles.cairoMedium16
+              .copyWith(fontSize: 16.sp, color: AppColors.primary),
           decoration: InputDecoration(
             hintText: '••••••••',
-            hintStyle: TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 14.sp,
-              color: AppColors.navInactive,
-            ),
+            hintStyle: AppTextStyles.cairoMedium16
+                .copyWith(fontSize: 14.sp, color: AppColors.navInactive),
             prefixIcon: Icon(
               Icons.lock_rounded,
               color: AppColors.primaryGreen,
@@ -53,7 +50,9 @@ class _OwnerPasswordInputFieldState extends State<OwnerPasswordInputField> {
             suffixIcon: IconButton(
               onPressed: () => setState(() => _obscureText = !_obscureText),
               icon: Icon(
-                _obscureText ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                _obscureText
+                    ? Icons.visibility_rounded
+                    : Icons.visibility_off_rounded,
                 color: AppColors.navInactive,
                 size: 20.w,
               ),
@@ -70,25 +69,16 @@ class _OwnerPasswordInputFieldState extends State<OwnerPasswordInputField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: const BorderSide(
-                color: AppColors.primaryGreen,
-                width: 2,
-              ),
+              borderSide:
+                  const BorderSide(color: AppColors.primaryGreen, width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: const BorderSide(color: AppColors.statusNotReached),
             ),
             errorText: widget.errorText,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16.w,
-              vertical: 14.h,
-            ),
-          ),
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 16.sp,
-            color: AppColors.primary,
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
           ),
         ),
       ],
