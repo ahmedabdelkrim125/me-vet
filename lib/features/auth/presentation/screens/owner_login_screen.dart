@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mivet_app/core/errors/app_exception.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/routing/routes.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/utils/extensions.dart';
@@ -61,8 +63,9 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen> {
               );
             }
             if (state.status == AuthStatus.error) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage ?? 'حدث خطأ')),
+              showAppError(
+                context,
+                AppException(state.errorMessage ?? 'حدث خطأ'),
               );
             }
           },
