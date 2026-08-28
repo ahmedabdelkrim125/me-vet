@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:mivet_app/core/const/app_images.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/arabic_date_utils.dart';
@@ -39,6 +40,15 @@ class _HomeHeaderState extends State<HomeHeader> {
 
     return Row(
       children: [
+        // الشعار — منقول هنا من الناف بار، وهو اللي بيفتح المنيو الجانبي.
+        InkWell(
+          borderRadius: BorderRadius.circular(12.r),
+          onTap: () => Scaffold.of(context).openDrawer(),
+          child: Padding(
+            padding: EdgeInsets.only(left: 10.w),
+            child: Image.asset(AppImages.logoSplash, height: 36.h),
+          ),
+        ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

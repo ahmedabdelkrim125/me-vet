@@ -1,16 +1,25 @@
+import 'package:cupertino_liquid_glass/cupertino_liquid_glass.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:mivet_app/core/const/app_images.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'nav_item_model.dart';
 import 'nav_items.dart';
 
-/// ناف بار سفلي مبني بالكامل يدويًا (من غير أي package خارجي) عشان نتحكم
-/// بدقة في كل حاجة: أيقونة + اسم جنب بعض (Row) لكل تاب، النص بيصغّر
-/// تلقائيًا لو المساحة ضيقة بدل ما يتقطع بـ "..."، وشعار التطبيق في الأول
-/// بيفتح المنيو الجانبي (AppSideMenuDrawer).
+/// ناف بار سفلي بتأثير Liquid Glass حقيقي (blur + إضاءة حواف) من مكتبة
+/// cupertino_liquid_glass، مبني حوالين نفس عناصر التابات والأيقونات
+/// (HugeIcons) اللي كانت موجودة قبل كده من غير أي تغيير في الـ navigation.
+///
+/// ليه مش استخدمنا CupertinoLiquidGlassBottomBar الجاهزة من الباكدج؟
+/// لأنها بتتوقع أيقونات IconData عادية (زي CupertinoIcons.house)، وأيقونات
+/// التطبيق كلها HugeIcons (شكل بيانات مختلف تمامًا) — واستخدامها كان
+/// هيبقى معناه تغيير الأيقونات، وده ممنوع صراحةً. فبدل كده استخدمنا
+/// الـ wrapper الأساسي (CupertinoLiquidGlass) حوالين نفس الـ Row بتاعنا.
+///
+/// الإعدادات (آخر عنصر في appNavItems) اتقلعت من جوه الـ bar وبقت
+/// LiquidGlassDetachedButton منفصلة — هي الحاجة الوحيدة اللي بيدعمها
+/// الباكدج بمرونة كاملة (child: Widget) فعرفنا نحطلها الأيقونة زي ما هي.
 class AppBottomNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTabChange;
@@ -23,56 +32,51 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final glassTheme =
+        isDark ? LiquidGlassThemeData.dark() : LiquidGlassThemeData.light();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: colors.subtleShadow,
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64.h,
-          child: Row(
-            children: [
-              _LogoButton(
-                onTap: () => Scaffold.of(context).openDrawer(),
-              ),
-              Container(width: 1, height: 30.h, color: colors.border),
-              for (int i = 0; i < appNavItems.length; i++)
-                Expanded(
-                  child: _NavTab(
-                    item: appNavItems[i],
-                    isSelected: i == selectedIndex,
-                    onTap: () => onTabChange(i),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+    // التابات الأساسية بس (من غير الإعدادات، آخر عنصر في القايمة).
+    final barItems = appNavItems.sublist(0, appNavItems.length - 1);
+    final settingsItem = appNavItems.last;
+    final settingsIndex = appNavItems.length - 1;
 
-class _LogoButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _LogoButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return SafeArea(
+      top: false,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        child: Image.asset(AppImages.logoSplash, height: 34.h),
+        padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 10.h),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: CupertinoLiquidGlass(
+                theme: glassTheme,
+                borderRadius: BorderRadius.circular(30.r),
+                padding: EdgeInsets.symmetric(horizontal: 6.w),
+                height: 62.h,
+                child: Row(
+                  children: [
+                    for (int i = 0; i < barItems.length; i++)
+                      Expanded(
+                        child: _NavTab(
+                          item: barItems[i],
+                          isSelected: i == selectedIndex,
+                          onTap: () => onTabChange(i),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(width: 10.w),
+            _DetachedSettingsButton(
+              item: settingsItem,
+              isSelected: selectedIndex == settingsIndex,
+              theme: glassTheme,
+              onTap: () => onTabChange(settingsIndex),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -97,25 +101,30 @@ class _NavTab extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(20.r),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
-          padding: EdgeInsets.symmetric(horizontal: 8.w),
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutBack,
+          margin: EdgeInsets.symmetric(horizontal: 3.w, vertical: 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 6.w),
           decoration: BoxDecoration(
-            // تينت خفيف بدل ملء صريح بلون غامق (اللي كان "مش لذيذ").
-            color: isSelected ? colors.primary.withOpacity(0.12) : null,
-            borderRadius: BorderRadius.circular(14.r),
+            color: isSelected ? colors.primary.withOpacity(0.14) : null,
+            borderRadius: BorderRadius.circular(20.r),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              HugeIcon(icon: item.icon, size: 19.sp, color: color),
+              AnimatedScale(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutBack,
+                scale: isSelected ? 1.08 : 1.0,
+                child: HugeIcon(icon: item.icon, size: 19.sp, color: color),
+              ),
               SizedBox(width: 5.w),
               // Flexible + FittedBox: النص يتصغّر لوحده لو المساحة ضيقة
-              // بدل ما يتقطع بـ "..." — "الحل الذكي" المطلوب.
+              // بدل ما يتقطع بـ "..." بدل ما يتقطع.
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -136,6 +145,48 @@ class _NavTab extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DetachedSettingsButton extends StatelessWidget {
+  final NavItemModel item;
+  final bool isSelected;
+  final LiquidGlassThemeData theme;
+  final VoidCallback onTap;
+
+  const _DetachedSettingsButton({
+    required this.item,
+    required this.isSelected,
+    required this.theme,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final color = isSelected ? colors.primary : colors.textMuted;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        LiquidGlassDetachedButton(
+          size: 52,
+          theme: theme,
+          semanticLabel: item.label,
+          onTap: onTap,
+          child: HugeIcon(icon: item.icon, size: 22.sp, color: color),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          item.label,
+          style: AppTextStyles.cairoRegular14.copyWith(
+            fontSize: 10.sp,
+            color: color,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
