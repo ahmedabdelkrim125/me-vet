@@ -51,9 +51,17 @@ class AppBottomNavBar extends StatelessWidget {
             Expanded(
               child: CupertinoLiquidGlass(
                 theme: glassTheme,
-                borderRadius: BorderRadius.circular(30.r),
+                borderRadius: BorderRadius.circular(34.r),
                 padding: EdgeInsets.symmetric(horizontal: 6.w),
-                height: 62.h,
+                height: 72.h,
+                // بنحدد القيم دي إحنا بأيدينا صراحة بدل ما نسيب قيم
+                // الثيم الافتراضية (اللي طلعت خفيفة جدًا ومش واضحة).
+                blurSigma: 30,
+                tintOpacity: isDark ? 0.55 : 0.42,
+                borderWidth: 1.4,
+                edgeLightColor: isDark
+                    ? const Color(0x59FFFFFF)
+                    : const Color(0x99FFFFFF),
                 child: Row(
                   children: [
                     for (int i = 0; i < barItems.length; i++)
@@ -106,11 +114,11 @@ class _NavTab extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 320),
           curve: Curves.easeOutBack,
-          margin: EdgeInsets.symmetric(horizontal: 3.w, vertical: 6.h),
+          margin: EdgeInsets.symmetric(horizontal: 3.w, vertical: 2.h),
           padding: EdgeInsets.symmetric(horizontal: 10.w),
           decoration: BoxDecoration(
             color: isSelected ? colors.primary.withOpacity(0.32) : null,
-            borderRadius: BorderRadius.circular(20.r),
+            borderRadius: BorderRadius.circular(26.r),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
