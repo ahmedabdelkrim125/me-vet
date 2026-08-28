@@ -7,6 +7,7 @@ import '../../inventory/presentation/screens/inventory_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../vehicle_stock/presentation/screens/vehicle_stock_screen.dart';
 import 'widgets/app_bottom_nav_bar.dart';
+import 'widgets/app_side_menu_drawer.dart';
 import 'widgets/app_side_nav_bar.dart';
 import 'widgets/nav_items.dart';
 import 'widgets/tab_placeholder.dart';
@@ -69,6 +70,10 @@ class _MainScreenState extends State<MainScreen> {
 
     if (context.isTablet || context.isDesktop) {
       return Scaffold(
+        drawer: AppSideMenuDrawer(
+          selectedIndex: _selectedIndex,
+          onTabChange: _onTabChange,
+        ),
         body: Row(
           children: [
             AppSideNavBar(
@@ -82,6 +87,10 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     return Scaffold(
+      drawer: AppSideMenuDrawer(
+        selectedIndex: _selectedIndex,
+        onTabChange: _onTabChange,
+      ),
       body: body,
       bottomNavigationBar: AppBottomNavBar(
         selectedIndex: _selectedIndex,
