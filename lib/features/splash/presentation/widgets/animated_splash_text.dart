@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_color_scheme_extension.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_extension.dart';
 
@@ -39,6 +40,7 @@ class AnimatedSplashText extends StatelessWidget {
                   words[index],
                   style: AppTextStyles.wessamBold24black.copyWith(
                     fontSize: 30.sp,
+                    color: context.colors.text,
                   ),
                   textAlign: TextAlign.center,
                 ),

@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/location/location_service.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -40,6 +42,10 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
 
   int _selectedCategory = 0;
 
+  double? _latitude;
+  double? _longitude;
+  bool _isLocating = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -47,6 +53,37 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
     _addressController.dispose();
     _creditLimitController.dispose();
     super.dispose();
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      final result = await LocationService.getCurrentLocation();
+      if (!mounted) return;
+      setState(() {
+        _latitude = result.latitude;
+        _longitude = result.longitude;
+        // العنوان المكتشف بيتحط في الحقل، وبيفضل قابل للتعديل اليدوي
+        // عادي بعد كده لو عايز تظبطه.
+        if (result.readableAddress != null &&
+            result.readableAddress!.isNotEmpty) {
+          _addressController.text = result.readableAddress!;
+        }
+      });
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    } finally {
+      if (mounted) setState(() => _isLocating = false);
+    }
+  }
+
+  /// أي تعديل يدوي في العنوان بعد ما نحدد GPS معناه المستخدم مش واثق في
+  /// النتيجة أو غيّرها بنفسه، فمنسيبش وهم إن الإحداثيات القديمة لسه صح.
+  void _onAddressEditedManually() {
+    if (_latitude != null) setState(() {
+      _latitude = null;
+      _longitude = null;
+    });
   }
 
   void _submit() {
@@ -63,6 +100,8 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
       creditLimit: double.tryParse(_creditLimitController.text.trim()) ?? 0,
+      latitude: _latitude,
+      longitude: _longitude,
     );
 
     Navigator.of(context).pop(customer);
@@ -126,9 +165,16 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
                 _CustomerTextField(
                   controller: _addressController,
                   hint: 'مثال: المنصورة — طلخا',
+                  onChanged: (_) => _onAddressEditedManually(),
                   validator: (value) => (value == null || value.trim().isEmpty)
                       ? 'اكتب العنوان'
                       : null,
+                ),
+                SizedBox(height: 8.h),
+                _LocationButton(
+                  isLoading: _isLocating,
+                  hasLocation: _latitude != null,
+                  onTap: _isLocating ? null : _useCurrentLocation,
                 ),
                 SizedBox(height: 14.h),
                 const _FieldLabel('التصنيف'),
@@ -199,12 +245,14 @@ class _CustomerTextField extends StatelessWidget {
   final String hint;
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
+  final ValueChanged<String>? onChanged;
 
   const _CustomerTextField({
     required this.controller,
     required this.hint,
     this.keyboardType,
     this.validator,
+    this.onChanged,
   });
 
   @override
@@ -215,6 +263,7 @@ class _CustomerTextField extends StatelessWidget {
         controller: controller,
         keyboardType: keyboardType,
         validator: validator,
+        onChanged: onChanged,
         textAlign: TextAlign.right,
         style:
             AppTextStyles.cairoRegular14.copyWith(color: context.colors.text),
@@ -242,6 +291,69 @@ class _CustomerTextField extends StatelessWidget {
             borderRadius: BorderRadius.circular(14.r),
             borderSide: const BorderSide(color: Colors.redAccent),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LocationButton extends StatelessWidget {
+  final bool isLoading;
+  final bool hasLocation;
+  final VoidCallback? onTap;
+
+  const _LocationButton({
+    required this.isLoading,
+    required this.hasLocation,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final accent = hasLocation ? colors.primary : colors.statusNotReached;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12.r),
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: accent.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: accent.withOpacity(0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isLoading)
+              SizedBox(
+                width: 15.w,
+                height: 15.w,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: accent),
+              )
+            else
+              Icon(
+                hasLocation
+                    ? CupertinoIcons.checkmark_seal_fill
+                    : CupertinoIcons.location_fill,
+                size: 16.sp,
+                color: accent,
+              ),
+            SizedBox(width: 8.w),
+            Flexible(
+              child: Text(
+                isLoading
+                    ? 'بيتم تحديد موقعك...'
+                    : hasLocation
+                        ? 'تم تحديد الموقع بدقة — اضغط لإعادة التحديد'
+                        : 'أنا هنا دلوقتي — حدد موقعي بدقة',
+                style: AppTextStyles.cairoMedium16
+                    .copyWith(color: accent, fontSize: 11.sp),
+              ),
+            ),
+          ],
         ),
       ),
     );

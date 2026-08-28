@@ -45,6 +45,20 @@ class LaunchUtils {
     await _launch(context, uri, 'تعذر فتح تطبيق الخرائط');
   }
 
+  /// بيفتح الخرائط بالظبط على نقطة محددة بالإحداثيات (lat/lng)، مش بحث
+  /// نصي عن اسم/عنوان — أدق بكتير لو العميل عنده موقع GPS محفوظ.
+  static Future<void> openMapAtCoordinates(
+    BuildContext context,
+    double latitude,
+    double longitude,
+  ) async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1'
+      '&query=$latitude,$longitude',
+    );
+    await _launch(context, uri, 'تعذر فتح تطبيق الخرائط');
+  }
+
   /// يحوّل رقم مصري محلي (01xxxxxxxxx) لصيغة دولية (+20) عشان wa.me
   /// يقبله. لو الرقم أصلًا دولي (+ أو 00) بيسيبه زي ما هو.
   static String _normalizePhone(String phone) {

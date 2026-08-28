@@ -17,6 +17,11 @@ class CustomerModel {
   final DateTime? lastCollectionDate;
   final double averageOrder;
 
+  /// إحداثيات دقيقة (GPS) لموقع العميل — لو null يبقى العنوان اتكتب يدوي
+  /// من غير تحديد موقع، و"الموقع" في التفاصيل هيدور بالاسم مش الإحداثيات.
+  final double? latitude;
+  final double? longitude;
+
   const CustomerModel({
     required this.id,
     required this.name,
@@ -31,7 +36,11 @@ class CustomerModel {
     this.currentBalance = 0,
     this.lastCollectionDate,
     this.averageOrder = 0,
+    this.latitude,
+    this.longitude,
   });
+
+  bool get hasPreciseLocation => latitude != null && longitude != null;
 
   CustomerModel copyWith({
     String? id,
@@ -47,6 +56,8 @@ class CustomerModel {
     double? currentBalance,
     DateTime? lastCollectionDate,
     double? averageOrder,
+    double? latitude,
+    double? longitude,
   }) {
     return CustomerModel(
       id: id ?? this.id,
@@ -62,6 +73,8 @@ class CustomerModel {
       currentBalance: currentBalance ?? this.currentBalance,
       lastCollectionDate: lastCollectionDate ?? this.lastCollectionDate,
       averageOrder: averageOrder ?? this.averageOrder,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -80,6 +93,8 @@ class CustomerModel {
       'currentBalance': currentBalance,
       'lastCollectionDate': lastCollectionDate?.toIso8601String(),
       'averageOrder': averageOrder,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -103,6 +118,8 @@ class CustomerModel {
           ? null
           : DateTime.parse(json['lastCollectionDate'] as String),
       averageOrder: (json['averageOrder'] as num?)?.toDouble() ?? 0,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -134,6 +151,8 @@ class CustomerModel {
           ? null
           : DateTime.parse(row['last_collection_date'] as String),
       averageOrder: 0,
+      latitude: (row['latitude'] as num?)?.toDouble(),
+      longitude: (row['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -149,6 +168,8 @@ class CustomerModel {
       'address': address,
       'credit_limit': creditLimit,
       'current_balance': currentBalance,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     };
   }
 }

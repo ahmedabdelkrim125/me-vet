@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../domain/models/rep_profile_model.dart';
@@ -28,8 +28,9 @@ class SavedRepCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Material(
-      color: Colors.white,
+      color: colors.surface,
       borderRadius: BorderRadius.circular(16.r),
       child: InkWell(
         borderRadius: BorderRadius.circular(16.r),
@@ -38,7 +39,7 @@ class SavedRepCard extends StatelessWidget {
           padding: EdgeInsets.all(14.w),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: colors.border),
           ),
           child: Row(
             children: [
@@ -51,7 +52,7 @@ class SavedRepCard extends StatelessWidget {
                     Text(
                       rep.name,
                       style: AppTextStyles.cairoMedium16.copyWith(
-                          color: AppColors.primary, fontSize: 13.5.sp),
+                          color: colors.text, fontSize: 13.5.sp),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -59,7 +60,7 @@ class SavedRepCard extends StatelessWidget {
                     Text(
                       _lastSeenLabel,
                       style: AppTextStyles.almaraiRegular14.copyWith(
-                          color: AppColors.navInactive, fontSize: 11.sp),
+                          color: colors.textMuted, fontSize: 11.sp),
                     ),
                   ],
                 ),
@@ -70,7 +71,7 @@ class SavedRepCard extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.all(6.w),
                   child: Icon(CupertinoIcons.trash,
-                      size: 18.sp, color: AppColors.navInactive),
+                      size: 18.sp, color: colors.textMuted),
                 ),
               ),
             ],

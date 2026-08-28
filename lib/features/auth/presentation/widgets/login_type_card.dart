@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -20,7 +21,7 @@ class LoginTypeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: context.colors.surface,
       borderRadius: BorderRadius.circular(18.r),
       child: InkWell(
         onTap: onTap,
@@ -29,7 +30,7 @@ class LoginTypeCard extends StatelessWidget {
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18.r),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.colors.border),
           ),
           child: Row(
             children: [
@@ -50,7 +51,7 @@ class LoginTypeCard extends StatelessWidget {
                     Text(
                       title,
                       style: AppTextStyles.cairoBold18.copyWith(
-                        color: AppColors.primary,
+                        color: context.colors.text,
                         fontSize: 15.sp,
                       ),
                     ),
@@ -58,7 +59,7 @@ class LoginTypeCard extends StatelessWidget {
                     Text(
                       subtitle,
                       style: AppTextStyles.almaraiRegular14.copyWith(
-                        color: AppColors.navInactive,
+                        color: context.colors.textMuted,
                         fontSize: 12.sp,
                       ),
                     ),
@@ -67,7 +68,7 @@ class LoginTypeCard extends StatelessWidget {
               ),
               Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: AppColors.navInactive,
+                color: context.colors.textMuted,
                 size: 16.sp,
               ),
             ],

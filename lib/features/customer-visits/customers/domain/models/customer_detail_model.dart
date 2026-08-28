@@ -50,8 +50,14 @@ class CustomerDetailModel {
     required this.invoices,
   });
 
+  /// TODO(invoices-feature): topProducts/notBoughtRecently/seasonalSuggestions
+  /// و invoices هيتحسبوا من جدولي `invoices`/`invoice_items` الحقيقيين لما
+  /// نشتغل على فيتشر الفواتير. لحد وقتها بيرجعوا فاضيين بدل بيانات وهمية
+  /// (كانوا قبل كده seed data ثابتة بتظهر لكل عميل بالظبط).
+  ///
+  /// `notes` كمان هترجع من عمود `notes` الحقيقي في جدول customers بمجرد ما
+  /// تبقى شاشة إضافة/تعديل العميل فيها حقل للملاحظات (مش موجود لسه).
   factory CustomerDetailModel.mock(CustomerModel customer) {
-    final now = DateTime.now();
     final averageOrder =
         CustomersRepository.instance.getAverageOrder(customer.id);
 
@@ -60,52 +66,11 @@ class CustomerDetailModel {
       currentBalance: customer.currentBalance,
       lastCollectionDate: customer.lastCollectionDate,
       averageOrder: averageOrder,
-      topProducts: [
-        ProductPurchaseModel(
-            name: 'فيتامين أ د3 إي',
-            price: 180,
-            lastPurchaseDate: now.subtract(const Duration(days: 6))),
-        ProductPurchaseModel(
-            name: 'مضاد حيوي واسع المجال',
-            price: 320,
-            lastPurchaseDate: now.subtract(const Duration(days: 14))),
-        ProductPurchaseModel(
-            name: 'محلول ترطيب فموي',
-            price: 95,
-            lastPurchaseDate: now.subtract(const Duration(days: 20))),
-      ],
-      notBoughtRecently: [
-        ProductPurchaseModel(
-            name: 'مطهر عام',
-            price: 140,
-            lastPurchaseDate: now.subtract(const Duration(days: 75))),
-        ProductPurchaseModel(
-            name: 'إضافات علف',
-            price: 260,
-            lastPurchaseDate: now.subtract(const Duration(days: 95))),
-      ],
-      seasonalSuggestions: const [
-        'فيتامينات مقاومة الحرارة',
-        'مطهرات تعقيم الصيف'
-      ],
-      notes: 'العميل بيفضل التسليم الصبح، وبيسدد آجل غالبًا خلال أسبوعين.',
-      invoices: [
-        InvoiceSummaryModel(
-            code: 'INV-2201',
-            date: now.subtract(const Duration(days: 5)),
-            amount: 1250,
-            status: 'مدفوعة'),
-        InvoiceSummaryModel(
-            code: 'INV-2188',
-            date: now.subtract(const Duration(days: 19)),
-            amount: 890,
-            status: 'جزئي'),
-        InvoiceSummaryModel(
-            code: 'INV-2153',
-            date: now.subtract(const Duration(days: 40)),
-            amount: 2100,
-            status: 'آجلة'),
-      ],
+      topProducts: const [],
+      notBoughtRecently: const [],
+      seasonalSuggestions: const [],
+      notes: '',
+      invoices: const [],
     );
   }
 }

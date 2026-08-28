@@ -6,7 +6,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
-import 'package:mivet_app/core/errors/app_error_snackbar.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
 import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../../customer-visits/customers/domain/models/invoice_record_model.dart';
@@ -190,7 +190,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   }
 
   Future<void> _issueInvoice() async {
-    final colors = context.colors;
     if (customer == null) {
       _toast('اختر العميل أولًا');
       return;
@@ -203,6 +202,22 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     final isDeferredSale = saleType != 'نقدي';
     if (isDeferredSale && total > customer!.availableCredit) {
       _toast('قيمة الفاتورة الآجلة تتجاوز حد الائتمان المتاح');
+      return;
+    }
+
+    final paid = paidNow;
+    if (paid < 0) {
+      _toast('المبلغ المدفوع لازم يكون رقم موجب');
+      return;
+    }
+    if (!isDeferredSale && (paid - total).abs() > 0.01) {
+      _toast(
+        'الفاتورة نقدي، لازم المدفوع الآن يساوي إجمالي الفاتورة (${_money(total)}) بالظبط',
+      );
+      return;
+    }
+    if (isDeferredSale && paid > totalDue + 0.01) {
+      _toast('المبلغ المدفوع أكبر من إجمالي المستحق على العميل');
       return;
     }
 
@@ -225,7 +240,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
             .consumeFromVehicle(item.product.id, item.quantity);
       }
 
-      final paid = paidNow;
       final customerId = customer!.customer.id;
 
       await CustomersRepository.instance.adjustBalance(
@@ -269,15 +283,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     ));
 
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: colors.primary,
-        content: Text(
-          'تم إصدار الفاتورة $invoiceNumber بإجمالي ${_money(total)} — المتبقي على العميل ${_money(remainingBalance)}',
-          style: AppTextStyles.cairoMedium16
-              .copyWith(color: Colors.white, fontSize: 13.sp),
-        ),
-      ),
+    showAppSuccess(
+      context,
+      'تم إصدار الفاتورة $invoiceNumber بإجمالي ${_money(total)} — المتبقي على العميل ${_money(remainingBalance)}',
     );
   }
 
@@ -338,112 +346,104 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
-      backgroundColor: colors.surface,
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.isMobile ? 12.w : context.screenWidth * 0.18,
-        vertical: 24.h,
-      ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: context.screenHeight * 0.9),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28.r),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _Header(invoiceNumber: invoiceNumber),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(18.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const _RepChip(name: _currentRepName),
+    return Scaffold(
+      backgroundColor: colors.background,
+      body: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _Header(invoiceNumber: invoiceNumber),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(18.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _RepChip(name: _currentRepName),
+                    SizedBox(height: 14.h),
+                    _SectionCard(
+                      child: customer == null
+                          ? _CustomerEmptyState(onPick: _pickCustomer)
+                          : _CustomerInfo(
+                              invoice: customer!,
+                              onChange: _pickCustomer,
+                            ),
+                    ),
+                    if (customer != null) ...[
                       SizedBox(height: 14.h),
                       _SectionCard(
-                        child: customer == null
-                            ? _CustomerEmptyState(onPick: _pickCustomer)
-                            : _CustomerInfo(
-                                invoice: customer!,
-                                onChange: _pickCustomer,
-                              ),
+                        child: _InvoiceMetaSection(
+                          date: invoiceDate,
+                          onPickDate: _pickDate,
+                          invoiceNumber: invoiceNumber,
+                          saleType: saleType,
+                          onSaleTypeChanged: (v) =>
+                              setState(() => saleType = v),
+                        ),
                       ),
-                      if (customer != null) ...[
+                      SizedBox(height: 14.h),
+                      _FinancialSummaryRow(invoice: customer!),
+                      SizedBox(height: 14.h),
+                      _StatementTile(onTap: _openStatement),
+                      SizedBox(height: 14.h),
+                      _SectionCard(
+                        child: _ProductsSection(
+                          items: lineItems,
+                          onAdd: _openAddProducts,
+                          onQuantityChanged: (item, qty) => setState(() {
+                            if (qty <= 0) {
+                              lineItems.remove(item);
+                            } else {
+                              item.quantity = qty;
+                            }
+                          }),
+                          onRemove: (item) =>
+                              setState(() => lineItems.remove(item)),
+                          subtotal: subtotal,
+                          discountPercent: discountPercent,
+                          onDiscountChanged: (v) =>
+                              setState(() => discountPercent = v),
+                          discountAmount: discountAmount,
+                          grandTotal: grandTotal,
+                        ),
+                      ),
+                      if (lineItems.isNotEmpty) ...[
                         SizedBox(height: 14.h),
                         _SectionCard(
-                          child: _InvoiceMetaSection(
-                            date: invoiceDate,
-                            onPickDate: _pickDate,
-                            invoiceNumber: invoiceNumber,
+                          child: _AccountSummarySection(
+                            previousBalance: previousBalance,
+                            invoiceTotal: grandTotal,
+                            paidController: paidNowController,
+                            onPaidChanged: (_) => setState(() {}),
+                            remaining: remainingBalance,
                             saleType: saleType,
-                            onSaleTypeChanged: (v) =>
-                                setState(() => saleType = v),
                           ),
                         ),
+                      ],
+                      SizedBox(height: 14.h),
+                      _SectionCard(
+                        child: _NotesField(controller: notesController),
+                      ),
+                      if (customer!.topPurchasedProducts.isNotEmpty ||
+                          customer!.notPurchasedRecently.isNotEmpty) ...[
                         SizedBox(height: 14.h),
-                        _FinancialSummaryRow(invoice: customer!),
-                        SizedBox(height: 14.h),
-                        _StatementTile(onTap: _openStatement),
-                        SizedBox(height: 14.h),
-                        _SectionCard(
-                          child: _ProductsSection(
-                            items: lineItems,
-                            onAdd: _openAddProducts,
-                            onQuantityChanged: (item, qty) => setState(() {
-                              if (qty <= 0) {
-                                lineItems.remove(item);
-                              } else {
-                                item.quantity = qty;
-                              }
-                            }),
-                            onRemove: (item) =>
-                                setState(() => lineItems.remove(item)),
-                            subtotal: subtotal,
-                            discountPercent: discountPercent,
-                            onDiscountChanged: (v) =>
-                                setState(() => discountPercent = v),
-                            discountAmount: discountAmount,
-                            grandTotal: grandTotal,
-                          ),
-                        ),
-                        if (lineItems.isNotEmpty) ...[
-                          SizedBox(height: 14.h),
-                          _SectionCard(
-                            child: _AccountSummarySection(
-                              previousBalance: previousBalance,
-                              invoiceTotal: grandTotal,
-                              paidController: paidNowController,
-                              onPaidChanged: (_) => setState(() {}),
-                              remaining: remainingBalance,
-                            ),
-                          ),
-                        ],
-                        SizedBox(height: 14.h),
-                        _SectionCard(
-                          child: _NotesField(controller: notesController),
-                        ),
-                        if (customer!.topPurchasedProducts.isNotEmpty ||
-                            customer!.notPurchasedRecently.isNotEmpty) ...[
-                          SizedBox(height: 14.h),
-                          _PurchaseAnalysisSection(customer: customer!),
-                        ],
-                      ] else
-                        SizedBox(height: 4.h),
-                    ],
-                  ),
+                        _PurchaseAnalysisSection(customer: customer!),
+                      ],
+                    ] else
+                      SizedBox(height: 4.h),
+                  ],
                 ),
               ),
-              _FooterActions(
-                canIssue:
-                    customer != null && lineItems.isNotEmpty && !_isIssuing,
-                isIssuing: _isIssuing,
-                onSave: _issueInvoice,
-                onPrint: _printInvoice,
-                onShareWhatsapp: _shareInvoiceOnWhatsapp,
-              ),
-            ],
-          ),
+            ),
+            _FooterActions(
+              canIssue:
+                  customer != null && lineItems.isNotEmpty && !_isIssuing,
+              isIssuing: _isIssuing,
+              onSave: _issueInvoice,
+              onPrint: _printInvoice,
+              onShareWhatsapp: _shareInvoiceOnWhatsapp,
+            ),
+          ],
         ),
       ),
     );
@@ -1767,6 +1767,7 @@ class _AccountSummarySection extends StatelessWidget {
   final TextEditingController paidController;
   final ValueChanged<String> onPaidChanged;
   final double remaining;
+  final String saleType;
 
   const _AccountSummarySection({
     required this.previousBalance,
@@ -1774,6 +1775,7 @@ class _AccountSummarySection extends StatelessWidget {
     required this.paidController,
     required this.onPaidChanged,
     required this.remaining,
+    required this.saleType,
   });
 
   @override
@@ -1781,6 +1783,16 @@ class _AccountSummarySection extends StatelessWidget {
     final colors = context.colors;
     final totalDue = previousBalance + invoiceTotal;
     final isSettled = remaining <= 0;
+    final paid = double.tryParse(paidController.text) ?? 0;
+    final isCash = saleType == 'نقدي';
+
+    // نفس منطق الـ validation اللي بيمنع الحفظ في _issueInvoice، هنا
+    // بس لعرض تحذير فوري تحت الحقل قبل ما المستخدم يحاول يحفظ أصلًا.
+    final String? warning = isCash && (paid - invoiceTotal).abs() > 0.01
+        ? 'الفاتورة نقدي، المفروض المدفوع يساوي قيمة الفاتورة (${_money(invoiceTotal)}) بالظبط'
+        : !isCash && paid > totalDue + 0.01
+            ? 'المبلغ المدفوع أكبر من إجمالي المستحق على العميل'
+            : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1798,9 +1810,19 @@ class _AccountSummarySection extends StatelessWidget {
         SizedBox(height: 10.h),
         _TotalsRow(label: 'إجمالي المستحق على العميل', value: _money(totalDue)),
         SizedBox(height: 14.h),
-        Text('المدفوع الآن',
-            style: AppTextStyles.almaraiRegular14
-                .copyWith(color: colors.textMuted, fontSize: 12.sp)),
+        Row(
+          children: [
+            Text('المدفوع الآن',
+                style: AppTextStyles.almaraiRegular14
+                    .copyWith(color: colors.textMuted, fontSize: 12.sp)),
+            if (isCash) ...[
+              SizedBox(width: 8.w),
+              Text('(نقدي — لازم يتساوى بالإجمالي)',
+                  style: AppTextStyles.almaraiRegular14.copyWith(
+                      color: colors.statOrange, fontSize: 10.sp)),
+            ],
+          ],
+        ),
         SizedBox(height: 6.h),
         TextField(
           controller: paidController,
@@ -1816,10 +1838,53 @@ class _AccountSummarySection extends StatelessWidget {
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide.none,
             ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(
+                color: warning != null
+                    ? colors.statusNotReached
+                    : Colors.transparent,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(
+                color: warning != null ? colors.statusNotReached : colors.primary,
+              ),
+            ),
             contentPadding:
                 EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            suffixIcon: isCash
+                ? TextButton(
+                    onPressed: () {
+                      paidController.text = invoiceTotal.toStringAsFixed(2);
+                      onPaidChanged(paidController.text);
+                    },
+                    child: Text('تعبئة كاملة',
+                        style: AppTextStyles.cairoMedium16
+                            .copyWith(color: colors.primary, fontSize: 11.sp)),
+                  )
+                : null,
           ),
         ),
+        if (warning != null) ...[
+          SizedBox(height: 6.h),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.error_outline,
+                  size: 14.sp, color: colors.statusNotReached),
+              SizedBox(width: 6.w),
+              Expanded(
+                child: Text(
+                  warning,
+                  style: AppTextStyles.almaraiRegular14.copyWith(
+                      color: colors.statusNotReached, fontSize: 11.sp),
+                ),
+              ),
+            ],
+          ),
+        ],
         SizedBox(height: 14.h),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),

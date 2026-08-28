@@ -68,10 +68,15 @@ class CustomerQuickActionsBar extends StatelessWidget {
             icon: CupertinoIcons.location_solid,
             label: 'الموقع',
             color: colors.statusNotReached,
-            onTap: () => LaunchUtils.openMap(
-              context,
-              customer.address.isEmpty ? customer.area : customer.address,
-            ),
+            onTap: () => customer.hasPreciseLocation
+                ? LaunchUtils.openMapAtCoordinates(
+                    context, customer.latitude!, customer.longitude!)
+                : LaunchUtils.openMap(
+                    context,
+                    customer.address.isEmpty
+                        ? customer.area
+                        : customer.address,
+                  ),
           ),
         ),
       ],

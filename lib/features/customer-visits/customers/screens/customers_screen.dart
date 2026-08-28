@@ -32,7 +32,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 12.h),
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 30.h),
               child: CustomersSubViewSwitcher(
                 selectedIndex: _subViewIndex,
                 onChanged: _onSubViewChanged,

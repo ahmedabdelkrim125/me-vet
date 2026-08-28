@@ -38,8 +38,18 @@ class CustomerAccountStatementSection extends StatelessWidget {
                       color: colors.primary, size: 18.sp)),
             ],
           ),
-          for (final invoice in invoices)
-            _InvoiceRow(invoice: invoice, colors: colors),
+          if (invoices.isEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 10.h),
+              child: Text(
+                'لسه مفيش فواتير مسجلة للعميل ده',
+                style: AppTextStyles.almaraiRegular14
+                    .copyWith(color: colors.textMuted, fontSize: 11.sp),
+              ),
+            )
+          else
+            for (final invoice in invoices)
+              _InvoiceRow(invoice: invoice, colors: colors),
         ],
       ),
     );

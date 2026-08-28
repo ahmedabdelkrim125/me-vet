@@ -81,7 +81,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                     return Stack(
                       children: [
                         ListView(
-                          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 100.h),
+                          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 30.h),
                           children: [
                             InventoryStatRow(
                               total: products.length,
