@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/arabic_date_utils.dart';
@@ -36,12 +37,13 @@ class _LiveDateTimeCardState extends State<LiveDateTimeCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
@@ -54,12 +56,12 @@ class _LiveDateTimeCardState extends State<LiveDateTimeCard> {
                 Text(
                   arabicDateLabel(now),
                   style: AppTextStyles.cairoMedium16
-                      .copyWith(color: AppColors.primary, fontSize: 13.sp),
+                      .copyWith(color: colors.text, fontSize: 13.sp),
                 ),
               ],
             ),
           ),
-          Container(width: 1, height: 18.h, color: AppColors.cardBorder),
+          Container(width: 1, height: 18.h, color: colors.border),
           SizedBox(width: 14.w),
           Row(
             children: [
@@ -68,7 +70,7 @@ class _LiveDateTimeCardState extends State<LiveDateTimeCard> {
               Text(
                 time24Label(now),
                 style: AppTextStyles.cairoMedium16
-                    .copyWith(color: AppColors.primary, fontSize: 13.sp),
+                    .copyWith(color: colors.text, fontSize: 13.sp),
               ),
             ],
           ),

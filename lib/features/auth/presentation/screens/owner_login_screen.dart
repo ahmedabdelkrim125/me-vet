@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/errors/app_exception.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/routing/routes.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/utils/extensions.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -87,9 +88,9 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen> {
                       Container(
                         padding: EdgeInsets.all(20.w),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.colors.surface,
                           borderRadius: BorderRadius.circular(22.r),
-                          border: Border.all(color: AppColors.cardBorder),
+                          border: Border.all(color: context.colors.border),
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.primary.withOpacity(0.05),

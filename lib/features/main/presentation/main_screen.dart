@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../customer-visits/customers/screens/customers_screen.dart';
 import '../../daily_report/presentation/screens/daily_report_screen.dart';
 import '../../home/presentation/home_screen.dart';
@@ -8,7 +7,6 @@ import '../../settings/presentation/settings_screen.dart';
 import '../../vehicle_stock/presentation/screens/vehicle_stock_screen.dart';
 import 'widgets/app_bottom_nav_bar.dart';
 import 'widgets/app_side_menu_drawer.dart';
-import 'widgets/app_side_nav_bar.dart';
 import 'widgets/nav_items.dart';
 import 'widgets/tab_placeholder.dart';
 
@@ -68,24 +66,11 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
 
-    if (context.isTablet || context.isDesktop) {
-      return Scaffold(
-        drawer: AppSideMenuDrawer(
-          selectedIndex: _selectedIndex,
-          onTabChange: _onTabChange,
-        ),
-        body: Row(
-          children: [
-            AppSideNavBar(
-              selectedIndex: _selectedIndex,
-              onTabChange: _onTabChange,
-            ),
-            Expanded(child: body),
-          ],
-        ),
-      );
-    }
-
+    // نفس التصميم بالظبط على أي مقاس شاشة (فون/تابلت/ديسكتوب) — من قبل
+    // كان فيه نسخة تانية منفصلة (AppSideNavBar) للشاشات العريضة، وده اللي
+    // سبب لخبطة إن التعديلات بتتطبق على واحد بس من الاتنين. دلوقتي واجهة
+    // واحدة بس، الناف بار السفلي + المنيو الجانبي (بيفتح بالضغط على الشعار)
+    // شغالين لأي حد بيفتح التطبيق.
     return Scaffold(
       drawer: AppSideMenuDrawer(
         selectedIndex: _selectedIndex,

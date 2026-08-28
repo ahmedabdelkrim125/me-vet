@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -12,13 +13,14 @@ class RepListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
@@ -39,13 +41,13 @@ class RepListTile extends StatelessWidget {
                 Text(
                   rep.name,
                   style: AppTextStyles.cairoBold18
-                      .copyWith(color: AppColors.primary, fontSize: 15.sp),
+                      .copyWith(color: colors.text, fontSize: 15.sp),
                 ),
                 SizedBox(height: 2.h),
                 Text(
                   rep.phone,
                   style: AppTextStyles.almaraiRegular14.copyWith(
-                    color: AppColors.navInactive,
+                    color: colors.textMuted,
                     fontSize: 12.5.sp,
                   ),
                   textDirection: TextDirection.ltr,
