@@ -66,27 +66,31 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
 
-    // نفس التصميم بالظبط على أي مقاس شاشة (فون/تابلت/ديسكتوب) — من قبل
-    // كان فيه نسخة تانية منفصلة (AppSideNavBar) للشاشات العريضة، وده اللي
-    // سبب لخبطة إن التعديلات بتتطبق على واحد بس من الاتنين. دلوقتي واجهة
-    // واحدة بس، الناف بار السفلي + المنيو الجانبي (بيفتح من شعار التطبيق
-    // في هيدر الرئيسية) شغالين لأي حد بيفتح التطبيق.
+    // ملحوظة مهمة: مكنتش حاطط AppBottomNavBar في bottomNavigationBar
+    // slot بتاع الـ Scaffold — ده اتضح إنه سبب المشكلة. فيه باگ موثّق في
+    // Flutter نفسه (github.com/flutter/flutter/issues/162006 وغيره):
+    // BackdropFilter جوّا bottomNavigationBar تحديدًا بيتعارض مع محرك
+    // الرندر الجديد Impeller (الافتراضي دلوقتي) والـ blur ميبانش صح.
+    // الحل الموثّق: تحط الـ glass widget كـ layer عائم فوق الـ body
+    // (Stack + Positioned) بدل الـ slot المخصص — وده اللي عملناه هنا.
     return Scaffold(
-      // extendBody: true عشان محتوى الشاشة يمتد فعليًا تحت الناف بار،
-      // وده اللي بيخلي تأثير الزجاج (الـ blur) يبين فعليًا — من غيرها
-      // مفيش حاجة وراه يعكسها فيبان شكل عادي فاضي. كل شاشة من الـ 6
-      // فيها مسافة إضافية (SizedBox) في آخر المحتوى القابل للتمرير
-      // عشان آخر حاجة فيها متتغطاش — هراجعها واحدة واحدة مع باقي فيتشرات
-      // الـ Dark Mode.
-      extendBody: true,
       drawer: AppSideMenuDrawer(
         selectedIndex: _selectedIndex,
         onTabChange: _onTabChange,
       ),
-      body: body,
-      bottomNavigationBar: AppBottomNavBar(
-        selectedIndex: _selectedIndex,
-        onTabChange: _onTabChange,
+      body: Stack(
+        children: [
+          Positioned.fill(child: body),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AppBottomNavBar(
+              selectedIndex: _selectedIndex,
+              onTabChange: _onTabChange,
+            ),
+          ),
+        ],
       ),
     );
   }

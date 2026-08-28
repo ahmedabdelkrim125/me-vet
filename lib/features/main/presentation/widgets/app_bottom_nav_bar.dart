@@ -106,10 +106,10 @@ class _NavTab extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 320),
           curve: Curves.easeOutBack,
-          margin: EdgeInsets.symmetric(horizontal: 3.w, vertical: 7.h),
-          padding: EdgeInsets.symmetric(horizontal: 8.w),
+          margin: EdgeInsets.symmetric(horizontal: 3.w, vertical: 6.h),
+          padding: EdgeInsets.symmetric(horizontal: 10.w),
           decoration: BoxDecoration(
-            color: isSelected ? colors.primary.withOpacity(0.22) : null,
+            color: isSelected ? colors.primary.withOpacity(0.32) : null,
             borderRadius: BorderRadius.circular(20.r),
           ),
           child: Row(
