@@ -4,8 +4,11 @@
         "Mevet"
     ],
     "deno.enable": true,
-    "deno.enablePaths": ["supabase/functions"],
+    "deno.enablePaths": [
+        "supabase/functions"
+    ],
     "deno.lint": true,
     "deno.unstable": [],
-    "deno.path": "C:\\Users\\MAC\\.deno\\bin\\deno.exe"
+    "deno.path": "C:\\Users\\MAC\\.deno\\bin\\deno.exe",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

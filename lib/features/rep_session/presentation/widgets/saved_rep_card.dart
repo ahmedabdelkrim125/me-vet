@@ -51,16 +51,16 @@ class SavedRepCard extends StatelessWidget {
                   children: [
                     Text(
                       rep.name,
-                      style: AppTextStyles.cairoMedium16.copyWith(
-                          color: colors.text, fontSize: 13.5.sp),
+                      style: AppTextStyles.cairoMedium16
+                          .copyWith(color: colors.text, fontSize: 13.5.sp),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: 3.h),
                     Text(
                       _lastSeenLabel,
-                      style: AppTextStyles.almaraiRegular14.copyWith(
-                          color: colors.textMuted, fontSize: 11.sp),
+                      style: AppTextStyles.almaraiRegular14
+                          .copyWith(color: colors.textMuted, fontSize: 11.sp),
                     ),
                   ],
                 ),

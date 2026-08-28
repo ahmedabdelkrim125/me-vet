@@ -40,13 +40,16 @@ class _HomeHeaderState extends State<HomeHeader> {
 
     return Row(
       children: [
-        // الشعار — منقول هنا من الناف بار، وهو اللي بيفتح المنيو الجانبي.
         InkWell(
           borderRadius: BorderRadius.circular(12.r),
           onTap: () => Scaffold.of(context).openDrawer(),
           child: Padding(
             padding: EdgeInsets.only(left: 10.w),
-            child: Image.asset(AppImages.logoSplash, height: 36.h),
+            child: Image.asset(
+              AppImages.logoSplash,
+              height: 100.h,
+              width: 100.w,
+            ),
           ),
         ),
         Column(

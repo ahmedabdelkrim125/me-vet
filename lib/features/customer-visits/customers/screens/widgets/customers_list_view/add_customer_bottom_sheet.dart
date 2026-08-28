@@ -80,10 +80,11 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
   /// أي تعديل يدوي في العنوان بعد ما نحدد GPS معناه المستخدم مش واثق في
   /// النتيجة أو غيّرها بنفسه، فمنسيبش وهم إن الإحداثيات القديمة لسه صح.
   void _onAddressEditedManually() {
-    if (_latitude != null) setState(() {
-      _latitude = null;
-      _longitude = null;
-    });
+    if (_latitude != null)
+      setState(() {
+        _latitude = null;
+        _longitude = null;
+      });
   }
 
   void _submit() {
@@ -330,8 +331,7 @@ class _LocationButton extends StatelessWidget {
               SizedBox(
                 width: 15.w,
                 height: 15.w,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: accent),
+                child: CircularProgressIndicator(strokeWidth: 2, color: accent),
               )
             else
               Icon(

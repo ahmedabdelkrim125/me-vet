@@ -60,8 +60,8 @@ class CustomersRepository {
         .order('created_at', ascending: false);
     _customers
       ..clear()
-      ..addAll((rows as List)
-          .map((row) => CustomerModel.fromSupabaseRow(row as Map<String, dynamic>)));
+      ..addAll((rows as List).map(
+          (row) => CustomerModel.fromSupabaseRow(row as Map<String, dynamic>)));
     customersNotifier.value = List<CustomerModel>.from(_customers);
   }
 
@@ -141,8 +141,7 @@ class CustomersRepository {
   // بالظبط زي ما كان في CustomersRepository.
   // ---------------------------------------------------------------------
 
-  Future<void> addInvoice(
-      String customerId, InvoiceRecordModel invoice) async {
+  Future<void> addInvoice(String customerId, InvoiceRecordModel invoice) async {
     final list = _invoicesByCustomer.putIfAbsent(customerId, () => []);
     list.insert(0, invoice);
     final prefs = await SharedPreferences.getInstance();
@@ -162,12 +161,12 @@ class CustomersRepository {
     return total / invoices.length;
   }
 
-  List<InvoiceRecordModel> getAllInvoicesInRange(
-      DateTime start, DateTime end) {
+  List<InvoiceRecordModel> getAllInvoicesInRange(DateTime start, DateTime end) {
     final result = <InvoiceRecordModel>[];
     for (final list in _invoicesByCustomer.values) {
       result.addAll(
-        list.where((inv) => !inv.date.isBefore(start) && inv.date.isBefore(end)),
+        list.where(
+            (inv) => !inv.date.isBefore(start) && inv.date.isBefore(end)),
       );
     }
     return result;

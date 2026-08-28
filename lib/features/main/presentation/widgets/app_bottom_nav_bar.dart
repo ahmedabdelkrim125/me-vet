@@ -36,7 +36,6 @@ class AppBottomNavBar extends StatelessWidget {
     final glassTheme =
         isDark ? LiquidGlassThemeData.dark() : LiquidGlassThemeData.light();
 
-    // التابات الأساسية بس (من غير الإعدادات، آخر عنصر في القايمة).
     final barItems = appNavItems.sublist(0, appNavItems.length - 1);
     final settingsItem = appNavItems.last;
     final settingsIndex = appNavItems.length - 1;
@@ -54,8 +53,7 @@ class AppBottomNavBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(34.r),
                 padding: EdgeInsets.symmetric(horizontal: 6.w),
                 height: 72.h,
-                // بنحدد القيم دي إحنا بأيدينا صراحة بدل ما نسيب قيم
-                // الثيم الافتراضية (اللي طلعت خفيفة جدًا ومش واضحة).
+                
                 blurSigma: 30,
                 tintOpacity: isDark ? 0.55 : 0.42,
                 borderWidth: 1.4,

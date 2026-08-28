@@ -1,8 +1,7 @@
 enum StockAdjustmentType { returned, damaged }
 
 extension StockAdjustmentTypeX on StockAdjustmentType {
-  String get label =>
-      this == StockAdjustmentType.returned ? 'مرتجع' : 'هالك';
+  String get label => this == StockAdjustmentType.returned ? 'مرتجع' : 'هالك';
 }
 
 /// A single returns/damage write-off event, valued at the product's
@@ -29,22 +28,23 @@ class StockAdjustmentModel {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'productId': productId,
-    'productName': productName,
-    'type': type.name,
-    'quantity': quantity,
-    'value': value,
-    'createdAt': createdAt.toIso8601String(),
-    'note': note,
-  };
+        'id': id,
+        'productId': productId,
+        'productName': productName,
+        'type': type.name,
+        'quantity': quantity,
+        'value': value,
+        'createdAt': createdAt.toIso8601String(),
+        'note': note,
+      };
 
   factory StockAdjustmentModel.fromJson(Map<String, dynamic> json) {
     return StockAdjustmentModel(
       id: json['id'] as String,
       productId: json['productId'] as String,
       productName: json['productName'] as String,
-      type: StockAdjustmentType.values.firstWhere((t) => t.name == json['type']),
+      type:
+          StockAdjustmentType.values.firstWhere((t) => t.name == json['type']),
       quantity: json['quantity'] as int,
       value: (json['value'] as num).toDouble(),
       createdAt: DateTime.parse(json['createdAt'] as String),

@@ -31,8 +31,9 @@ class CashSettlementModel {
   /// "not yet reconciled".
   final double? actualCashDeclared;
 
-  double? get cashShortageOrSurplus =>
-      actualCashDeclared == null ? null : actualCashDeclared! - expectedCashInHand;
+  double? get cashShortageOrSurplus => actualCashDeclared == null
+      ? null
+      : actualCashDeclared! - expectedCashInHand;
 
   const CashSettlementModel({
     required this.totalInvoicesValue,

@@ -32,8 +32,8 @@ AppException mapErrorToAppException(Object error) {
     AuthException() => _mapAuthException(error),
     PostgrestException() => _mapPostgrestException(error),
     FunctionException() => _mapFunctionException(error),
-    SocketException() => const AppException(
-        'مفيش اتصال بالإنترنت، اتأكد من الشبكة وحاول تاني'),
+    SocketException() =>
+      const AppException('مفيش اتصال بالإنترنت، اتأكد من الشبكة وحاول تاني'),
     TimeoutException() =>
       const AppException('الاتصال بالسيرفر بطيء، حاول تاني بعد شوية'),
     _ => AppException('حصل خطأ غير متوقع، حاول تاني', cause: error),
@@ -60,8 +60,7 @@ AppException _mapAuthException(AuthException error) {
   if (message.contains('user not found')) {
     return const AppException('مفيش حساب بالبيانات دي');
   }
-  if (message.contains('rate limit') ||
-      message.contains('too many requests')) {
+  if (message.contains('rate limit') || message.contains('too many requests')) {
     return const AppException('محاولات كتير قوي، استنى شوية وحاول تاني');
   }
 

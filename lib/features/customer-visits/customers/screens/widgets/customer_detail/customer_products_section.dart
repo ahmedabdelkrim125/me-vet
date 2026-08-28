@@ -48,7 +48,8 @@ class CustomerNotBoughtSection extends StatelessWidget {
       icon: CupertinoIcons.exclamationmark_triangle_fill,
       iconColor: context.colors.statOrange,
       child: products.isEmpty
-          ? const _EmptySectionMessage(text: 'لسه مبكّر نحدد ده لحد ما يكون في تاريخ شراء')
+          ? const _EmptySectionMessage(
+              text: 'لسه مبكّر نحدد ده لحد ما يكون في تاريخ شراء')
           : Column(
               children: [
                 for (final product in products)

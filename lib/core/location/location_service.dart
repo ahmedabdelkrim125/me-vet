@@ -38,7 +38,8 @@ class LocationService {
       permission = await Geolocator.requestPermission();
     }
     if (permission == LocationPermission.denied) {
-      throw const AppException('محتاجين إذن الوصول للموقع عشان نحدد مكان العميل');
+      throw const AppException(
+          'محتاجين إذن الوصول للموقع عشان نحدد مكان العميل');
     }
     if (permission == LocationPermission.deniedForever) {
       throw const AppException(
@@ -58,7 +59,8 @@ class LocationService {
           'تعذر تحديد الموقع، اتأكد إنك في مكان مفتوح وحاول تاني');
     }
 
-    final address = await _reverseGeocode(position.latitude, position.longitude);
+    final address =
+        await _reverseGeocode(position.latitude, position.longitude);
 
     return LocationResult(
       latitude: position.latitude,

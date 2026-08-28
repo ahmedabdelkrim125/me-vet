@@ -66,13 +66,7 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
 
-    // ملحوظة مهمة: مكنتش حاطط AppBottomNavBar في bottomNavigationBar
-    // slot بتاع الـ Scaffold — ده اتضح إنه سبب المشكلة. فيه باگ موثّق في
-    // Flutter نفسه (github.com/flutter/flutter/issues/162006 وغيره):
-    // BackdropFilter جوّا bottomNavigationBar تحديدًا بيتعارض مع محرك
-    // الرندر الجديد Impeller (الافتراضي دلوقتي) والـ blur ميبانش صح.
-    // الحل الموثّق: تحط الـ glass widget كـ layer عائم فوق الـ body
-    // (Stack + Positioned) بدل الـ slot المخصص — وده اللي عملناه هنا.
+    
     return Scaffold(
       drawer: AppSideMenuDrawer(
         selectedIndex: _selectedIndex,

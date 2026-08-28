@@ -37,7 +37,8 @@ class RepresentativeReportModel {
     required this.inventorySummary,
   });
 
-  bool get isSameDayAs => periodType == ReportPeriodType.daily &&
+  bool get isSameDayAs =>
+      periodType == ReportPeriodType.daily &&
       periodStart.year == periodEnd.year &&
       periodStart.month == periodEnd.month &&
       periodStart.day == periodEnd.day;
