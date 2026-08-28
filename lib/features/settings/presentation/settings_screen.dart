@@ -27,7 +27,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: ListView(
-          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 100.h),
+          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 30.h),
           children: [
             Text(
               'الإعدادات',

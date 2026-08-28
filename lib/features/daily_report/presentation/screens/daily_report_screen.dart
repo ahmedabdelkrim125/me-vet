@@ -68,7 +68,7 @@ class _DailyReportBody extends StatelessWidget {
             return RefreshIndicator(
               onRefresh: () => context.read<DailyReportCubit>().refresh(),
               child: ListView(
-                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 100.h),
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 30.h),
                 children: [
                   Container(
                     padding: EdgeInsets.all(18.w),
