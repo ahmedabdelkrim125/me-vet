@@ -23,6 +23,11 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   void initState() {
     super.initState();
     NotificationRepository.instance.initialize();
+    // refresh() بالإضافة لـ initialize() — initialize() بترجع فورًا من
+    // غير ما تعمل حاجة لو كانت اتنادت قبل كده (من الهيدر في الرئيسية
+    // مثلًا)، فمن غيرها ممكن الشاشة تفتح ببيانات قديمة لو وصل إشعار
+    // جديد والتطبيق كان في شاشة تانية.
+    NotificationRepository.instance.refresh();
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
