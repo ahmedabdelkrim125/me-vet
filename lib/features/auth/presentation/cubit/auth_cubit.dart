@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/notifications/push_notification_service.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
 
@@ -10,12 +12,21 @@ class AuthCubit extends Cubit<AuthState> {
 
   AuthCubit(this._repository) : super(const AuthState()) {
     _authSubscription = _repository.authStateChanges.listen((user) {
+      debugPrint('[Push] authStateChanges emitted: user=${user?.id}');
       emit(state.copyWith(
         status: user != null
             ? AuthStatus.authenticated
             : AuthStatus.unauthenticated,
         user: user,
       ));
+      // هنا بس، مش جوّا signInAsRep/signInAsOwner — عشان ده الحدث اللي
+      // بيتطلق في الحالتين: تسجيل دخول جديد فعليًا، أو استرجاع جلسة
+      // محفوظة تلقائيًا لما التطبيق يفتح من غير ما اليوزر يعمل حاجة
+      // (INITIAL_SESSION).
+      if (user != null) {
+        debugPrint('[Push] هنادي registerDeviceForCurrentUser دلوقتي');
+        unawaited(PushNotificationService.instance.registerDeviceForCurrentUser());
+      }
     });
   }
 
@@ -50,6 +61,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> signOut() async {
+    await PushNotificationService.instance.unregisterDevice();
     await _repository.signOut();
     emit(state.copyWith(status: AuthStatus.unauthenticated, user: null));
   }
