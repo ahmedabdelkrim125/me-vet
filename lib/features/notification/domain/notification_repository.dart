@@ -1,174 +1,200 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/app_notification_model.dart';
 import 'models/notification_type.dart';
 
+/// إشعارات حقيقية من جدول `notifications` في Supabase — بدل الداتا
+/// الوهمية اللي كانت متخزنة محليًا (SharedPreferences) قبل كده.
+///
+/// أغلب الإشعارات (زي حد الائتمان) بتتسجل من ناحية السيرفر نفسه
+/// (Postgres trigger)، مش من هنا. الكلاس ده مسؤوليته: يجيب الإشعارات
+/// بتاعة اليوزر الحالي، يعرضها، يتابعها لحظيًا (Realtime) عشان أي
+/// إشعار جديد يبان في الشاشة أول ما يتسجل من غير ما تحتاج تقفل
+/// وتفتح التطبيق، ويحدّث حالة القراءة/الحذف.
+///
+/// `push()` لسه موجودة (نفس الاسم والباراميترز بالظبط) عشان
+/// MockInventoryRepository يقدر يكمل يستخدمها زي ما هي لحد ما فيتشر
+/// المخزون يتهاجر هو كمان لـ Supabase — الفرق إنها دلوقتي بتكتب في
+/// Supabase فعليًا بدل التخزين المحلي.
 class NotificationRepository {
   NotificationRepository._internal();
 
   static final NotificationRepository instance =
       NotificationRepository._internal();
 
-  static const String _storageKey = 'app_notifications';
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   final List<AppNotificationModel> _notifications = [];
   final ValueNotifier<List<AppNotificationModel>> notificationsNotifier =
       ValueNotifier<List<AppNotificationModel>>(<AppNotificationModel>[]);
 
   bool _initialized = false;
+  RealtimeChannel? _channel;
 
   List<AppNotificationModel> get notifications => _notifications;
 
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
+  /// أول مرة بس: بتجيب الإشعارات وتفتح الاشتراك اللحظي (Realtime).
+  /// النداءات اللي بعد كده مبتعملش حاجة — استخدم [refresh] لو عايز
+  /// تجبر تحديث فوري (زي أول ما شاشة الإشعارات تتفتح).
   Future<void> initialize() async {
     if (_initialized) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getStringList(_storageKey);
-
-    if (raw != null && raw.isNotEmpty) {
-      _notifications
-        ..clear()
-        ..addAll(
-            raw.map((entry) => AppNotificationModel.fromJsonString(entry)));
-    } else {
-      _notifications
-        ..clear()
-        ..addAll(_seedNotifications);
-      await _persist(prefs);
-    }
-
-    _sort();
-    notificationsNotifier.value =
-        List<AppNotificationModel>.from(_notifications);
+    await _fetch();
+    _listenForRealtimeChanges();
     _initialized = true;
   }
 
-  void _sort() {
-    _notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  /// بيعيد تحميل الإشعارات من Supabase — استخدمها لما تفتح شاشة
+  /// الإشعارات عشان تتأكد إن أي إشعار وصل والتطبيق كان مقفول/في شاشة
+  /// تانية يبان فورًا.
+  Future<void> refresh() => _fetch();
+
+  Future<void> _fetch() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      _notifications.clear();
+      notificationsNotifier.value = <AppNotificationModel>[];
+      return;
+    }
+
+    try {
+      final rows = await _supabase
+          .from('notifications')
+          .select()
+          .order('created_at', ascending: false);
+      _notifications
+        ..clear()
+        ..addAll((rows as List).map((row) =>
+            AppNotificationModel.fromSupabaseRow(row as Map<String, dynamic>)));
+      notificationsNotifier.value =
+          List<AppNotificationModel>.from(_notifications);
+    } catch (e) {
+      debugPrint('[Notifications] فشل تحميل الإشعارات: $e');
+    }
   }
 
+  /// أي إضافة/تعديل/حذف على صف إشعارات اليوزر الحالي (سواء من التطبيق
+  /// نفسه أو من trigger في السيرفر) بيوصلنا هنا لحظيًا، فبنعيد التحميل.
+  void _listenForRealtimeChanges() {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    _channel = _supabase
+        .channel('public:notifications:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) => _fetch(),
+        )
+        .subscribe();
+  }
+
+  Future<void> dispose() async {
+    final channel = _channel;
+    if (channel != null) await _supabase.removeChannel(channel);
+    _channel = null;
+    _initialized = false;
+  }
+
+  /// إنشاء إشعار للمستخدم الحالي نفسه — مستخدمة دلوقتي من
+  /// MockInventoryRepository بس (تنبيهات المخزون لسه محلية). الإشعارات
+  /// الحقيقية التانية (حد الائتمان مثلًا) بتتسجل من trigger في
+  /// Supabase مباشرة، مش من هنا.
   Future<void> push({
     required NotificationType type,
     required String title,
     required String message,
     String? relatedId,
   }) async {
-    await initialize();
-    _notifications.insert(
-      0,
-      AppNotificationModel(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        type: type,
-        title: title,
-        message: message,
-        createdAt: DateTime.now(),
-        relatedId: relatedId,
-      ),
-    );
-    await _persist();
-    notificationsNotifier.value =
-        List<AppNotificationModel>.from(_notifications);
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      await _supabase.from('notifications').insert({
+        'user_id': userId,
+        'type': type.dbValue,
+        'title': title,
+        'message': message,
+        if (relatedId != null) 'related_id': relatedId,
+      });
+      // في الأغلب الـ Realtime subscription هيلقطها لوحده، بس بنعمل
+      // fetch يدوي كمان للأمان لو الـ Realtime لسه ما اتفعّلش.
+      await _fetch();
+    } catch (e) {
+      debugPrint('[Notifications] push فشل: $e');
+    }
   }
 
   Future<void> markAsRead(String id) async {
-    await initialize();
     final index = _notifications.indexWhere((n) => n.id == id);
-    if (index == -1) return;
-    _notifications[index] = _notifications[index].copyWith(isRead: true);
-    await _persist();
-    notificationsNotifier.value =
-        List<AppNotificationModel>.from(_notifications);
+    if (index != -1) {
+      // تحديث محلي فوري عشان الواجهة تستجيب على طول من غير ما تستنى
+      // رحلة الشبكة، والتحديث الحقيقي في Supabase بيحصل بعدها.
+      _notifications[index] = _notifications[index].copyWith(isRead: true);
+      notificationsNotifier.value =
+          List<AppNotificationModel>.from(_notifications);
+    }
+
+    try {
+      await _supabase
+          .from('notifications')
+          .update({'is_read': true}).eq('id', id);
+    } catch (e) {
+      debugPrint('[Notifications] markAsRead فشل: $e');
+    }
   }
 
   Future<void> markAllAsRead() async {
-    await initialize();
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
     for (var i = 0; i < _notifications.length; i++) {
       _notifications[i] = _notifications[i].copyWith(isRead: true);
     }
-    await _persist();
     notificationsNotifier.value =
         List<AppNotificationModel>.from(_notifications);
+
+    try {
+      await _supabase
+          .from('notifications')
+          .update({'is_read': true})
+          .eq('user_id', userId)
+          .eq('is_read', false);
+    } catch (e) {
+      debugPrint('[Notifications] markAllAsRead فشل: $e');
+    }
   }
 
   Future<void> remove(String id) async {
-    await initialize();
     _notifications.removeWhere((n) => n.id == id);
-    await _persist();
     notificationsNotifier.value =
         List<AppNotificationModel>.from(_notifications);
+
+    try {
+      await _supabase.from('notifications').delete().eq('id', id);
+    } catch (e) {
+      debugPrint('[Notifications] remove فشل: $e');
+    }
   }
 
   Future<void> clearAll() async {
-    await initialize();
+    final userId = _supabase.auth.currentUser?.id;
     _notifications.clear();
-    await _persist();
-    notificationsNotifier.value =
-        List<AppNotificationModel>.from(_notifications);
-  }
+    notificationsNotifier.value = <AppNotificationModel>[];
+    if (userId == null) return;
 
-  Future<void> _persist([SharedPreferences? preferences]) async {
-    final prefs = preferences ?? await SharedPreferences.getInstance();
-    final encoded = _notifications.map((n) => n.toJsonString()).toList();
-    await prefs.setStringList(_storageKey, encoded);
-  }
-
-  static List<AppNotificationModel> get _seedNotifications {
-    final now = DateTime.now();
-    return [
-      AppNotificationModel(
-        id: 'seed-1',
-        type: NotificationType.vehicleStockLow,
-        title: 'مخزون العربية منخفض',
-        message:
-            'صنف "فيتامين أ د3 إي" في عربيتك قل عن الحد الأدنى (متبقي 4 وحدات).',
-        createdAt: now.subtract(const Duration(minutes: 20)),
-      ),
-      AppNotificationModel(
-        id: 'seed-2',
-        type: NotificationType.visitReminder,
-        title: 'تذكير بزيارة',
-        message: 'عيادة الشفاء البيطرية معاهاش زيارة من أسبوعين.',
-        createdAt: now.subtract(const Duration(hours: 3)),
-        relatedId: '2',
-      ),
-      AppNotificationModel(
-        id: 'seed-3',
-        type: NotificationType.creditLimitWarning,
-        title: 'اقتراب من حد الائتمان',
-        message: 'رصيد "مزرعة الفا لارج" وصل لـ 90٪ من حد الائتمان المسموح.',
-        createdAt: now.subtract(const Duration(hours: 6)),
-        relatedId: '5',
-        isRead: true,
-      ),
-      AppNotificationModel(
-        id: 'seed-4',
-        type: NotificationType.customerStalled,
-        title: 'عميل متوقف',
-        message: 'مزرعة الدلتا للدواجن توقفت عن الطلب من شهرين.',
-        createdAt: now.subtract(const Duration(days: 1)),
-        relatedId: '3',
-        isRead: true,
-      ),
-      AppNotificationModel(
-        id: 'seed-5',
-        type: NotificationType.mainStockLow,
-        title: 'مخزون منخفض',
-        message:
-            'صنف "مضاد حيوي واسع المجال" في المخزن الرئيسي قل عن الحد الأدنى.',
-        createdAt: now.subtract(const Duration(days: 1, hours: 4)),
-        isRead: true,
-      ),
-      AppNotificationModel(
-        id: 'seed-6',
-        type: NotificationType.dailyReportReminder,
-        title: 'تذكير بتقرير اليوم',
-        message: 'لسه ما بعتّش تقرير اليوم للإدارة.',
-        createdAt: now.subtract(const Duration(days: 2)),
-        isRead: true,
-      ),
-    ];
+    try {
+      await _supabase.from('notifications').delete().eq('user_id', userId);
+    } catch (e) {
+      debugPrint('[Notifications] clearAll فشل: $e');
+    }
   }
 }

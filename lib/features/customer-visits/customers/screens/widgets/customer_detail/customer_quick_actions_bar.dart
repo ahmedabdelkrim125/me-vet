@@ -73,9 +73,7 @@ class CustomerQuickActionsBar extends StatelessWidget {
                     context, customer.latitude!, customer.longitude!)
                 : LaunchUtils.openMap(
                     context,
-                    customer.address.isEmpty
-                        ? customer.area
-                        : customer.address,
+                    customer.address.isEmpty ? customer.area : customer.address,
                   ),
           ),
         ),

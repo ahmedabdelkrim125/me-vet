@@ -120,8 +120,8 @@ class _Dot extends StatelessWidget {
   const _Dot({required this.color});
   @override
   Widget build(BuildContext context) => Container(
-    width: 8,
-    height: 8,
-    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-  );
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      );
 }

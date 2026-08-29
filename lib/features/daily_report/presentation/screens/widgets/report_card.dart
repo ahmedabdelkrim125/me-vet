@@ -44,8 +44,8 @@ class ReportCard extends StatelessWidget {
               child: Row(
                 children: [
                   Text(row.$1,
-                      style: AppTextStyles.almaraiRegular14.copyWith(
-                          color: colors.textMuted, fontSize: 11.sp)),
+                      style: AppTextStyles.almaraiRegular14
+                          .copyWith(color: colors.textMuted, fontSize: 11.sp)),
                   const Spacer(),
                   Text(row.$2,
                       style: AppTextStyles.cairoMedium16

@@ -98,7 +98,8 @@ class _AppToastState extends State<_AppToast>
       reverseDuration: const Duration(milliseconds: 200),
     );
     _offset = Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+        .animate(
+            CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
 
     _controller.forward();

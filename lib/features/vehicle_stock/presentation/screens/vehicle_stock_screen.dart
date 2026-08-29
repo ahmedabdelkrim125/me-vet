@@ -149,7 +149,7 @@ class _VehicleStockScreenState extends State<VehicleStockScreen>
     return Stack(
       children: [
         ListView(
-          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 30.h),
+          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
           children: [
             Row(
               children: [

@@ -66,4 +66,17 @@ class AppNotificationModel {
     return AppNotificationModel.fromJson(
         jsonDecode(raw) as Map<String, dynamic>);
   }
+
+  /// يبني الموديل من صف جدول `notifications` في Supabase.
+  factory AppNotificationModel.fromSupabaseRow(Map<String, dynamic> row) {
+    return AppNotificationModel(
+      id: row['id'] as String,
+      type: notificationTypeFromDb(row['type'] as String?),
+      title: row['title'] as String,
+      message: row['message'] as String,
+      createdAt: DateTime.parse(row['created_at'] as String),
+      isRead: row['is_read'] as bool? ?? false,
+      relatedId: row['related_id'] as String?,
+    );
+  }
 }

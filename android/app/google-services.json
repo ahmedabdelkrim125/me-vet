@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "656796027202",
+    "project_id": "mivet-28171",
+    "storage_bucket": "mivet-28171.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:656796027202:android:df5977fb0b8b70c7ee60db",
+        "android_client_info": {
+          "package_name": "com.example.mivet_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYmNYXWRmCR-SAtEA1-kBzZzohCgwc0x8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

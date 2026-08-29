@@ -16,8 +16,9 @@ class ClientVisitStatsModel {
 
   int get remainingClients => totalAssignedClients - visitedClients;
 
-  double get completionRate =>
-      totalAssignedClients == 0 ? 0 : completedOrSoldClients / totalAssignedClients;
+  double get completionRate => totalAssignedClients == 0
+      ? 0
+      : completedOrSoldClients / totalAssignedClients;
 
   static const empty = ClientVisitStatsModel(
     totalAssignedClients: 0,

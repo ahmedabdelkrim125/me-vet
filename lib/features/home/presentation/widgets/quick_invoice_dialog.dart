@@ -436,8 +436,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
               ),
             ),
             _FooterActions(
-              canIssue:
-                  customer != null && lineItems.isNotEmpty && !_isIssuing,
+              canIssue: customer != null && lineItems.isNotEmpty && !_isIssuing,
               isIssuing: _isIssuing,
               onSave: _issueInvoice,
               onPrint: _printInvoice,
@@ -1818,8 +1817,8 @@ class _AccountSummarySection extends StatelessWidget {
             if (isCash) ...[
               SizedBox(width: 8.w),
               Text('(نقدي — لازم يتساوى بالإجمالي)',
-                  style: AppTextStyles.almaraiRegular14.copyWith(
-                      color: colors.statOrange, fontSize: 10.sp)),
+                  style: AppTextStyles.almaraiRegular14
+                      .copyWith(color: colors.statOrange, fontSize: 10.sp)),
             ],
           ],
         ),
@@ -1849,7 +1848,8 @@ class _AccountSummarySection extends StatelessWidget {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide(
-                color: warning != null ? colors.statusNotReached : colors.primary,
+                color:
+                    warning != null ? colors.statusNotReached : colors.primary,
               ),
             ),
             contentPadding:

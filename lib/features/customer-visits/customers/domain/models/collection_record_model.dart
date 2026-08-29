@@ -29,11 +29,11 @@ class CollectionRecordModel {
   });
 
   Map<String, dynamic> toJson() => {
-    'customerId': customerId,
-    'amount': amount,
-    'date': date.toIso8601String(),
-    'source': source.name,
-  };
+        'customerId': customerId,
+        'amount': amount,
+        'date': date.toIso8601String(),
+        'source': source.name,
+      };
 
   factory CollectionRecordModel.fromJson(Map<String, dynamic> json) {
     return CollectionRecordModel(
@@ -41,7 +41,7 @@ class CollectionRecordModel {
       amount: (json['amount'] as num).toDouble(),
       date: DateTime.parse(json['date'] as String),
       source: CollectionSource.values.firstWhere(
-            (s) => s.name == json['source'],
+        (s) => s.name == json['source'],
         orElse: () => CollectionSource.oldDebtPayment,
       ),
     );

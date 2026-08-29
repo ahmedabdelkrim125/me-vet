@@ -14,7 +14,8 @@ class RepWorkTimelineModel {
 
   /// 1-indexed: the day the rep started counts as day 1.
   int get workDayNumber {
-    final start = DateTime(firstWorkDate.year, firstWorkDate.month, firstWorkDate.day);
+    final start =
+        DateTime(firstWorkDate.year, firstWorkDate.month, firstWorkDate.day);
     final now = DateTime(asOf.year, asOf.month, asOf.day);
     return now.difference(start).inDays + 1;
   }
@@ -23,8 +24,8 @@ class RepWorkTimelineModel {
   bool get isMonthlyReportUnlocked => workDayNumber >= 30;
 
   List<ReportPeriodType> get availablePeriods => [
-    ReportPeriodType.daily,
-    if (isWeeklyReportUnlocked) ReportPeriodType.weekly,
-    if (isMonthlyReportUnlocked) ReportPeriodType.monthly,
-  ];
+        ReportPeriodType.daily,
+        if (isWeeklyReportUnlocked) ReportPeriodType.weekly,
+        if (isMonthlyReportUnlocked) ReportPeriodType.monthly,
+      ];
 }

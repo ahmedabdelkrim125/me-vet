@@ -6,8 +6,6 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'nav_items.dart';
 
-/// المنيو الجانبي — بيتفتح بالضغط على شعار التطبيق في بداية الناف بار.
-/// بيعرض كل الشاشات (appNavItems) كقائمة، وبيقفل نفسه تلقائيًا بعد أي اختيار.
 class AppSideMenuDrawer extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTabChange;

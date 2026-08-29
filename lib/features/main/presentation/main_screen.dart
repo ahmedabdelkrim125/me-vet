@@ -20,8 +20,32 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
+  // بنقيس ارتفاع الناف بار فعليًا بعد ما يترسم (مش رقم ثابت بنخمّنه) —
+  // عشان أي تعديل مستقبلي في تصميمه (ارتفاع، padding، حجم خط) ينعكس هنا
+  // أوتوماتيك من غير ما حد يحتاج يفتكر يظبط رقم في مكان تاني.
+  final GlobalKey _navBarKey = GlobalKey();
+  double _navBarHeight = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureNavBar());
+  }
+
+  void _measureNavBar() {
+    final renderBox =
+        _navBarKey.currentContext?.findRenderObject() as RenderBox?;
+    final height = renderBox?.size.height ?? 0;
+    if (height > 0 && height != _navBarHeight && mounted) {
+      setState(() => _navBarHeight = height);
+    }
+  }
+
   void _onTabChange(int index) {
     setState(() => _selectedIndex = index);
+    // الناف بار ممكن يتغيّر ارتفاعه شكليًا (تكبير التاب المختار مثلًا)،
+    // فبنعيد القياس بعد أي تبديل تاب للتأكد.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureNavBar());
   }
 
   Widget _buildPage(int index) {
@@ -66,13 +90,16 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
 
-    // ملحوظة مهمة: مكنتش حاطط AppBottomNavBar في bottomNavigationBar
-    // slot بتاع الـ Scaffold — ده اتضح إنه سبب المشكلة. فيه باگ موثّق في
-    // Flutter نفسه (github.com/flutter/flutter/issues/162006 وغيره):
-    // BackdropFilter جوّا bottomNavigationBar تحديدًا بيتعارض مع محرك
-    // الرندر الجديد Impeller (الافتراضي دلوقتي) والـ blur ميبانش صح.
-    // الحل الموثّق: تحط الـ glass widget كـ layer عائم فوق الـ body
-    // (Stack + Positioned) بدل الـ slot المخصص — وده اللي عملناه هنا.
+    // كل الشاشات الـ 6 ملفوفة في SafeArea أصلًا — فبدل ما كل شاشة تضيف
+    // مسافة فاضية يدوية تحاول تخمّن ارتفاع الناف بار، بنضخّم الـ
+    // MediaQuery.padding.bottom اللي كل SafeArea بتقرا منها بقيمة
+    // الارتفاع الحقيقي المقاس. الحل بقى في مكان واحد بس، مش متكرر.
+    final inflatedMediaQuery = MediaQuery.of(context).copyWith(
+      padding: MediaQuery.of(context).padding.copyWith(
+            bottom: _navBarHeight,
+          ),
+    );
+
     return Scaffold(
       drawer: AppSideMenuDrawer(
         selectedIndex: _selectedIndex,
@@ -80,14 +107,22 @@ class _MainScreenState extends State<MainScreen> {
       ),
       body: Stack(
         children: [
-          Positioned.fill(child: body),
+          Positioned.fill(
+            child: MediaQuery(
+              data: inflatedMediaQuery,
+              child: body,
+            ),
+          ),
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: AppBottomNavBar(
-              selectedIndex: _selectedIndex,
-              onTabChange: _onTabChange,
+            child: KeyedSubtree(
+              key: _navBarKey,
+              child: AppBottomNavBar(
+                selectedIndex: _selectedIndex,
+                onTabChange: _onTabChange,
+              ),
             ),
           ),
         ],

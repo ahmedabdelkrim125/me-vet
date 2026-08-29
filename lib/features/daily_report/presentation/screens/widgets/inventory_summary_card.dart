@@ -12,11 +12,17 @@ class InventorySummaryCard extends StatelessWidget {
       title: 'جرد المخزون',
       icon: Icons.inventory_2_outlined,
       rows: [
-        ('محمّل من المخزن للعربية', moneyLabel(inventory.loadedFromWarehouseValue)),
+        (
+          'محمّل من المخزن للعربية',
+          moneyLabel(inventory.loadedFromWarehouseValue)
+        ),
         ('مضاف للمخزن الرئيسي', moneyLabel(inventory.addedToWarehouseValue)),
         ('مباع من العربية', moneyLabel(inventory.soldFromVehicleValue)),
         ('متبقي بالعربية', moneyLabel(inventory.remainingVehicleStockValue)),
-        ('متبقي بالمخزن الرئيسي', moneyLabel(inventory.remainingWarehouseStockValue)),
+        (
+          'متبقي بالمخزن الرئيسي',
+          moneyLabel(inventory.remainingWarehouseStockValue)
+        ),
         ('المرتجعات', moneyLabel(inventory.returnsValue)),
         ('الهالك', moneyLabel(inventory.damagedGoodsValue)),
       ],

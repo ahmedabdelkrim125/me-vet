@@ -28,8 +28,7 @@ class NotificationTile extends StatelessWidget {
     final relatedId = notification.relatedId;
     if (relatedId == null) return;
 
-    final customer =
-        CustomersRepository.instance.getCustomerById(relatedId);
+    final customer = CustomersRepository.instance.getCustomerById(relatedId);
     if (customer == null || customer.id.isEmpty || !context.mounted) return;
 
     Navigator.of(context).push(

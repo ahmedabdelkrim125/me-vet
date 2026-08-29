@@ -24,7 +24,7 @@ class _PeriodBounds {
 class MockDailyReportRepository {
   MockDailyReportRepository._();
   static final MockDailyReportRepository instance =
-  MockDailyReportRepository._();
+      MockDailyReportRepository._();
 
   Future<void> _ensureSourcesReady() async {
     await CustomersRepository.instance.initialize();
@@ -82,16 +82,16 @@ class MockDailyReportRepository {
     final clientStats = ClientVisitStatsModel(
       totalAssignedClients: stops.length,
       visitedClients:
-      stops.where((s) => s.status != RouteVisitStatus.pending).length,
+          stops.where((s) => s.status != RouteVisitStatus.pending).length,
       completedOrSoldClients: stops
           .where((s) =>
-      s.status == RouteVisitStatus.completed ||
-          s.status == RouteVisitStatus.sold)
+              s.status == RouteVisitStatus.completed ||
+              s.status == RouteVisitStatus.sold)
           .length,
       noOrderClients:
-      stops.where((s) => s.status == RouteVisitStatus.noOrder).length,
+          stops.where((s) => s.status == RouteVisitStatus.noOrder).length,
       notReachedClients:
-      stops.where((s) => s.status == RouteVisitStatus.notReached).length,
+          stops.where((s) => s.status == RouteVisitStatus.notReached).length,
     );
 
     // --- Cash settlement ---
@@ -121,7 +121,9 @@ class MockDailyReportRepository {
 
     // --- Inventory movement summary ---
     final movements = MockInventoryRepository.instance.movements.value.where(
-          (m) => !m.createdAt.isBefore(bounds.start) && m.createdAt.isBefore(bounds.end),
+      (m) =>
+          !m.createdAt.isBefore(bounds.start) &&
+          m.createdAt.isBefore(bounds.end),
     );
     double loadedValue = 0;
     double addedValue = 0;
@@ -142,9 +144,11 @@ class MockDailyReportRepository {
         .fold(0.0, (sum, s) => sum + s.quantity * priceOf(s.productId));
 
     final returnsValue = MockStockAdjustmentsRepository.instance
-        .totalValueInRange(bounds.start, bounds.end, StockAdjustmentType.returned);
+        .totalValueInRange(
+            bounds.start, bounds.end, StockAdjustmentType.returned);
     final damagedValue = MockStockAdjustmentsRepository.instance
-        .totalValueInRange(bounds.start, bounds.end, StockAdjustmentType.damaged);
+        .totalValueInRange(
+            bounds.start, bounds.end, StockAdjustmentType.damaged);
 
     final inventorySummary = InventoryMovementSummaryModel(
       loadedFromWarehouseValue: loadedValue,
@@ -178,11 +182,12 @@ class MockDailyReportRepository {
     final points = <ReportChartPointModel>[];
 
     for (int i = days - 1; i >= 0; i--) {
-      final day = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+      final day =
+          DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
       final nextDay = day.add(const Duration(days: 1));
 
-      final invoices = CustomersRepository.instance
-          .getAllInvoicesInRange(day, nextDay);
+      final invoices =
+          CustomersRepository.instance.getAllInvoicesInRange(day, nextDay);
       // TODO(perf): ده بيعمل query منفصل لكل يوم (30 يوم = 30 request).
       // لما نهاجر invoices/collections بالكامل، الأحسن نجيب المدى كله
       // بـ query واحد ونقسّمه محليًا بدل اللوب ده.
@@ -191,10 +196,10 @@ class MockDailyReportRepository {
       final visitsCompleted = TodayRouteController
           .instance.visitHistoryNotifier.value
           .where((v) =>
-      !v.statusUpdatedAt.isBefore(day) &&
-          v.statusUpdatedAt.isBefore(nextDay) &&
-          (v.status == RouteVisitStatus.completed ||
-              v.status == RouteVisitStatus.sold))
+              !v.statusUpdatedAt.isBefore(day) &&
+              v.statusUpdatedAt.isBefore(nextDay) &&
+              (v.status == RouteVisitStatus.completed ||
+                  v.status == RouteVisitStatus.sold))
           .length;
 
       points.add(ReportChartPointModel(

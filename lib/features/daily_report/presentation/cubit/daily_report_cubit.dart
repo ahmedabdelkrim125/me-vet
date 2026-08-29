@@ -15,7 +15,8 @@ class DailyReportCubit extends Cubit<DailyReportState> {
     try {
       final timeline = await _repository.getTimeline();
 
-      final daily = await _repository.buildReport(period: ReportPeriodType.daily);
+      final daily =
+          await _repository.buildReport(period: ReportPeriodType.daily);
       final weekly = timeline.isWeeklyReportUnlocked
           ? await _repository.buildReport(period: ReportPeriodType.weekly)
           : null;
