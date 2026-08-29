@@ -78,6 +78,25 @@ class CustomersRepository {
     await _fetchCustomers();
   }
 
+  Future<void> updateCustomer(CustomerModel customer) async {
+    await _supabase.from('customers').update({
+      'name': customer.name,
+      'area': customer.area,
+      'category': customer.category,
+      'phone': customer.phone,
+      'address': customer.address,
+      'credit_limit': customer.creditLimit,
+      'latitude': customer.latitude,
+      'longitude': customer.longitude,
+    }).eq('id', customer.id);
+    await _fetchCustomers();
+  }
+
+  Future<void> deleteCustomer(String customerId) async {
+    await _supabase.from('customers').delete().eq('id', customerId);
+    await _fetchCustomers();
+  }
+
   /// يعدّل رصيد العميل الحالي. [delta] موجب = دين جديد (فاتورة)، سالب =
   /// سداد (تحصيل). عن طريق RPC `adjust_customer_balance` عشان تحديث
   /// الرصيد + تسجيل التحصيل (لو موجود) يحصلوا مع بعض في عملية واحدة.
