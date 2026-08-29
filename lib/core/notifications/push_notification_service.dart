@@ -5,24 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// خدمة الإشعارات الحقيقية (Push Notifications) — لو التطبيق مقفول أو
-/// شغال في الخلفية، Firebase Cloud Messaging (FCM) هو اللي بيوصّل
-/// الإشعار للموبايل (زي يوتيوب/فيسبوك بالظبط). لو التطبيق مفتوح قدام
-/// المستخدم وقت وصول الإشعار، FCM لوحده مبيعملش حاجة ظاهرة، فبنستخدم
-/// flutter_local_notifications عشان نعرضه يدويًا في اللحظة دي.
-///
-/// المسؤوليات هنا:
-/// 1) طلب إذن الإشعارات من المستخدم.
-/// 2) تسجيل الجهاز (FCM token) وحفظه في Supabase عشان السيرفر يعرف
-///    يبعتله.
-/// 3) عرض أي إشعار بيوصل والتطبيق مفتوح.
-///
-/// إرسال الإشعار الفعلي (لما حد الائتمان يتخطى مثلًا) بيحصل من ناحية
-/// Supabase (trigger + Edge Function)، مش من هنا — الكلاس ده استقبال
-/// وتسجيل بس.
-///
-/// كل الـ logs هنا مبدوءة بـ [Push] عشان تتفلتر بسهولة في الـ console.
-/// دي logs تشخيصية مؤقتة، هنقللها بعد ما نتأكد كل حاجة شغالة.
+
 class PushNotificationService {
   PushNotificationService._internal();
 
@@ -35,7 +18,6 @@ class PushNotificationService {
 
   static const String _androidChannelId = 'mivet_default_channel';
 
-  /// لازم تتنادى مرة واحدة بس، بدري في main() قبل runApp.
   Future<void> initializeLocalNotifications() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidInit);
@@ -52,14 +34,11 @@ class PushNotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
-    // إشعار جاي والتطبيق مفتوح قدام المستخدم فعليًا.
     FirebaseMessaging.onMessage.listen(_showLocalNotification);
     debugPrint('[Push] initializeLocalNotifications: خلصت بنجاح');
   }
 
-  /// لازم تتنادى بعد ما اليوزر يسجّل دخول بنجاح (أو لما جلسة محفوظة
-  /// ترجع تلقائيًا) — بتطلب الإذن (لو محتاج) وتسجّل الـ token في
-  /// Supabase عشان يبقى معروف نبعتله.
+
   Future<void> registerDeviceForCurrentUser() async {
     debugPrint('[Push] registerDeviceForCurrentUser: بدأت');
     try {
@@ -94,7 +73,6 @@ class PushNotificationService {
 
       await _saveToken(token);
 
-      // التوكن بيتغيّر أحيانًا (إعادة تثبيت، مسح بيانات...)، فلازم نتابعه.
       _messaging.onTokenRefresh.listen((newToken) {
         debugPrint('[Push] onTokenRefresh: token جديد وصل');
         _saveToken(newToken);
@@ -135,8 +113,7 @@ class PushNotificationService {
     }
   }
 
-  /// لو المستخدم عمل logout، الأفضل نمسح الـ token بتاع الجهاز ده من
-  /// الجدول عشان ميوصلوش إشعارات وهو مش مسجّل دخول.
+
   Future<void> unregisterDevice() async {
     final token = await _messaging.getToken();
     if (token == null) return;
@@ -146,7 +123,6 @@ class PushNotificationService {
           .delete()
           .eq('token', token);
     } catch (_) {
-      // مش حرجة — لو فشلت، الـ token هيتحدّث/يتمسح لوحده مع الوقت.
     }
   }
 
@@ -169,13 +145,9 @@ class PushNotificationService {
     );
   }
 
-  /// المفروض تكون top-level أو static (مش closure) عشان Flutter يقدر
-  /// يناديها من عملية منفصلة (isolate) لما التطبيق يكون مقفول تمامًا.
+
   @pragma('vm:entry-point')
   static Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
-    // مفيش حاجة لازم نعملها هنا فعليًا — النظام (أندرويد/آيفون) بيعرض
-    // الإشعار الجاهز من جوه الـ "notification" payload لوحده حتى لو
-    // التطبيق مقفول. الدالة دي مطلوبة كـ registration بس عشان FCM
-    // يقدر يوقظ التطبيق في الخلفية لو احتاج.
+  
   }
 }
