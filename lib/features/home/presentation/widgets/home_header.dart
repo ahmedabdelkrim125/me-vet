@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/const/app_images.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/arabic_date_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../notification/domain/models/app_notification_model.dart';
 import '../../../notification/domain/notification_repository.dart';
 import '../../../notification/presentation/screens/notifications_screen.dart';
-import '../../../rep_session/data/rep_session_store.dart';
+import '../cubit/home_cubit.dart';
 
 class HomeHeader extends StatefulWidget {
   const HomeHeader({super.key});
@@ -18,25 +20,17 @@ class HomeHeader extends StatefulWidget {
 }
 
 class _HomeHeaderState extends State<HomeHeader> {
-  String? _repName;
-
   @override
   void initState() {
     super.initState();
-    _loadActiveRep();
     NotificationRepository.instance.initialize();
-  }
-
-  Future<void> _loadActiveRep() async {
-    final rep = await RepSessionStore.instance.getActiveRep();
-    if (!mounted) return;
-    setState(() => _repName = rep?.name);
   }
 
   @override
   Widget build(BuildContext context) {
+    final userName = context.watch<AuthCubit>().state.user?.name;
     final greeting =
-        _repName == null ? arabicGreeting() : '${arabicGreeting()}، $_repName';
+        userName == null ? arabicGreeting() : '${arabicGreeting()}، $userName';
 
     return Row(
       children: [
@@ -47,8 +41,7 @@ class _HomeHeaderState extends State<HomeHeader> {
             padding: EdgeInsets.only(left: 10.w),
             child: Image.asset(
               AppImages.logoSplash,
-              height: 100.h,
-              width: 100.w,
+              height: 52.h,
             ),
           ),
         ),
@@ -73,7 +66,8 @@ class _HomeHeaderState extends State<HomeHeader> {
         const Spacer(),
         _ActionButton(
           icon: HugeIcons.strokeRoundedRefresh,
-          onTap: () {},
+          onTap: () =>
+              context.read<HomeCubit>().loadWeeklySummary(forceRefresh: true),
         ),
         SizedBox(width: 12.w),
         ValueListenableBuilder<List<AppNotificationModel>>(

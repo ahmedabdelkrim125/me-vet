@@ -189,8 +189,7 @@ class MockDailyReportRepository {
       final invoices =
           CustomersRepository.instance.getAllInvoicesInRange(day, nextDay);
       // TODO(perf): ده بيعمل query منفصل لكل يوم (30 يوم = 30 request).
-      // لما نهاجر invoices/collections بالكامل، الأحسن نجيب المدى كله
-      // بـ query واحد ونقسّمه محليًا بدل اللوب ده.
+      
       final collections = await CustomersRepository.instance
           .getAllCollectionsInRange(day, nextDay);
       final visitsCompleted = TodayRouteController

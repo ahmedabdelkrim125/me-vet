@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/arabic_date_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
-/// A small, self-contained clock — updates every second on its own so the
-/// date and time on this screen never need to be entered by hand.
+
 class LiveDateTimeCard extends StatefulWidget {
   const LiveDateTimeCard({super.key});
 

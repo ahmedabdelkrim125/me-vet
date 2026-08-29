@@ -9,16 +9,6 @@ import '../domain/models/customer_model.dart';
 import '../domain/models/customer_status.dart';
 import '../domain/models/invoice_record_model.dart';
 
-/// Supabase-backed customers repository — بيحل محل `CustomersRepository`.
-///
-/// الهجرة بتحصل على مرحلتين:
-/// - بيانات العميل نفسه (الاسم، الحالة، الرصيد، حد الائتمان...) → جدول
-///   `customers` في Supabase. مشترك بين كل الأجهزة ومحكوم بـ RLS: كل مندوب
-///   يشوف/يعدّل عملاءه بس، والأونر يشوف الكل.
-/// - الفواتير والتحصيلات (getInvoices/addInvoice/getAllInvoicesInRange)
-///   لسه محلية مؤقتًا (SharedPreferences) لحد ما نشتغل على فيتشر الفواتير
-///   ويتهاجر جدولي `invoices`/`collections` هما كمان. الميثودز دي متعلّم
-///   عليها TODO تحت وواضح إنها مرحلة انتقالية.
 class CustomersRepository {
   CustomersRepository._internal();
 
@@ -49,8 +39,7 @@ class CustomersRepository {
     _initialized = true;
   }
 
-  /// يعيد تحميل قائمة العملاء من Supabase (يُستخدم داخليًا بعد أي تعديل،
-  /// ومتاح كمان لو حابب تعمل pull-to-refresh من الشاشة).
+  
   Future<void> refresh() => _fetchCustomers();
 
   Future<void> _fetchCustomers() async {
@@ -136,9 +125,6 @@ class CustomersRepository {
   }
 
   // ---------------------------------------------------------------------
-  // TODO(invoices-feature): الجزء ده هيتنقل لجدول `invoices` في Supabase
-  // لما نشتغل على فرع الفواتير. لحد وقتها لسه محلي (SharedPreferences)
-  // بالظبط زي ما كان في CustomersRepository.
   // ---------------------------------------------------------------------
 
   Future<void> addInvoice(String customerId, InvoiceRecordModel invoice) async {
