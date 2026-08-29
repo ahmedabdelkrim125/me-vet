@@ -107,30 +107,33 @@ class StatCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8.h),
-          Row(
-            children: [
-              Text(
-                '▲ ${stat.trendPercent}%',
-                style: AppTextStyles.almaraiRegular14.copyWith(
-                  color: AppColors.primaryGreen,
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(width: 4.w),
-              Expanded(
-                child: Text(
-                  'عن الشهر الماضي',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          if (stat.showTrend)
+            Row(
+              children: [
+                Text(
+                  '${stat.trendPercent < 0 ? '▼' : '▲'} ${stat.trendPercent.abs().toStringAsFixed(0)}%',
                   style: AppTextStyles.almaraiRegular14.copyWith(
-                    color: context.colors.textMuted,
-                    fontSize: 9.sp,
+                    color: stat.trendPercent < 0
+                        ? context.colors.statusNotReached
+                        : AppColors.primaryGreen,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ],
-          ),
+                SizedBox(width: 4.w),
+                Expanded(
+                  child: Text(
+                    'عن الأسبوع الماضي',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.almaraiRegular14.copyWith(
+                      color: context.colors.textMuted,
+                      fontSize: 9.sp,
+                    ),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
