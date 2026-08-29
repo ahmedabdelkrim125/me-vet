@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/notifications/push_notification_service.dart';
+import '../../../home/data/home_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
 
@@ -62,6 +64,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> signOut() async {
     await PushNotificationService.instance.unregisterDevice();
+    sl<HomeRepository>().clearCache();
     await _repository.signOut();
     emit(state.copyWith(status: AuthStatus.unauthenticated, user: null));
   }
