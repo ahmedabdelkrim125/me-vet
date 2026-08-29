@@ -57,6 +57,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // مطلوبة صراحة لـ flutter_local_notifications على أندرويد —
+        // من غيرها البيلد بيفشل بـ "requires core library desugaring".
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -69,6 +72,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -76,6 +80,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    // مكتبة الـ desugaring نفسها — بتديله دعم Java 8+ APIs على نسخ
+    // أندرويد الأقدم، وده اللي flutter_local_notifications محتاجه.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 flutter {
