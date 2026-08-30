@@ -19,9 +19,8 @@ class DailySummarySection extends StatelessWidget {
     return BlocBuilder<HomeCubit, HomeState>(
       builder: (context, state) {
         final isLoading = state is HomeLoading || state is HomeInitial;
-        final stats = state is HomeLoaded
-            ? _statsFor(state.summary)
-            : _placeholderStats;
+        final stats =
+            state is HomeLoaded ? _statsFor(state.summary) : _placeholderStats;
 
         return Skeletonizer(
           enabled: isLoading,

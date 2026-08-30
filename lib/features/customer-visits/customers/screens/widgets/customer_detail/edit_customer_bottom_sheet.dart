@@ -5,7 +5,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../domain/models/customer_model.dart';
-import 'customer_form_widgets.dart';
+import '../customers_list_view/customer_form_widgets.dart';
 
 Future<CustomerModel?> showEditCustomerBottomSheet(
   BuildContext context, {

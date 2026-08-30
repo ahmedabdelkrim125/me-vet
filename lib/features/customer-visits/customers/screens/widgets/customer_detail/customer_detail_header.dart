@@ -32,7 +32,8 @@ class CustomerDetailHeader extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('حذف العميل؟'),
-        content: Text('هيتحذف "${customer.name}" نهائيًا. الإجراء ده مش قابل للتراجع.'),
+        content: Text(
+            'هيتحذف "${customer.name}" نهائيًا. الإجراء ده مش قابل للتراجع.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -99,7 +100,8 @@ class CustomerDetailHeader extends StatelessWidget {
               if (value == 'delete') _deleteCustomer(context);
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'edit', child: Text('تعديل بيانات العميل')),
+              const PopupMenuItem(
+                  value: 'edit', child: Text('تعديل بيانات العميل')),
               const PopupMenuItem(
                 value: 'delete',
                 child: Text('حذف العميل', style: TextStyle(color: Colors.red)),

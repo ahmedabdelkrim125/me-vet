@@ -8,7 +8,8 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../features/auth/domain/models/user_profile.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 
-Future<bool> confirmIdentity(BuildContext context, {required String actionLabel}) async {
+Future<bool> confirmIdentity(BuildContext context,
+    {required String actionLabel}) async {
   final isOwner = context.read<AuthCubit>().state.user?.role == UserRole.owner;
   final result = await showDialog<bool>(
     context: context,
@@ -127,8 +128,8 @@ class _ReauthDialogState extends State<_ReauthDialog> {
         ),
         ElevatedButton(
           onPressed: _isVerifying ? null : _verify,
-          style:
-              ElevatedButton.styleFrom(backgroundColor: colors.statusNotReached),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: colors.statusNotReached),
           child: _isVerifying
               ? SizedBox(
                   width: 18.w,

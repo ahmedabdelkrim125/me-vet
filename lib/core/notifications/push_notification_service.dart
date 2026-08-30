@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
 class PushNotificationService {
   PushNotificationService._internal();
 
@@ -37,7 +36,6 @@ class PushNotificationService {
     FirebaseMessaging.onMessage.listen(_showLocalNotification);
     debugPrint('[Push] initializeLocalNotifications: خلصت بنجاح');
   }
-
 
   Future<void> registerDeviceForCurrentUser() async {
     debugPrint('[Push] registerDeviceForCurrentUser: بدأت');
@@ -94,25 +92,22 @@ class PushNotificationService {
 
     debugPrint('[Push] _saveToken: هحفظ token للـ user_id=$userId');
     try {
-      final result = await Supabase.instance.client
-          .from('device_push_tokens')
-          .upsert(
-            {
-              'user_id': userId,
-              'token': token,
-              'platform': Platform.isIOS ? 'ios' : 'android',
-              'updated_at': DateTime.now().toIso8601String(),
-            },
-            onConflict: 'token',
-          )
-          .select();
+      final result =
+          await Supabase.instance.client.from('device_push_tokens').upsert(
+        {
+          'user_id': userId,
+          'token': token,
+          'platform': Platform.isIOS ? 'ios' : 'android',
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        onConflict: 'token',
+      ).select();
       debugPrint('[Push] _saveToken: نجح الحفظ — النتيجة: $result');
     } catch (e, stack) {
       debugPrint('[Push] _saveToken: فشل الحفظ — $e');
       debugPrint('[Push] Stack trace: $stack');
     }
   }
-
 
   Future<void> unregisterDevice() async {
     final token = await _messaging.getToken();
@@ -122,8 +117,7 @@ class PushNotificationService {
           .from('device_push_tokens')
           .delete()
           .eq('token', token);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void _showLocalNotification(RemoteMessage message) {
@@ -145,9 +139,6 @@ class PushNotificationService {
     );
   }
 
-
   @pragma('vm:entry-point')
-  static Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
-  
-  }
+  static Future<void> firebaseBackgroundHandler(RemoteMessage message) async {}
 }
