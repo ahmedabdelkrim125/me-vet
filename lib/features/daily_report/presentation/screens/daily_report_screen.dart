@@ -84,12 +84,12 @@ class _DailyReportBody extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(report.periodType.label,
-                            style: AppTextStyles.cairoBold18
-                                .copyWith(color: Colors.white, fontSize: 16.sp)),
+                            style: AppTextStyles.cairoBold18.copyWith(
+                                color: Colors.white, fontSize: 16.sp)),
                         SizedBox(height: 6.h),
                         Text('المندوب: ${report.repName}',
-                            style: AppTextStyles.almaraiRegular14
-                                .copyWith(color: Colors.white70, fontSize: 12.sp)),
+                            style: AppTextStyles.almaraiRegular14.copyWith(
+                                color: Colors.white70, fontSize: 12.sp)),
                         Text(
                           'العربية: ${report.vehiclePlateNumber} — ${report.vehicleDriverName}',
                           style: AppTextStyles.almaraiRegular14
@@ -108,7 +108,8 @@ class _DailyReportBody extends StatelessWidget {
                   ReportPeriodTabs(
                     availablePeriods: state.timeline.availablePeriods,
                     selected: state.selectedPeriod,
-                    onChanged: (p) => context.read<DailyReportCubit>().selectPeriod(p),
+                    onChanged: (p) =>
+                        context.read<DailyReportCubit>().selectPeriod(p),
                   ),
                   SizedBox(height: 16.h),
                   ClientStatsCard(stats: report.clientStats),
@@ -128,8 +129,10 @@ class _DailyReportBody extends StatelessWidget {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(14.r),
                             onTap: () async {
-                              final bytes = await ReportPdfBuilder.build(report);
-                              await Printing.layoutPdf(onLayout: (_) async => bytes);
+                              final bytes =
+                                  await ReportPdfBuilder.build(report);
+                              await Printing.layoutPdf(
+                                  onLayout: (_) async => bytes);
                             },
                             child: Container(
                               alignment: Alignment.center,
@@ -142,7 +145,9 @@ class _DailyReportBody extends StatelessWidget {
                                   SizedBox(width: 8.w),
                                   Text('طباعة',
                                       style: AppTextStyles.cairoMedium16
-                                          .copyWith(color: Colors.white, fontSize: 13.sp)),
+                                          .copyWith(
+                                              color: Colors.white,
+                                              fontSize: 13.sp)),
                                 ],
                               ),
                             ),
@@ -157,10 +162,12 @@ class _DailyReportBody extends StatelessWidget {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(14.r),
                             onTap: () async {
-                              final bytes = await ReportPdfBuilder.build(report);
+                              final bytes =
+                                  await ReportPdfBuilder.build(report);
                               await Printing.sharePdf(
                                 bytes: bytes,
-                                filename: 'report_${report.periodType.name}.pdf',
+                                filename:
+                                    'report_${report.periodType.name}.pdf',
                               );
                             },
                             child: Container(
@@ -174,7 +181,9 @@ class _DailyReportBody extends StatelessWidget {
                                   SizedBox(width: 8.w),
                                   Text('تصدير PDF',
                                       style: AppTextStyles.cairoMedium16
-                                          .copyWith(color: colors.primary, fontSize: 13.sp)),
+                                          .copyWith(
+                                              color: colors.primary,
+                                              fontSize: 13.sp)),
                                 ],
                               ),
                             ),

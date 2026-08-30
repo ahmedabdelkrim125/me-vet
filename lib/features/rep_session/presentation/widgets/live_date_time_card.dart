@@ -6,7 +6,6 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/arabic_date_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
-
 class LiveDateTimeCard extends StatefulWidget {
   const LiveDateTimeCard({super.key});
 

@@ -72,8 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     valueListenable: _routeController.stopsNotifier,
                     builder: (context, stops, _) {
                       final totalVisits = _routeController.totalVisits;
-                      final completedVisits =
-                          _routeController.completedVisits;
+                      final completedVisits = _routeController.completedVisits;
 
                       return RouteProgressCard(
                         routeName: 'خطة زياراتك اليوم',
@@ -109,4 +108,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-

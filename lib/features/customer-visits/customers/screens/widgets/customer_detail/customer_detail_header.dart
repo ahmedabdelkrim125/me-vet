@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:mivet_app/core/auth/reauth_dialog.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
@@ -8,11 +9,56 @@ import '../../../data/customers_repository.dart';
 import '../../../domain/models/customer_model.dart';
 import '../../../domain/models/customer_status.dart';
 import '../customers_list_view/customer_status_style.dart';
+import 'edit_customer_bottom_sheet.dart';
 
 class CustomerDetailHeader extends StatelessWidget {
   final CustomerModel customer;
 
   const CustomerDetailHeader({super.key, required this.customer});
+
+  Future<void> _editCustomer(BuildContext context) async {
+    final updated =
+        await showEditCustomerBottomSheet(context, customer: customer);
+    if (updated == null) return;
+    try {
+      await CustomersRepository.instance.updateCustomer(updated);
+    } catch (e) {
+      if (context.mounted) showAppError(context, e);
+    }
+  }
+
+  Future<void> _deleteCustomer(BuildContext context) async {
+    final confirmedDelete = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حذف العميل؟'),
+        content: Text(
+            'هيتحذف "${customer.name}" نهائيًا. الإجراء ده مش قابل للتراجع.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmedDelete != true || !context.mounted) return;
+
+    final identityConfirmed =
+        await confirmIdentity(context, actionLabel: 'حذف "${customer.name}"');
+    if (!identityConfirmed || !context.mounted) return;
+
+    try {
+      await CustomersRepository.instance.deleteCustomer(customer.id);
+      if (context.mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (context.mounted) showAppError(context, e);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +92,23 @@ class CustomerDetailHeader extends StatelessWidget {
               ],
             ),
           ),
+          PopupMenuButton<String>(
+            icon: Icon(CupertinoIcons.ellipsis_vertical,
+                color: context.colors.textMuted, size: 20.sp),
+            onSelected: (value) {
+              if (value == 'edit') _editCustomer(context);
+              if (value == 'delete') _deleteCustomer(context);
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                  value: 'edit', child: Text('تعديل بيانات العميل')),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Text('حذف العميل', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+          SizedBox(width: 4.w),
           PopupMenuButton<CustomerStatus>(
             icon: Container(
               padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),

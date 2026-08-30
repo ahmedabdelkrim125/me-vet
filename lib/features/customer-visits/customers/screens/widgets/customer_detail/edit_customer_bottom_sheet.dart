@@ -5,38 +5,56 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../domain/models/customer_model.dart';
-import '../../../domain/models/customer_status.dart';
-import 'customer_form_widgets.dart';
+import '../customers_list_view/customer_form_widgets.dart';
 
-Future<CustomerModel?> showAddCustomerBottomSheet(BuildContext context) {
+Future<CustomerModel?> showEditCustomerBottomSheet(
+  BuildContext context, {
+  required CustomerModel customer,
+}) {
   return showModalBottomSheet<CustomerModel>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => const _AddCustomerBottomSheet(),
+    builder: (context) => _EditCustomerBottomSheet(customer: customer),
   );
 }
 
-class _AddCustomerBottomSheet extends StatefulWidget {
-  const _AddCustomerBottomSheet();
+class _EditCustomerBottomSheet extends StatefulWidget {
+  final CustomerModel customer;
+
+  const _EditCustomerBottomSheet({required this.customer});
 
   @override
-  State<_AddCustomerBottomSheet> createState() =>
-      _AddCustomerBottomSheetState();
+  State<_EditCustomerBottomSheet> createState() =>
+      _EditCustomerBottomSheetState();
 }
 
-class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
+class _EditCustomerBottomSheetState extends State<_EditCustomerBottomSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _creditLimitController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _addressController;
+  late final TextEditingController _creditLimitController;
 
-  int _selectedCategory = 0;
-
+  late int _selectedCategory;
   double? _latitude;
   double? _longitude;
   bool _isLocating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final customer = widget.customer;
+    _nameController = TextEditingController(text: customer.name);
+    _phoneController = TextEditingController(text: customer.phone);
+    _addressController = TextEditingController(text: customer.address);
+    _creditLimitController =
+        TextEditingController(text: customer.creditLimit.toStringAsFixed(0));
+    _selectedCategory = customerCategories.indexOf(customer.category);
+    if (_selectedCategory == -1) _selectedCategory = 0;
+    _latitude = customer.latitude;
+    _longitude = customer.longitude;
+  }
 
   @override
   void dispose() {
@@ -79,14 +97,10 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    final customer = CustomerModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    final updated = widget.customer.copyWith(
       name: _nameController.text.trim(),
-      code: 'C-${1000 + DateTime.now().second}',
       area: _addressController.text.trim(),
       category: customerCategories[_selectedCategory],
-      status: CustomerStatus.needsFollowUp,
-      visitsThisMonth: 0,
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
       creditLimit: double.tryParse(_creditLimitController.text.trim()) ?? 0,
@@ -94,7 +108,7 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
       longitude: _longitude,
     );
 
-    Navigator.of(context).pop(customer);
+    Navigator.of(context).pop(updated);
   }
 
   @override
@@ -126,7 +140,7 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
                 ),
                 SizedBox(height: 16.h),
                 Text(
-                  'إضافة عميل جديد',
+                  'تعديل بيانات العميل',
                   style: AppTextStyles.cairoBold18
                       .copyWith(color: context.colors.text, fontSize: 16.sp),
                 ),
@@ -199,7 +213,7 @@ class _AddCustomerBottomSheetState extends State<_AddCustomerBottomSheet> {
                       alignment: Alignment.center,
                       padding: EdgeInsets.symmetric(vertical: 15.h),
                       child: Text(
-                        'حفظ العميل',
+                        'حفظ التعديلات',
                         style: AppTextStyles.cairoMedium16
                             .copyWith(color: Colors.white, fontSize: 14.sp),
                       ),

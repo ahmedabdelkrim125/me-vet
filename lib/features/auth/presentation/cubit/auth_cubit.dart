@@ -27,7 +27,8 @@ class AuthCubit extends Cubit<AuthState> {
       // (INITIAL_SESSION).
       if (user != null) {
         debugPrint('[Push] هنادي registerDeviceForCurrentUser دلوقتي');
-        unawaited(PushNotificationService.instance.registerDeviceForCurrentUser());
+        unawaited(
+            PushNotificationService.instance.registerDeviceForCurrentUser());
       }
     });
   }

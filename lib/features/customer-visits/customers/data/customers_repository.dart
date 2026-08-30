@@ -39,7 +39,6 @@ class CustomersRepository {
     _initialized = true;
   }
 
-  
   Future<void> refresh() => _fetchCustomers();
 
   Future<void> _fetchCustomers() async {
@@ -75,6 +74,25 @@ class CustomersRepository {
     await _supabase
         .from('customers')
         .update({'status': status.dbValue}).eq('id', customerId);
+    await _fetchCustomers();
+  }
+
+  Future<void> updateCustomer(CustomerModel customer) async {
+    await _supabase.from('customers').update({
+      'name': customer.name,
+      'area': customer.area,
+      'category': customer.category,
+      'phone': customer.phone,
+      'address': customer.address,
+      'credit_limit': customer.creditLimit,
+      'latitude': customer.latitude,
+      'longitude': customer.longitude,
+    }).eq('id', customer.id);
+    await _fetchCustomers();
+  }
+
+  Future<void> deleteCustomer(String customerId) async {
+    await _supabase.from('customers').delete().eq('id', customerId);
     await _fetchCustomers();
   }
 
