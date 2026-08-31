@@ -1,12 +1,14 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../../customer-visits/customers/data/invoices_repository.dart';
 import '../../../customer-visits/customers/domain/models/invoice_line_input.dart';
@@ -19,8 +21,6 @@ import '../../domain/models/quick_invoice_models.dart';
 /// ---------------------------------------------------------------------
 /// Repository-backed data sources
 /// ---------------------------------------------------------------------
-
-const _currentRepName = 'أحمد محمود';
 
 List<InvoiceCustomerModel> _customersFromRepository() {
   return CustomersRepository.instance.customers
@@ -85,6 +85,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   DateTime now = DateTime.now();
   late DateTime invoiceDate = DateTime(now.year, now.month, now.day);
   String saleType = 'آجل';
+
+  String get _currentRepName =>
+      context.read<AuthCubit>().state.user?.name ?? 'المندوب';
 
   InvoiceCustomerModel? customer;
   final List<InvoiceLineItemModel> lineItems = [];
@@ -344,7 +347,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _RepChip(name: _currentRepName),
+                    _RepChip(name: _currentRepName),
                     SizedBox(height: 14.h),
                     _SectionCard(
                       child: customer == null
