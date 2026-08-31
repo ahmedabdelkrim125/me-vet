@@ -12,6 +12,7 @@ class CustomerModel {
   final int visitsThisMonth;
   final String phone;
   final String address;
+  final String notes;
   final double creditLimit;
   final double currentBalance;
   final DateTime? lastCollectionDate;
@@ -32,6 +33,7 @@ class CustomerModel {
     required this.visitsThisMonth,
     this.phone = '',
     this.address = '',
+    this.notes = '',
     this.creditLimit = 0,
     this.currentBalance = 0,
     this.lastCollectionDate,
@@ -52,6 +54,7 @@ class CustomerModel {
     int? visitsThisMonth,
     String? phone,
     String? address,
+    String? notes,
     double? creditLimit,
     double? currentBalance,
     DateTime? lastCollectionDate,
@@ -69,6 +72,7 @@ class CustomerModel {
       visitsThisMonth: visitsThisMonth ?? this.visitsThisMonth,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      notes: notes ?? this.notes,
       creditLimit: creditLimit ?? this.creditLimit,
       currentBalance: currentBalance ?? this.currentBalance,
       lastCollectionDate: lastCollectionDate ?? this.lastCollectionDate,
@@ -89,6 +93,7 @@ class CustomerModel {
       'visitsThisMonth': visitsThisMonth,
       'phone': phone,
       'address': address,
+      'notes': notes,
       'creditLimit': creditLimit,
       'currentBalance': currentBalance,
       'lastCollectionDate': lastCollectionDate?.toIso8601String(),
@@ -112,6 +117,7 @@ class CustomerModel {
       visitsThisMonth: json['visitsThisMonth'] as int,
       phone: json['phone'] as String? ?? '',
       address: json['address'] as String? ?? '',
+      notes: json['notes'] as String? ?? '',
       creditLimit: (json['creditLimit'] as num?)?.toDouble() ?? 0,
       currentBalance: (json['currentBalance'] as num?)?.toDouble() ?? 0,
       lastCollectionDate: json['lastCollectionDate'] == null
@@ -145,6 +151,7 @@ class CustomerModel {
       visitsThisMonth: 0,
       phone: row['phone'] as String? ?? '',
       address: row['address'] as String? ?? '',
+      notes: row['notes'] as String? ?? '',
       creditLimit: (row['credit_limit'] as num?)?.toDouble() ?? 0,
       currentBalance: (row['current_balance'] as num?)?.toDouble() ?? 0,
       lastCollectionDate: row['last_collection_date'] == null
@@ -166,6 +173,7 @@ class CustomerModel {
       'status': status.dbValue,
       'phone': phone,
       'address': address,
+      'notes': notes,
       'credit_limit': creditLimit,
       'current_balance': currentBalance,
       if (latitude != null) 'latitude': latitude,

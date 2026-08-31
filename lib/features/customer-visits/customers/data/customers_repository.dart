@@ -78,6 +78,13 @@ class CustomersRepository {
     await _fetchCustomers();
   }
 
+  Future<void> updateCustomerNotes(String customerId, String notes) async {
+    await _supabase
+        .from('customers')
+        .update({'notes': notes}).eq('id', customerId);
+    await _fetchCustomers();
+  }
+
   Future<void> deleteCustomer(String customerId) async {
     await _supabase.from('customers').delete().eq('id', customerId);
     await _fetchCustomers();
