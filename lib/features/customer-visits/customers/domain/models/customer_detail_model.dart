@@ -65,7 +65,7 @@ class CustomerDetailModel {
       topProducts: const [],
       notBoughtRecently: const [],
       seasonalSuggestions: const [],
-      notes: '',
+      notes: customer.notes,
       invoices: const [],
     );
   }

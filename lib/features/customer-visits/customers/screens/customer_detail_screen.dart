@@ -85,7 +85,10 @@ class CustomerDetailScreen extends StatelessWidget {
                       CustomerSeasonalSuggestionsSection(
                           suggestions: detail.seasonalSuggestions),
                       SizedBox(height: 16.h),
-                      CustomerNotesSection(initialNotes: detail.notes),
+                      CustomerNotesSection(
+                        customerId: currentCustomer.id,
+                        initialNotes: detail.notes,
+                      ),
                       SizedBox(height: 16.h),
                       CustomerVisitHistorySection(
                           customerId: currentCustomer.id),
