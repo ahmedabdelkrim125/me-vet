@@ -44,4 +44,25 @@ class InvoiceRecordModel {
       ),
     );
   }
+
+  factory InvoiceRecordModel.fromSupabaseRow(Map<String, dynamic> row) {
+    return InvoiceRecordModel(
+      code: row['code'] as String,
+      date: DateTime.parse(row['invoice_date'] as String),
+      amount: (row['total_amount'] as num).toDouble(),
+      status: _statusFromDb(row['status'] as String?),
+    );
+  }
+}
+
+InvoiceStatus _statusFromDb(String? value) {
+  switch (value) {
+    case 'paid':
+      return InvoiceStatus.paid;
+    case 'partial':
+      return InvoiceStatus.partial;
+    case 'deferred':
+    default:
+      return InvoiceStatus.deferred;
+  }
 }
