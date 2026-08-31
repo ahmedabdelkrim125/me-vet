@@ -8,8 +8,8 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import '../../../customer-visits/customers/data/customers_repository.dart';
-import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
-import '../../../customer-visits/customers/domain/models/invoice_record_model.dart';
+import '../../../customer-visits/customers/data/invoices_repository.dart';
+import '../../../customer-visits/customers/domain/models/invoice_line_input.dart';
 import '../../../inventory/domain/mock_inventory_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
 import '../../../inventory/domain/models/product_unit.dart';
@@ -38,18 +38,7 @@ InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
 }
 
 List<PastInvoiceSummaryModel> _statementFor(InvoiceCustomerModel invoice) {
-  final records = CustomersRepository.instance
-      .getInvoices(invoice.customer.id)
-      .take(6)
-      .toList();
-  return records
-      .map((r) => PastInvoiceSummaryModel(
-            invoiceNumber: r.code,
-            date: r.date,
-            total: r.amount,
-            status: r.status.label,
-          ))
-      .toList();
+  return const [];
 }
 
 /// ---------------------------------------------------------------------
@@ -242,29 +231,25 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
       final customerId = customer!.customer.id;
 
-      await CustomersRepository.instance.adjustBalance(
-        customerId,
-        total - paid,
-        isCollection: paid > 0,
-        collectedAmount: paid > 0 ? paid : null,
-        collectionSource: CollectionSource.newInvoicePayment,
+      await InvoicesRepository.instance.issueInvoice(
+        customerId: customerId,
+        items: lineItems
+            .map((item) => InvoiceLineInput(
+                  productId: item.product.id,
+                  productName: item.product.name,
+                  unitPrice: item.product.price,
+                  quantity: item.quantity,
+                ))
+            .toList(),
+        discountPercent: discountPercent,
+        isCashSale: !isDeferredSale,
+        paidNow: paid,
+        notes: notesController.text.trim().isEmpty
+            ? null
+            : notesController.text.trim(),
       );
 
-      final status = paid >= total
-          ? InvoiceStatus.paid
-          : paid > 0
-              ? InvoiceStatus.partial
-              : InvoiceStatus.deferred;
-
-      await CustomersRepository.instance.addInvoice(
-        customerId,
-        InvoiceRecordModel(
-          code: invoiceNumber,
-          date: invoiceDate,
-          amount: total,
-          status: status,
-        ),
-      );
+      await CustomersRepository.instance.refresh();
     } catch (e) {
       if (mounted) {
         setState(() => _isIssuing = false);

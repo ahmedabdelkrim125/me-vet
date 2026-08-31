@@ -1,13 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/models/collection_record_model.dart';
 import '../domain/models/customer_model.dart';
 import '../domain/models/customer_status.dart';
-import '../domain/models/invoice_record_model.dart';
 
 class CustomersRepository {
   CustomersRepository._internal();
@@ -16,13 +12,9 @@ class CustomersRepository {
 
   SupabaseClient get _supabase => Supabase.instance.client;
 
-  static const String _invoicesStorageKey = 'mock_customer_invoices';
-
   final List<CustomerModel> _customers = [];
   final ValueNotifier<List<CustomerModel>> customersNotifier =
       ValueNotifier<List<CustomerModel>>(<CustomerModel>[]);
-
-  final Map<String, List<InvoiceRecordModel>> _invoicesByCustomer = {};
 
   bool _initialized = false;
 
@@ -31,14 +23,10 @@ class CustomersRepository {
   Future<void> initialize() async {
     if (_initialized) return;
     await _fetchCustomers();
-
-    // TODO(invoices-feature): هتتشال لما invoices تتهاجر لـ Supabase.
-    final prefs = await SharedPreferences.getInstance();
-    _loadInvoices(prefs);
-
     _initialized = true;
   }
 
+  
   Future<void> refresh() => _fetchCustomers();
 
   Future<void> _fetchCustomers() async {
@@ -56,7 +44,6 @@ class CustomersRepository {
   Future<void> resetForTests() async {
     _initialized = false;
     _customers.clear();
-    _invoicesByCustomer.clear();
     customersNotifier.value = <CustomerModel>[];
   }
 
@@ -140,59 +127,6 @@ class CustomersRepository {
 
   int countForStatus(CustomerStatus? status) {
     return getCustomers(status: status).length;
-  }
-
-  // ---------------------------------------------------------------------
-  // ---------------------------------------------------------------------
-
-  Future<void> addInvoice(String customerId, InvoiceRecordModel invoice) async {
-    final list = _invoicesByCustomer.putIfAbsent(customerId, () => []);
-    list.insert(0, invoice);
-    final prefs = await SharedPreferences.getInstance();
-    await _persistInvoices(prefs);
-  }
-
-  List<InvoiceRecordModel> getInvoices(String customerId) {
-    return List<InvoiceRecordModel>.from(
-        _invoicesByCustomer[customerId] ?? const []);
-  }
-
-  /// متوسط قيمة الفاتورة لعميل معين، أو صفر لو مفيش فواتير مسجلة له لسه.
-  double getAverageOrder(String customerId) {
-    final invoices = _invoicesByCustomer[customerId];
-    if (invoices == null || invoices.isEmpty) return 0;
-    final total = invoices.fold<double>(0, (sum, inv) => sum + inv.amount);
-    return total / invoices.length;
-  }
-
-  List<InvoiceRecordModel> getAllInvoicesInRange(DateTime start, DateTime end) {
-    final result = <InvoiceRecordModel>[];
-    for (final list in _invoicesByCustomer.values) {
-      result.addAll(
-        list.where(
-            (inv) => !inv.date.isBefore(start) && inv.date.isBefore(end)),
-      );
-    }
-    return result;
-  }
-
-  void _loadInvoices(SharedPreferences prefs) {
-    final raw = prefs.getString(_invoicesStorageKey);
-    _invoicesByCustomer.clear();
-    if (raw == null || raw.isEmpty) return;
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    decoded.forEach((customerId, list) {
-      _invoicesByCustomer[customerId] = (list as List)
-          .map((e) => InvoiceRecordModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-    });
-  }
-
-  Future<void> _persistInvoices(SharedPreferences prefs) async {
-    final encoded = _invoicesByCustomer.map(
-      (key, value) => MapEntry(key, value.map((e) => e.toJson()).toList()),
-    );
-    await prefs.setString(_invoicesStorageKey, jsonEncode(encoded));
   }
 
   // ---------------------------------------------------------------------

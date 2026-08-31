@@ -1,4 +1,5 @@
 import '../../customer-visits/customers/data/customers_repository.dart';
+import '../../customer-visits/customers/data/invoices_repository.dart';
 import '../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../customer-visits/customers/domain/today_route_controller.dart';
 import '../../customer-visits/customers/domain/models/visit_status.dart';
@@ -95,8 +96,8 @@ class MockDailyReportRepository {
     );
 
     // --- Cash settlement ---
-    final invoices = CustomersRepository.instance
-        .getAllInvoicesInRange(bounds.start, bounds.end);
+    final invoices = await InvoicesRepository.instance
+        .getInvoicesInRange(bounds.start, bounds.end);
     final collections = await CustomersRepository.instance
         .getAllCollectionsInRange(bounds.start, bounds.end);
 
@@ -186,10 +187,8 @@ class MockDailyReportRepository {
           DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
       final nextDay = day.add(const Duration(days: 1));
 
-      final invoices =
-          CustomersRepository.instance.getAllInvoicesInRange(day, nextDay);
-      // TODO(perf): ده بيعمل query منفصل لكل يوم (30 يوم = 30 request).
-
+      final invoices = await InvoicesRepository.instance
+          .getInvoicesInRange(day, nextDay);
       final collections = await CustomersRepository.instance
           .getAllCollectionsInRange(day, nextDay);
       final visitsCompleted = TodayRouteController
