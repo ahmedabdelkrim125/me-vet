@@ -18,8 +18,6 @@ class CustomerModel {
   final DateTime? lastCollectionDate;
   final double averageOrder;
 
-  /// إحداثيات دقيقة (GPS) لموقع العميل — لو null يبقى العنوان اتكتب يدوي
-  /// من غير تحديد موقع، و"الموقع" في التفاصيل هيدور بالاسم مش الإحداثيات.
   final double? latitude;
   final double? longitude;
 
@@ -163,8 +161,6 @@ class CustomerModel {
     );
   }
 
-  /// يجهّز الحقول اللي تُكتب فعليًا عند إضافة عميل جديد. `id` و `code`
-  /// متعمّدين مش موجودين — الداتابيز بتولّدهم (uuid + trigger الكود التلقائي).
   Map<String, dynamic> toSupabaseInsert() {
     return {
       'name': name,
