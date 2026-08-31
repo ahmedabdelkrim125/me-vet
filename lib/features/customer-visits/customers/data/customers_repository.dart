@@ -52,6 +52,7 @@ class CustomersRepository {
     await _supabase.from('customers').insert({
       ...customer.toSupabaseInsert(),
       if (userId != null) 'assigned_rep_id': userId,
+      if (userId != null) 'created_by': userId,
     });
     await _fetchCustomers();
   }

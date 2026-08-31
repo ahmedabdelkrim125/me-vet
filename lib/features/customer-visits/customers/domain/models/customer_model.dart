@@ -22,6 +22,7 @@ class CustomerModel {
   /// من غير تحديد موقع، و"الموقع" في التفاصيل هيدور بالاسم مش الإحداثيات.
   final double? latitude;
   final double? longitude;
+  final String? createdBy;
 
   const CustomerModel({
     required this.id,
@@ -40,6 +41,7 @@ class CustomerModel {
     this.averageOrder = 0,
     this.latitude,
     this.longitude,
+    this.createdBy,
   });
 
   bool get hasPreciseLocation => latitude != null && longitude != null;
@@ -61,6 +63,7 @@ class CustomerModel {
     double? averageOrder,
     double? latitude,
     double? longitude,
+    String? createdBy,
   }) {
     return CustomerModel(
       id: id ?? this.id,
@@ -79,6 +82,7 @@ class CustomerModel {
       averageOrder: averageOrder ?? this.averageOrder,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      createdBy: createdBy ?? this.createdBy,
     );
   }
 
@@ -160,6 +164,7 @@ class CustomerModel {
       averageOrder: 0,
       latitude: (row['latitude'] as num?)?.toDouble(),
       longitude: (row['longitude'] as num?)?.toDouble(),
+      createdBy: row['created_by'] as String?,
     );
   }
 
