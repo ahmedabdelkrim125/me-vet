@@ -28,6 +28,7 @@ class _CustomerVisitHistorySectionState
   void initState() {
     super.initState();
     _routeController.initialize();
+    _routeController.loadHistoryForCustomer(widget.customerId);
   }
 
   @override

@@ -1,6 +1,7 @@
 import '../../customer-visits/customers/data/customers_repository.dart';
 import '../../customer-visits/customers/data/invoices_repository.dart';
 import '../../customer-visits/customers/domain/models/collection_record_model.dart';
+import '../../customer-visits/customers/data/visits_repository.dart';
 import '../../customer-visits/customers/domain/today_route_controller.dart';
 import '../../customer-visits/customers/domain/models/visit_status.dart';
 import '../../inventory/domain/mock_inventory_repository.dart';
@@ -191,13 +192,12 @@ class MockDailyReportRepository {
           .getInvoicesInRange(day, nextDay);
       final collections = await CustomersRepository.instance
           .getAllCollectionsInRange(day, nextDay);
-      final visitsCompleted = TodayRouteController
-          .instance.visitHistoryNotifier.value
+      final dayVisits =
+          await VisitsRepository.instance.getVisitsInRange(day, nextDay);
+      final visitsCompleted = dayVisits
           .where((v) =>
-              !v.statusUpdatedAt.isBefore(day) &&
-              v.statusUpdatedAt.isBefore(nextDay) &&
-              (v.status == RouteVisitStatus.completed ||
-                  v.status == RouteVisitStatus.sold))
+              v.status == RouteVisitStatus.completed ||
+              v.status == RouteVisitStatus.sold)
           .length;
 
       points.add(ReportChartPointModel(
