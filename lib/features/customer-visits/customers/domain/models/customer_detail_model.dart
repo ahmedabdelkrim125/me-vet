@@ -1,5 +1,4 @@
 import 'customer_model.dart';
-import '../../data/customers_repository.dart';
 
 class ProductPurchaseModel {
   final String name;
@@ -58,14 +57,11 @@ class CustomerDetailModel {
   /// `notes` كمان هترجع من عمود `notes` الحقيقي في جدول customers بمجرد ما
   /// تبقى شاشة إضافة/تعديل العميل فيها حقل للملاحظات (مش موجود لسه).
   factory CustomerDetailModel.mock(CustomerModel customer) {
-    final averageOrder =
-        CustomersRepository.instance.getAverageOrder(customer.id);
-
     return CustomerDetailModel(
       customer: customer,
       currentBalance: customer.currentBalance,
       lastCollectionDate: customer.lastCollectionDate,
-      averageOrder: averageOrder,
+      averageOrder: 0,
       topProducts: const [],
       notBoughtRecently: const [],
       seasonalSuggestions: const [],
