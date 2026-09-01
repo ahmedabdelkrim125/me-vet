@@ -50,6 +50,12 @@ class TodayRouteController {
     _initialized = true;
   }
 
+  void reset() {
+    _initialized = false;
+    stopsNotifier.value = <RouteStopModel>[];
+    visitHistoryNotifier.value = <VisitHistoryModel>[];
+  }
+
   Future<void> refresh() => _reloadToday();
 
   Future<void> _reloadToday() async {
