@@ -61,14 +61,20 @@ class CustomerDetailScreen extends StatelessWidget {
                           children: [
                             CustomerQuickActionsBar(
                               customer: currentCustomer,
-                              onInvoiceTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => QuickInvoiceDialog(
-                                    initialCustomer: _toInvoiceCustomer(
-                                        detail, analysis),
-                                  ),
-                                ),
-                              ),
+                              onInvoiceTap: () {
+                                final cubit =
+                                    context.read<CustomerAnalysisCubit>();
+                                Navigator.of(context)
+                                    .push(
+                                      MaterialPageRoute(
+                                        builder: (_) => QuickInvoiceDialog(
+                                          initialCustomer: _toInvoiceCustomer(
+                                              detail, analysis),
+                                        ),
+                                      ),
+                                    )
+                                    .then((_) => cubit.load());
+                              },
                               onCollectTap: () =>
                                   showCustomerCollectPaymentSheet(
                                 context,
