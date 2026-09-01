@@ -90,10 +90,8 @@ class InvoicesRepository {
     String customerId, {
     DateTime? since,
   }) async {
-    var query = _supabase
-        .from('invoices')
-        .select()
-        .eq('customer_id', customerId);
+    var query =
+        _supabase.from('invoices').select().eq('customer_id', customerId);
 
     if (since != null) {
       query = query.gte('invoice_date', since.toIso8601String());
@@ -123,11 +121,8 @@ class InvoicesRepository {
   }
 
   Future<InvoiceFullDetail> getInvoiceDetailByCode(String code) async {
-    final invoice = await _supabase
-        .from('invoices')
-        .select()
-        .eq('code', code)
-        .single();
+    final invoice =
+        await _supabase.from('invoices').select().eq('code', code).single();
 
     final itemRows = await _supabase
         .from('invoice_items')
@@ -196,9 +191,8 @@ class InvoicesRepository {
         return db.compareTo(da);
       });
       final latest = items.first;
-      final lastDate = DateTime.parse(
-          (latest['invoices'] as Map<String, dynamic>)['invoice_date']
-              as String);
+      final lastDate = DateTime.parse((latest['invoices']
+          as Map<String, dynamic>)['invoice_date'] as String);
       stats.add(ProductPurchaseStat(
         productName: name,
         lastPrice: (latest['unit_price'] as num).toDouble(),

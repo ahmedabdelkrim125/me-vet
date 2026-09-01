@@ -71,8 +71,7 @@ class CustomerNotBoughtSection extends StatelessWidget {
       icon: CupertinoIcons.exclamationmark_triangle_fill,
       iconColor: context.colors.statOrange,
       child: (!isLoading && products.isEmpty)
-          ? const _EmptySectionMessage(
-              text: 'مفيش منتجات بطّل يشتريها من فترة')
+          ? const _EmptySectionMessage(text: 'مفيش منتجات بطّل يشتريها من فترة')
           : Skeletonizer(
               enabled: isLoading,
               child: Column(

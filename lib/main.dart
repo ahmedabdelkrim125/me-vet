@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:device_preview/device_preview.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -25,8 +27,6 @@ Future<void> main() async {
 
   setupServiceLocator();
 
-  // Firebase لسه أندرويد بس دلوقتي (google-services.json مبعوت من العميل).
-  // آيفون هيحتاج GoogleService-Info.plist + حساب Apple Developer لاحقًا.
   try {
     await Firebase.initializeApp();
     debugPrint('[Push] Firebase.initializeApp() نجح');
@@ -38,5 +38,11 @@ Future<void> main() async {
       PushNotificationService.firebaseBackgroundHandler);
   await PushNotificationService.instance.initializeLocalNotifications();
 
-  runApp(const MevetApp());
+  const enableDevicePreview = bool.fromEnvironment('ENABLE_DEVICE_PREVIEW');
+  runApp(
+    DevicePreview(
+      enabled: enableDevicePreview && !kReleaseMode,
+      builder: (_) => const MevetApp(),
+    ),
+  );
 }

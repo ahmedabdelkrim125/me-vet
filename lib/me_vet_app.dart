@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:device_preview/device_preview.dart';
 import 'package:mivet_app/core/routing/routes.dart';
 import 'package:mivet_app/core/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -24,7 +25,7 @@ class MevetApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             onGenerateRoute: AppRouter.generateRoute,
             initialRoute: Routes.splashScreen,
-            locale: const Locale('ar'),
+            locale: DevicePreview.locale(context) ?? const Locale('ar'),
             supportedLocales: const [Locale('ar'), Locale('en')],
             themeMode: mode,
             theme: AppTheme.light,
@@ -37,12 +38,13 @@ class MevetApp extends StatelessWidget {
             builder: (context, child) {
               if (child == null) return const SizedBox.shrink();
 
-              return ResponsiveInit(
+              final app = ResponsiveInit(
                 child: Directionality(
                   textDirection: TextDirection.rtl,
                   child: child,
                 ),
               );
+              return DevicePreview.appBuilder(context, app);
             },
           );
         },

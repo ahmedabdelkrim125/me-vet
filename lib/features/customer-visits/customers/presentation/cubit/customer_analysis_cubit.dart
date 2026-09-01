@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import '../../data/invoices_repository.dart';
 import '../../domain/models/customer_detail_model.dart';
 import '../../domain/models/invoice_record_model.dart';
@@ -21,8 +20,8 @@ class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
           .getProductStatsForCustomer(_customerId);
       final invoices = await InvoicesRepository.instance
           .getInvoicesForCustomer(_customerId, since: _sixMonthsAgo());
-      final allInvoices = await InvoicesRepository.instance
-          .getInvoicesForCustomer(_customerId);
+      final allInvoices =
+          await InvoicesRepository.instance.getInvoicesForCustomer(_customerId);
 
       final now = DateTime.now();
       final sorted = [...stats]

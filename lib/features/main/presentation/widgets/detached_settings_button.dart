@@ -24,16 +24,33 @@ class DetachedSettingsButton extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Material(
-          color: isSelected ? colors.primary : colors.surface,
-          shape: const CircleBorder(),
-          elevation: 4,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: onTap,
-            child: Padding(
-              padding: EdgeInsets.all(12.w),
-              child: HugeIcon(icon: item.icon, size: 20.sp, color: color),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.all(4.w),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: colors.background,
+            border: Border.all(color: colors.border),
+            boxShadow: [
+              BoxShadow(
+                color: colors.subtleShadow,
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Material(
+            color: isSelected ? colors.primary : colors.surface,
+            shape: const CircleBorder(),
+            elevation: 0,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onTap,
+              child: Padding(
+                padding: EdgeInsets.all(12.w),
+                child: HugeIcon(icon: item.icon, size: 20.sp, color: color),
+              ),
             ),
           ),
         ),

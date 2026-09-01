@@ -17,10 +17,9 @@ class InvoiceLineInput {
   );
 
   Map<String, dynamic> toRpcJson() => {
-        'product_id':
-            (productId != null && _uuidPattern.hasMatch(productId!))
-                ? productId
-                : '',
+        'product_id': (productId != null && _uuidPattern.hasMatch(productId!))
+            ? productId
+            : '',
         'product_name': productName,
         'unit_price': unitPrice,
         'quantity': quantity,

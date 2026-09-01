@@ -59,7 +59,8 @@ class TodayRouteController {
   Future<void> refresh() => _reloadToday();
 
   Future<void> _reloadToday() async {
-    final rows = await VisitsRepository.instance.getVisitsForDay(DateTime.now());
+    final rows =
+        await VisitsRepository.instance.getVisitsForDay(DateTime.now());
     final loaded = <RouteStopModel>[];
     for (int i = 0; i < rows.length; i++) {
       final row = rows[i];

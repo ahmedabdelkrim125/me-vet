@@ -125,8 +125,8 @@ class _CustomerAccountStatementSectionState
                 padding: EdgeInsets.only(top: 12.h, bottom: 4.h),
                 child: Text(
                   entry.key,
-                  style: AppTextStyles.cairoMedium16.copyWith(
-                      color: colors.primary, fontSize: 11.sp),
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(color: colors.primary, fontSize: 11.sp),
                 ),
               ),
               for (final invoice in entry.value)
@@ -188,33 +188,33 @@ class _InvoiceRow extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(invoice.code,
-                    style: AppTextStyles.cairoMedium16
-                        .copyWith(color: colors.text, fontSize: 12.sp)),
-                SizedBox(height: 2.h),
-                Text(
-                  '${invoice.date.year}/${invoice.date.month.toString().padLeft(2, '0')}/${invoice.date.day.toString().padLeft(2, '0')}',
-                  style: AppTextStyles.almaraiRegular14
-                      .copyWith(color: colors.textMuted, fontSize: 10.sp),
-                ),
-              ],
+                children: [
+                  Text(invoice.code,
+                      style: AppTextStyles.cairoMedium16
+                          .copyWith(color: colors.text, fontSize: 12.sp)),
+                  SizedBox(height: 2.h),
+                  Text(
+                    '${invoice.date.year}/${invoice.date.month.toString().padLeft(2, '0')}/${invoice.date.day.toString().padLeft(2, '0')}',
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.textMuted, fontSize: 10.sp),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Text('${invoice.amount.toStringAsFixed(0)} ج.م',
-              style: AppTextStyles.cairoMedium16
-                  .copyWith(color: colors.text, fontSize: 12.sp)),
-          SizedBox(width: 8.w),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: _statusColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(invoice.status,
+            Text('${invoice.amount.toStringAsFixed(0)} ج.م',
                 style: AppTextStyles.cairoMedium16
-                    .copyWith(color: _statusColor, fontSize: 10.sp)),
-          ),
+                    .copyWith(color: colors.text, fontSize: 12.sp)),
+            SizedBox(width: 8.w),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: _statusColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Text(invoice.status,
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(color: _statusColor, fontSize: 10.sp)),
+            ),
           ],
         ),
       ),

@@ -2,16 +2,18 @@ import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:mivet_app/features/rep_session/data/rep_session_store.dart';
 import 'package:printing/printing.dart';
 
 import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../data/invoices_repository.dart';
-
 
 class InvoiceDetailScreen extends StatefulWidget {
   final String invoiceCode;
@@ -58,13 +60,29 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     }
   }
 
-  Future<Uint8List> _buildPdf(InvoiceFullDetail detail) {
+  Future<String> _resolveRepName() async {
+    final activeRep = await RepSessionStore.instance.getActiveRep();
+    final activeRepName = activeRep?.name.trim();
+    if (activeRepName != null && activeRepName.isNotEmpty) {
+      return activeRepName;
+    }
+
+    final signedInUserName = context.read<AuthCubit>().state.user?.name.trim();
+    if (signedInUserName != null && signedInUserName.isNotEmpty) {
+      return signedInUserName;
+    }
+
+    return '';
+  }
+
+  Future<Uint8List> _buildPdf(InvoiceFullDetail detail) async {
+    final repName = await _resolveRepName();
     return InvoicePdfBuilder.build(
       InvoicePdfData(
         invoiceNumber: detail.code,
         date: detail.date,
         customerName: widget.customerName,
-        repName: '',
+        repName: repName,
         items: detail.items
             .map((i) => InvoicePdfLineItem(
                   name: i.productName,
@@ -154,8 +172,7 @@ class _Header extends StatelessWidget {
         children: [
           IconButton(
             onPressed: onBack,
-            icon: Icon(CupertinoIcons.back,
-                color: colors.primary, size: 22.sp),
+            icon: Icon(CupertinoIcons.back, color: colors.primary, size: 22.sp),
           ),
           Text(
             'تفاصيل الفاتورة $code',

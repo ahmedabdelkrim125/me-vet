@@ -28,8 +28,7 @@ class CustomerDetailScreen extends StatelessWidget {
   ) {
     return InvoiceCustomerModel(
       customer: detail.customer,
-      topPurchasedProducts:
-          analysis.topProducts.map((p) => p.name).toList(),
+      topPurchasedProducts: analysis.topProducts.map((p) => p.name).toList(),
       notPurchasedRecently:
           analysis.notBoughtRecently.map((p) => p.name).toList(),
     );
@@ -56,8 +55,7 @@ class CustomerDetailScreen extends StatelessWidget {
                       CustomerDetailHeader(customer: currentCustomer),
                       Expanded(
                         child: ListView(
-                          padding:
-                              EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 30.h),
+                          padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 30.h),
                           children: [
                             CustomerQuickActionsBar(
                               customer: currentCustomer,

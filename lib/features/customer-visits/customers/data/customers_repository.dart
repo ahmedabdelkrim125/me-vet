@@ -26,7 +26,6 @@ class CustomersRepository {
     _initialized = true;
   }
 
-  
   Future<void> refresh() => _fetchCustomers();
 
   Future<void> _fetchCustomers() async {

@@ -188,8 +188,8 @@ class MockDailyReportRepository {
           DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
       final nextDay = day.add(const Duration(days: 1));
 
-      final invoices = await InvoicesRepository.instance
-          .getInvoicesInRange(day, nextDay);
+      final invoices =
+          await InvoicesRepository.instance.getInvoicesInRange(day, nextDay);
       final collections = await CustomersRepository.instance
           .getAllCollectionsInRange(day, nextDay);
       final dayVisits =
