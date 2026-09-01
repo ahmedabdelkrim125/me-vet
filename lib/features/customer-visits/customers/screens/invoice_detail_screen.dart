@@ -9,8 +9,9 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
 
-import '../../../../invoices/domain/invoice_pdf_builder.dart';
-import '../../data/invoices_repository.dart';
+import '../../../invoices/domain/invoice_pdf_builder.dart';
+import '../data/invoices_repository.dart';
+
 
 class InvoiceDetailScreen extends StatefulWidget {
   final String invoiceCode;

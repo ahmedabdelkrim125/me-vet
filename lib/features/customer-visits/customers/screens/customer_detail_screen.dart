@@ -6,6 +6,8 @@ import '../../../home/presentation/widgets/quick_invoice_dialog.dart';
 import '../data/customers_repository.dart';
 import '../domain/models/customer_detail_model.dart';
 import '../domain/models/customer_model.dart';
+import '../presentation/cubit/customer_analysis_cubit.dart';
+import '../presentation/cubit/customer_analysis_state.dart';
 import 'widgets/customer_detail/customer_account_statement_section.dart';
 import 'widgets/customer_detail/customer_collect_payment_sheet.dart';
 import 'widgets/customer_detail/customer_detail_header.dart';
@@ -14,8 +16,6 @@ import 'widgets/customer_detail/customer_notes_section.dart';
 import 'widgets/customer_detail/customer_products_section.dart';
 import 'widgets/customer_detail/customer_quick_actions_bar.dart';
 import 'widgets/customer_detail/customer_visit_history_section.dart';
-import 'cubit/customer_analysis_cubit.dart';
-import 'cubit/customer_analysis_state.dart';
 
 class CustomerDetailScreen extends StatelessWidget {
   final CustomerModel customer;
