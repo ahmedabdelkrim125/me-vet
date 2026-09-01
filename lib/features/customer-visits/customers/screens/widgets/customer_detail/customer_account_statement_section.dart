@@ -2,16 +2,70 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../domain/models/customer_detail_model.dart';
 
-class CustomerAccountStatementSection extends StatelessWidget {
-  final List<InvoiceSummaryModel> invoices;
+const _arabicMonths = [
+  '',
+  'يناير',
+  'فبراير',
+  'مارس',
+  'أبريل',
+  'مايو',
+  'يونيو',
+  'يوليو',
+  'أغسطس',
+  'سبتمبر',
+  'أكتوبر',
+  'نوفمبر',
+  'ديسمبر',
+];
 
-  const CustomerAccountStatementSection({super.key, required this.invoices});
+class CustomerAccountStatementSection extends StatefulWidget {
+  final List<InvoiceSummaryModel> recentInvoices;
+  final List<InvoiceSummaryModel> allInvoices;
+  final bool isLoading;
+
+  const CustomerAccountStatementSection({
+    super.key,
+    required this.recentInvoices,
+    required this.allInvoices,
+    this.isLoading = false,
+  });
+
+  @override
+  State<CustomerAccountStatementSection> createState() =>
+      _CustomerAccountStatementSectionState();
+}
+
+class _CustomerAccountStatementSectionState
+    extends State<CustomerAccountStatementSection> {
+  bool _showAll = false;
+
+  static final _skeletonInvoices = [
+    InvoiceSummaryModel(
+        code: 'INV-0000', date: DateTime.now(), amount: 0, status: 'مدفوعة'),
+    InvoiceSummaryModel(
+        code: 'INV-0000', date: DateTime.now(), amount: 0, status: 'جزئي'),
+  ];
+
+  Map<String, List<InvoiceSummaryModel>> _groupByMonth(
+      List<InvoiceSummaryModel> invoices) {
+    final map = <String, List<InvoiceSummaryModel>>{};
+    for (final inv in invoices) {
+      final key = '${_arabicMonths[inv.date.month]} ${inv.date.year}';
+      map.putIfAbsent(key, () => []).add(inv);
+    }
+    return map;
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final source = _showAll ? widget.allInvoices : widget.recentInvoices;
+    final grouped = _groupByMonth(source);
+    final hasMore = widget.allInvoices.length > widget.recentInvoices.length;
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -24,21 +78,34 @@ class CustomerAccountStatementSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('كشف الحساب (آخر 6 شهور)',
-                  style: AppTextStyles.cairoMedium16
-                      .copyWith(color: colors.text, fontSize: 13.sp)),
+              Text(
+                _showAll ? 'كل الفواتير' : 'كشف الحساب (آخر 6 شهور)',
+                style: AppTextStyles.cairoMedium16
+                    .copyWith(color: colors.text, fontSize: 13.sp),
+              ),
               const Spacer(),
-              IconButton(
-                  onPressed: () {},
-                  icon: Icon(Icons.print_outlined,
-                      color: colors.textMuted, size: 18.sp)),
-              IconButton(
-                  onPressed: () {},
-                  icon: Icon(Icons.share_outlined,
-                      color: colors.primary, size: 18.sp)),
+              if (hasMore && !widget.isLoading)
+                TextButton(
+                  onPressed: () => setState(() => _showAll = !_showAll),
+                  child: Text(
+                    _showAll ? 'آخر 6 شهور' : 'عرض الكل',
+                    style: AppTextStyles.cairoMedium16
+                        .copyWith(color: colors.primary, fontSize: 11.sp),
+                  ),
+                ),
             ],
           ),
-          if (invoices.isEmpty)
+          if (widget.isLoading)
+            Skeletonizer(
+              enabled: true,
+              child: Column(
+                children: [
+                  for (final inv in _skeletonInvoices)
+                    _InvoiceRow(invoice: inv, colors: colors),
+                ],
+              ),
+            )
+          else if (source.isEmpty)
             Padding(
               padding: EdgeInsets.only(top: 10.h),
               child: Text(
@@ -48,8 +115,18 @@ class CustomerAccountStatementSection extends StatelessWidget {
               ),
             )
           else
-            for (final invoice in invoices)
-              _InvoiceRow(invoice: invoice, colors: colors),
+            for (final entry in grouped.entries) ...[
+              Padding(
+                padding: EdgeInsets.only(top: 12.h, bottom: 4.h),
+                child: Text(
+                  entry.key,
+                  style: AppTextStyles.cairoMedium16.copyWith(
+                      color: colors.primary, fontSize: 11.sp),
+                ),
+              ),
+              for (final invoice in entry.value)
+                _InvoiceRow(invoice: invoice, colors: colors),
+            ],
         ],
       ),
     );
