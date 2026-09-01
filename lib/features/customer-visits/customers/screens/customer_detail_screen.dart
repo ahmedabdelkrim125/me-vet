@@ -99,6 +99,8 @@ class CustomerDetailScreen extends StatelessWidget {
                             CustomerAccountStatementSection(
                               recentInvoices: analysis.recentInvoices,
                               allInvoices: analysis.allInvoices,
+                              customerName: currentCustomer.name,
+                              currentBalance: currentCustomer.currentBalance,
                               isLoading: analysis.isLoading,
                             ),
                           ],

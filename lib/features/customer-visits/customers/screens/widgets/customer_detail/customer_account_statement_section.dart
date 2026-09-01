@@ -4,6 +4,7 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../../domain/models/customer_detail_model.dart';
+import '../../invoice_detail_screen.dart';
 
 const _arabicMonths = [
   '',
@@ -24,12 +25,16 @@ const _arabicMonths = [
 class CustomerAccountStatementSection extends StatefulWidget {
   final List<InvoiceSummaryModel> recentInvoices;
   final List<InvoiceSummaryModel> allInvoices;
+  final String customerName;
+  final double currentBalance;
   final bool isLoading;
 
   const CustomerAccountStatementSection({
     super.key,
     required this.recentInvoices,
     required this.allInvoices,
+    required this.customerName,
+    this.currentBalance = 0,
     this.isLoading = false,
   });
 
@@ -125,7 +130,12 @@ class _CustomerAccountStatementSectionState
                 ),
               ),
               for (final invoice in entry.value)
-                _InvoiceRow(invoice: invoice, colors: colors),
+                _InvoiceRow(
+                  invoice: invoice,
+                  colors: colors,
+                  customerName: widget.customerName,
+                  currentBalance: widget.currentBalance,
+                ),
             ],
         ],
       ),
@@ -136,8 +146,15 @@ class _CustomerAccountStatementSectionState
 class _InvoiceRow extends StatelessWidget {
   final InvoiceSummaryModel invoice;
   final AppColorScheme colors;
+  final String customerName;
+  final double currentBalance;
 
-  const _InvoiceRow({required this.invoice, required this.colors});
+  const _InvoiceRow({
+    required this.invoice,
+    required this.colors,
+    this.customerName = '',
+    this.currentBalance = 0,
+  });
 
   Color get _statusColor {
     switch (invoice.status) {
@@ -152,13 +169,25 @@ class _InvoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      borderRadius: BorderRadius.circular(10.r),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => InvoiceDetailScreen(
+            invoiceCode: invoice.code,
+            customerName: customerName,
+            previousBalanceAtView: currentBalance,
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 8.h),
+        child: Row(
+          children: [
+            Icon(Icons.chevron_left, color: colors.textMuted, size: 18.sp),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(invoice.code,
                     style: AppTextStyles.cairoMedium16
@@ -186,7 +215,8 @@ class _InvoiceRow extends StatelessWidget {
                 style: AppTextStyles.cairoMedium16
                     .copyWith(color: _statusColor, fontSize: 10.sp)),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
