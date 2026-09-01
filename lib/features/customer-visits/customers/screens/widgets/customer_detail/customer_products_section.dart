@@ -3,34 +3,51 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../domain/models/customer_detail_model.dart';
 
 String _formatDate(DateTime date) =>
     '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
 
+final _skeletonProducts = [
+  ProductPurchaseModel(
+      name: 'منتج تجريبي', price: 100, lastPurchaseDate: DateTime.now()),
+  ProductPurchaseModel(
+      name: 'منتج تجريبي تاني', price: 100, lastPurchaseDate: DateTime.now()),
+];
+
 class CustomerTopProductsSection extends StatelessWidget {
   final List<ProductPurchaseModel> products;
+  final bool isLoading;
 
-  const CustomerTopProductsSection({super.key, required this.products});
+  const CustomerTopProductsSection({
+    super.key,
+    required this.products,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final shown = isLoading ? _skeletonProducts : products;
     return _SectionCard(
       title: 'أكتر المنتجات شراءً',
       icon: CupertinoIcons.star_fill,
       iconColor: context.colors.primary,
-      child: products.isEmpty
+      child: (!isLoading && products.isEmpty)
           ? const _EmptySectionMessage(text: 'لسه مفيش فواتير مسجلة للعميل ده')
-          : Column(
-              children: [
-                for (final product in products)
-                  _ProductRow(
-                    name: product.name,
-                    trailing: '${product.price.toStringAsFixed(0)} ج.م',
-                    subtitle:
-                        'آخر شراء ${_formatDate(product.lastPurchaseDate)}',
-                  ),
-              ],
+          : Skeletonizer(
+              enabled: isLoading,
+              child: Column(
+                children: [
+                  for (final product in shown)
+                    _ProductRow(
+                      name: product.name,
+                      trailing: '${product.price.toStringAsFixed(0)} ج.م',
+                      subtitle:
+                          'آخر شراء ${_formatDate(product.lastPurchaseDate)}',
+                    ),
+                ],
+              ),
             ),
     );
   }
@@ -38,68 +55,39 @@ class CustomerTopProductsSection extends StatelessWidget {
 
 class CustomerNotBoughtSection extends StatelessWidget {
   final List<ProductPurchaseModel> products;
+  final bool isLoading;
 
-  const CustomerNotBoughtSection({super.key, required this.products});
+  const CustomerNotBoughtSection({
+    super.key,
+    required this.products,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final shown = isLoading ? _skeletonProducts : products;
     return _SectionCard(
       title: 'منتجات لم يشترها من فترة',
       icon: CupertinoIcons.exclamationmark_triangle_fill,
       iconColor: context.colors.statOrange,
-      child: products.isEmpty
+      child: (!isLoading && products.isEmpty)
           ? const _EmptySectionMessage(
-              text: 'لسه مبكّر نحدد ده لحد ما يكون في تاريخ شراء')
-          : Column(
-              children: [
-                for (final product in products)
-                  _ProductRow(
-                    name: product.name,
-                    trailing: '${product.price.toStringAsFixed(0)} ج.م',
-                    subtitle:
-                        'آخر شراء ${_formatDate(product.lastPurchaseDate)}',
-                    showAddButton: true,
-                  ),
-              ],
-            ),
-    );
-  }
-}
-
-class CustomerSeasonalSuggestionsSection extends StatelessWidget {
-  final List<String> suggestions;
-
-  const CustomerSeasonalSuggestionsSection(
-      {super.key, required this.suggestions});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    if (suggestions.isEmpty) return const SizedBox.shrink();
-
-    return _SectionCard(
-      title: 'اقتراحات بيع موسمية',
-      icon: CupertinoIcons.lightbulb_fill,
-      iconColor: colors.statBlue,
-      child: Wrap(
-        spacing: 8.w,
-        runSpacing: 8.h,
-        children: [
-          for (final suggestion in suggestions)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: colors.statBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Text(
-                suggestion,
-                style: AppTextStyles.cairoMedium16
-                    .copyWith(color: colors.statBlue, fontSize: 11.sp),
+              text: 'مفيش منتجات بطّل يشتريها من فترة')
+          : Skeletonizer(
+              enabled: isLoading,
+              child: Column(
+                children: [
+                  for (final product in shown)
+                    _ProductRow(
+                      name: product.name,
+                      trailing: '${product.price.toStringAsFixed(0)} ج.م',
+                      subtitle:
+                          'آخر شراء ${_formatDate(product.lastPurchaseDate)}',
+                      showAddButton: true,
+                    ),
+                ],
               ),
             ),
-        ],
-      ),
     );
   }
 }
