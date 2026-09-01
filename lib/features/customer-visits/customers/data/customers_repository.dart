@@ -41,10 +41,14 @@ class CustomersRepository {
     customersNotifier.value = List<CustomerModel>.from(_customers);
   }
 
-  Future<void> resetForTests() async {
+  void reset() {
     _initialized = false;
     _customers.clear();
     customersNotifier.value = <CustomerModel>[];
+  }
+
+  Future<void> resetForTests() async {
+    reset();
   }
 
   Future<void> addCustomer(CustomerModel customer) async {

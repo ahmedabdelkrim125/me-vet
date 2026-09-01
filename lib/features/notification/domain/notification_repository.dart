@@ -104,6 +104,12 @@ class NotificationRepository {
     _initialized = false;
   }
 
+  Future<void> reset() async {
+    await dispose();
+    _notifications.clear();
+    notificationsNotifier.value = <AppNotificationModel>[];
+  }
+
   /// إنشاء إشعار للمستخدم الحالي نفسه — مستخدمة دلوقتي من
   /// MockInventoryRepository بس (تنبيهات المخزون لسه محلية). الإشعارات
   /// الحقيقية التانية (حد الائتمان مثلًا) بتتسجل من trigger في
