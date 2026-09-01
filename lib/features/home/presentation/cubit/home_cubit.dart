@@ -10,13 +10,16 @@ class HomeCubit extends Cubit<HomeState> {
   final HomeRepository _repository;
 
   Future<void> loadWeeklySummary({bool forceRefresh = false}) async {
+    if (isClosed) return;
     emit(const HomeLoading());
     try {
       final summary = await _repository.getWeeklyCollectionsSummary(
         forceRefresh: forceRefresh,
       );
+      if (isClosed) return;
       emit(HomeLoaded(summary));
     } catch (e) {
+      if (isClosed) return;
       emit(HomeError(mapErrorToAppException(e).message));
     }
   }

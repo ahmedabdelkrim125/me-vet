@@ -13,6 +13,7 @@ class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
   static const int _notBoughtThresholdDays = 45;
 
   Future<void> load() async {
+    if (isClosed) return;
     emit(state.copyWith(isLoading: true));
     try {
       final stats = await InvoicesRepository.instance
@@ -42,6 +43,7 @@ class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
           .toList()
         ..sort((a, b) => a.lastPurchaseDate.compareTo(b.lastPurchaseDate));
 
+      if (isClosed) return;
       emit(state.copyWith(
         isLoading: false,
         topProducts: top,
@@ -56,6 +58,7 @@ class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
         allInvoices: allInvoices.map(_toSummary).toList(),
       ));
     } catch (_) {
+      if (isClosed) return;
       emit(state.copyWith(isLoading: false));
     }
   }
