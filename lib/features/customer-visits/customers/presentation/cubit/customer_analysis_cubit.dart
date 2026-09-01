@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/invoices_repository.dart';
 import '../../domain/models/customer_detail_model.dart';
+import '../../domain/models/invoice_record_model.dart';
 import 'customer_analysis_state.dart';
 
 class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
