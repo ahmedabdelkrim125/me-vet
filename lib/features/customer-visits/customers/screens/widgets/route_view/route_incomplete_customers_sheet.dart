@@ -9,7 +9,7 @@ import 'route_status_style.dart';
 Future<void> showIncompleteRouteCustomersSheet(
   BuildContext context, {
   required List<RouteStopModel> stops,
-  required Future<void> Function() onCarryToNextDay,
+  required Future<void> Function(DateTime targetDay) onCarryToDay,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -17,19 +17,33 @@ Future<void> showIncompleteRouteCustomersSheet(
     backgroundColor: Colors.transparent,
     builder: (context) => _IncompleteRouteCustomersSheet(
       stops: stops,
-      onCarryToNextDay: onCarryToNextDay,
+      onCarryToDay: onCarryToDay,
     ),
   );
 }
 
 class _IncompleteRouteCustomersSheet extends StatelessWidget {
   final List<RouteStopModel> stops;
-  final Future<void> Function() onCarryToNextDay;
+  final Future<void> Function(DateTime targetDay) onCarryToDay;
 
   const _IncompleteRouteCustomersSheet({
     required this.stops,
-    required this.onCarryToNextDay,
+    required this.onCarryToDay,
   });
+
+  Future<void> _pickDayAndCarry(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 30)),
+      helpText: 'اختار اليوم اللي تحب ترحّلهم ليه',
+    );
+    if (picked == null) return;
+    await onCarryToDay(picked);
+    if (context.mounted) Navigator.of(context).pop();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -156,15 +170,12 @@ class _IncompleteRouteCustomersSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(14.r),
               child: InkWell(
                 borderRadius: BorderRadius.circular(14.r),
-                onTap: () async {
-                  await onCarryToNextDay();
-                  if (context.mounted) Navigator.of(context).pop();
-                },
+                onTap: () => _pickDayAndCarry(context),
                 child: Container(
                   alignment: Alignment.center,
                   padding: EdgeInsets.symmetric(vertical: 15.h),
                   child: Text(
-                    'ترحيل غير المكتمل لليوم التالي',
+                    'ترحيل غير المكتمل ليوم تاني',
                     style: AppTextStyles.cairoMedium16
                         .copyWith(color: Colors.white, fontSize: 13.sp),
                   ),

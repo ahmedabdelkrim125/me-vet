@@ -97,12 +97,12 @@ class _RouteViewState extends State<RouteView>
     _routeController.removeStop(customerId);
   }
 
-  Future<void> _carryIncompleteToNextDay() async {
+  Future<void> _carryIncompleteToDay(DateTime targetDay) async {
     final count = _routeController.incompleteStops.length;
-    await _routeController.carryIncompleteToNewDay();
+    await _routeController.carryIncompleteToDay(targetDay);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('تم ترحيل $count عميل لليوم التالي')),
+      SnackBar(content: Text('تم ترحيل $count عميل')),
     );
   }
 
@@ -110,7 +110,7 @@ class _RouteViewState extends State<RouteView>
     await showIncompleteRouteCustomersSheet(
       context,
       stops: _routeController.incompleteStops,
-      onCarryToNextDay: _carryIncompleteToNextDay,
+      onCarryToDay: _carryIncompleteToDay,
     );
   }
 
