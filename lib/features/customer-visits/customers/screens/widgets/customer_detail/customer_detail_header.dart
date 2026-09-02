@@ -109,54 +109,18 @@ class CustomerDetailHeader extends StatelessWidget {
             ],
           ),
           SizedBox(width: 4.w),
-          PopupMenuButton<CustomerStatus>(
-            icon: Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Text(
-                customer.status.label,
-                style: AppTextStyles.cairoMedium16
-                    .copyWith(color: color, fontSize: 10.sp),
-              ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10.r),
             ),
-            onSelected: (status) async {
-              try {
-                await CustomersRepository.instance
-                    .updateCustomerStatus(customer.id, status);
-              } catch (e) {
-                if (context.mounted) showAppError(context, e);
-              }
-            },
-            itemBuilder: (context) => [
-              _buildMenuItem(context, CustomerStatus.active, customer.status),
-              _buildMenuItem(
-                  context, CustomerStatus.needsFollowUp, customer.status),
-              _buildMenuItem(context, CustomerStatus.stopped, customer.status),
-            ],
+            child: Text(
+              customer.status.label,
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: color, fontSize: 10.sp),
+            ),
           ),
-        ],
-      ),
-    );
-  }
-
-  PopupMenuEntry<CustomerStatus> _buildMenuItem(
-    BuildContext context,
-    CustomerStatus status,
-    CustomerStatus currentStatus,
-  ) {
-    return PopupMenuItem<CustomerStatus>(
-      value: status,
-      child: Row(
-        children: [
-          Icon(
-            status == currentStatus ? CupertinoIcons.checkmark_alt : null,
-            color: customerStatusColor(context, status),
-          ),
-          SizedBox(width: 8.w),
-          Text(status.label),
         ],
       ),
     );
