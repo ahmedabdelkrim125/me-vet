@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -23,38 +25,41 @@ class RouteProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remaining = totalVisits - completedVisits;
+    final colors = context.colors;
+    final remaining = (totalVisits - completedVisits).clamp(0, totalVisits);
     final progress = totalVisits == 0 ? 0.0 : completedVisits / totalVisits;
+    final percent = (progress.clamp(0.0, 1.0) * 100).round();
 
     return Container(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.all(18.w),
       decoration: BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(26.r),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: AppColors.primary.withOpacity(0.24),
+            blurRadius: 30,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
               Container(
-                width: 44.w,
-                height: 44.w,
+                width: 48.w,
+                height: 48.w,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(14.r),
+                  borderRadius: BorderRadius.circular(18.r),
+                  border: Border.all(color: Colors.white.withOpacity(0.12)),
                 ),
-                child: Icon(
-                  Icons.map_outlined,
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedRoute01,
                   color: Colors.white,
-                  size: 22.sp,
+                  size: 24.sp,
                 ),
               ),
               SizedBox(width: 12.w),
@@ -64,139 +69,99 @@ class RouteProgressCard extends StatelessWidget {
                   children: [
                     Text(
                       routeName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.cairoBold18.copyWith(
                         color: Colors.white,
+                        fontSize: 18.sp,
                       ),
                     ),
-                    SizedBox(height: 2.h),
+                    SizedBox(height: 3.h),
                     Text(
                       dayLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.almaraiRegular14.copyWith(
                         color: Colors.white.withOpacity(0.7),
+                        fontSize: 12.sp,
                       ),
                     ),
                   ],
                 ),
               ),
+              _PercentBadge(percent: percent),
             ],
           ),
-          SizedBox(height: 24.h),
-          Row(
-            textDirection: TextDirection.ltr,
-            children: [
-              _CompletionRing(
-                completed: completedVisits,
-                total: totalVisits,
-                progress: progress,
-              ),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: Row(
-                  textDirection: TextDirection.ltr,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _RouteStat(
-                      value: '$remaining',
-                      label: 'متبقي',
-                      color: AppColors.statOrange,
-                    ),
-                    const _StatDivider(),
-                    _RouteStat(
-                      value: '$completedVisits',
-                      label: 'تمت',
-                      color: AppColors.primaryGreen,
-                    ),
-                    const _StatDivider(),
-                    _RouteStat(
-                      value: '$totalVisits',
-                      label: 'عميل',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 20.h),
-          _StartButton(
-            buttonText: buttonText,
-            expand: true,
-            onTap: onButtonTap,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CompletionRing extends StatelessWidget {
-  final int completed;
-  final int total;
-  final double progress;
-
-  const _CompletionRing({
-    required this.completed,
-    required this.total,
-    required this.progress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 92.w,
-      height: 92.w,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: 92.w,
-            height: 92.w,
-            child: CircularProgressIndicator(
-              value: progress == 0 ? 1 : progress,
-              strokeWidth: 6,
-              backgroundColor: Colors.white.withOpacity(0.15),
-              valueColor: AlwaysStoppedAnimation(
-                progress == 0
-                    ? Colors.white.withOpacity(0.15)
-                    : AppColors.primaryGreen,
-              ),
+          SizedBox(height: 18.h),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              minHeight: 9.h,
+              backgroundColor: Colors.white.withOpacity(0.14),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
             ),
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
+          SizedBox(height: 16.h),
+          Row(
             children: [
-              Text(
-                '$completed / $total',
-                style: AppTextStyles.cairoBold18.copyWith(
-                  color: Colors.white,
-                  fontSize: 16.sp,
+              Expanded(
+                child: _RouteStat(
+                  value: '$totalVisits',
+                  label: 'عميل',
+                  icon: HugeIcons.strokeRoundedUserGroup,
                 ),
               ),
-              SizedBox(height: 2.h),
-              Text(
-                'زيارة مكتملة',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.almaraiRegular14.copyWith(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 10.sp,
+              SizedBox(width: 8.w),
+              Expanded(
+                child: _RouteStat(
+                  value: '$completedVisits',
+                  label: 'تمت',
+                  icon: HugeIcons.strokeRoundedCheckmarkCircle01,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: _RouteStat(
+                  value: '$remaining',
+                  label: 'متبقي',
+                  icon: HugeIcons.strokeRoundedClock01,
+                  color: AppColors.statOrange,
                 ),
               ),
             ],
           ),
+          SizedBox(height: 16.h),
+          _RouteActionButton(buttonText: buttonText, onTap: onButtonTap),
         ],
       ),
     );
   }
 }
 
-class _StatDivider extends StatelessWidget {
-  const _StatDivider();
+class _PercentBadge extends StatelessWidget {
+  final int percent;
+
+  const _PercentBadge({required this.percent});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 1,
-      height: 32.h,
-      color: Colors.white.withOpacity(0.15),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+      ),
+      child: Text(
+        '$percent%',
+        style: AppTextStyles.cairoBold18.copyWith(
+          color: Colors.white,
+          fontSize: 13.sp,
+        ),
+      ),
     );
   }
 }
@@ -204,74 +169,84 @@ class _StatDivider extends StatelessWidget {
 class _RouteStat extends StatelessWidget {
   final String value;
   final String label;
+  final List<List<dynamic>> icon;
   final Color color;
 
   const _RouteStat({
     required this.value,
     required this.label,
+    required this.icon,
     this.color = Colors.white,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(value, style: AppTextStyles.cairoBold18.copyWith(color: color)),
-        SizedBox(height: 2.h),
-        Text(
-          label,
-          style: AppTextStyles.almaraiRegular14.copyWith(
-            color: Colors.white.withOpacity(0.6),
-            fontSize: 11.sp,
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          HugeIcon(icon: icon, color: color, size: 18.sp),
+          SizedBox(height: 5.h),
+          Text(
+            value,
+            style: AppTextStyles.cairoBold18.copyWith(
+              color: Colors.white,
+              fontSize: 16.sp,
+            ),
           ),
-        ),
-      ],
+          Text(
+            label,
+            style: AppTextStyles.almaraiRegular14.copyWith(
+              color: Colors.white.withOpacity(0.66),
+              fontSize: 10.5.sp,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _StartButton extends StatelessWidget {
+class _RouteActionButton extends StatelessWidget {
   final String buttonText;
-  final bool expand;
   final VoidCallback? onTap;
 
-  const _StartButton({
-    required this.buttonText,
-    this.expand = false,
-    this.onTap,
-  });
+  const _RouteActionButton({required this.buttonText, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final button = Material(
-      color: AppColors.primaryGreen,
-      borderRadius: BorderRadius.circular(14.r),
+    final colors = context.colors;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18.r),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(18.r),
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
           child: Row(
-            spacing: 6.w,
-            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 buttonText,
                 style: AppTextStyles.cairoMedium16.copyWith(
-                  color: Colors.white,
+                  color: colors.primary,
                   fontSize: 13.sp,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              Icon(Icons.add, color: Colors.white, size: 18.sp),
+              SizedBox(width: 8.w),
+              Icon(Icons.add_rounded, color: colors.primary, size: 19.sp),
             ],
           ),
         ),
       ),
     );
-
-    if (expand) return SizedBox(width: double.infinity, child: button);
-    return button;
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+
 import '../../../core/di/service_locator.dart';
 import '../../customer-visits/customers/domain/today_route_controller.dart';
 import '../../customer-visits/customers/screens/widgets/route_view/select_route_customers_sheet.dart';
@@ -54,52 +56,80 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final horizontalPadding = context.isTablet ? 22.w : 16.w;
+    final maxContentWidth = context.isTablet ? 720.w : null;
+
     return BlocProvider.value(
       value: _homeCubit,
       child: Scaffold(
+        backgroundColor: colors.background,
         body: SafeArea(
           child: RefreshIndicator(
             onRefresh: () => _homeCubit.loadWeeklySummary(forceRefresh: true),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const HomeHeader(),
-                  SizedBox(height: 20.h),
-                  ValueListenableBuilder(
-                    valueListenable: _routeController.stopsNotifier,
-                    builder: (context, stops, _) {
-                      final totalVisits = _routeController.totalVisits;
-                      final completedVisits = _routeController.completedVisits;
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    colors.primary.withOpacity(0.08),
+                    colors.background,
+                    colors.background,
+                  ],
+                  stops: const [0, 0.34, 1],
+                ),
+              ),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  16.h,
+                  horizontalPadding,
+                  18.h,
+                ),
+                child: AdaptiveContentWrapper(
+                  maxWidth: maxContentWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const HomeHeader(),
+                      SizedBox(height: 18.h),
+                      ValueListenableBuilder(
+                        valueListenable: _routeController.stopsNotifier,
+                        builder: (context, stops, _) {
+                          final totalVisits = _routeController.totalVisits;
+                          final completedVisits =
+                              _routeController.completedVisits;
 
-                      return RouteProgressCard(
-                        routeName: 'خطة زياراتك اليوم',
-                        dayLabel: totalVisits == 0
-                            ? 'حدد عملاءك لتبدأ الجولة'
-                            : 'خط اليوم فيه $totalVisits عميل',
-                        totalVisits: totalVisits,
-                        completedVisits: completedVisits,
-                        buttonText: 'تحديد عملاء اليوم',
-                        onButtonTap: _selectTodayCustomers,
-                      );
-                    },
+                          return RouteProgressCard(
+                            routeName: 'خطة زياراتك اليوم',
+                            dayLabel: totalVisits == 0
+                                ? 'حدد عملاءك لتبدأ الجولة'
+                                : 'خط اليوم فيه $totalVisits عميل',
+                            totalVisits: totalVisits,
+                            completedVisits: completedVisits,
+                            buttonText: 'تحديد عملاء اليوم',
+                            onButtonTap: _selectTodayCustomers,
+                          );
+                        },
+                      ),
+                      SizedBox(height: 14.h),
+                      const DailySummarySection(),
+                      SizedBox(height: 14.h),
+                      ValueListenableBuilder(
+                        valueListenable: _routeController.stopsNotifier,
+                        builder: (context, stops, _) {
+                          return VisitsKpiCard(
+                            currentVisits: _routeController.completedVisits,
+                            targetVisits: _routeController.totalVisits,
+                          );
+                        },
+                      ),
+                      SizedBox(height: 16.h),
+                    ],
                   ),
-                  SizedBox(height: 16.h),
-                  const DailySummarySection(),
-                  SizedBox(height: 16.h),
-                  ValueListenableBuilder(
-                    valueListenable: _routeController.stopsNotifier,
-                    builder: (context, stops, _) {
-                      return VisitsKpiCard(
-                        currentVisits: _routeController.completedVisits,
-                        targetVisits: _routeController.totalVisits,
-                      );
-                    },
-                  ),
-                  SizedBox(height: 16.h),
-                ],
+                ),
               ),
             ),
           ),
