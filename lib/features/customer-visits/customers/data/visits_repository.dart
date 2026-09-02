@@ -31,6 +31,32 @@ class VisitRow {
   }
 }
 
+class ScheduleRow {
+  final String id;
+  final String customerId;
+  final int weekday;
+  final int hour;
+  final int minute;
+
+  const ScheduleRow({
+    required this.id,
+    required this.customerId,
+    required this.weekday,
+    required this.hour,
+    required this.minute,
+  });
+
+  factory ScheduleRow.fromRow(Map<String, dynamic> row) {
+    return ScheduleRow(
+      id: row['id'] as String,
+      customerId: row['customer_id'] as String,
+      weekday: (row['weekday'] as num).toInt(),
+      hour: (row['visit_hour'] as num).toInt(),
+      minute: (row['visit_minute'] as num).toInt(),
+    );
+  }
+}
+
 class VisitsRepository {
   VisitsRepository._internal();
 
@@ -180,5 +206,140 @@ class VisitsRepository {
     if (list.isEmpty) return null;
     return DateTime.parse(
         (list.first as Map<String, dynamic>)['scheduled_at'] as String);
+  }
+
+  Future<List<VisitRow>> getVisitsForWeek(DateTime anyDayInWeek) async {
+    final start = _startOfWeek(anyDayInWeek);
+    final end = start.add(const Duration(days: 7));
+    final rows = await _supabase
+        .from('customer_visits')
+        .select()
+        .gte('scheduled_at', start.toIso8601String())
+        .lt('scheduled_at', end.toIso8601String())
+        .order('scheduled_at', ascending: true)
+        .order('stop_order', ascending: true);
+    return (rows as List)
+        .map((row) => VisitRow.fromSupabaseRow(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> scheduleVisit({
+    required String customerId,
+    required DateTime scheduledAt,
+    int stopOrder = 1,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final dayStart = _startOfDay(scheduledAt);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    final existing = await _supabase
+        .from('customer_visits')
+        .select('id')
+        .eq('customer_id', customerId)
+        .gte('scheduled_at', dayStart.toIso8601String())
+        .lt('scheduled_at', dayEnd.toIso8601String())
+        .maybeSingle();
+
+    if (existing != null) {
+      await _supabase
+          .from('customer_visits')
+          .update({'scheduled_at': scheduledAt.toIso8601String()})
+          .eq('id', existing['id'] as String);
+      return;
+    }
+
+    await _supabase.from('customer_visits').insert({
+      'customer_id': customerId,
+      'rep_id': userId,
+      'stop_order': stopOrder,
+      'status': RouteVisitStatus.pending.dbValue,
+      'scheduled_at': scheduledAt.toIso8601String(),
+    });
+  }
+
+  Future<void> rescheduleVisit(String visitId, DateTime newDate) async {
+    await _supabase
+        .from('customer_visits')
+        .update({'scheduled_at': newDate.toIso8601String()}).eq('id', visitId);
+  }
+
+  Future<void> removeVisit(String visitId) async {
+    await _supabase.from('customer_visits').delete().eq('id', visitId);
+  }
+
+  Future<List<VisitRow>> pendingVisitsForDay(DateTime day) async {
+    final start = _startOfDay(day);
+    final end = start.add(const Duration(days: 1));
+    final rows = await _supabase
+        .from('customer_visits')
+        .select()
+        .eq('status', RouteVisitStatus.pending.dbValue)
+        .gte('scheduled_at', start.toIso8601String())
+        .lt('scheduled_at', end.toIso8601String());
+    return (rows as List)
+        .map((row) => VisitRow.fromSupabaseRow(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> carryVisitsToDay(
+    List<String> visitIds,
+    DateTime targetDay,
+  ) async {
+    final target = _startOfDay(targetDay).add(const Duration(hours: 9));
+    for (final id in visitIds) {
+      await _supabase
+          .from('customer_visits')
+          .update({'scheduled_at': target.toIso8601String()}).eq('id', id);
+    }
+  }
+
+  DateTime _startOfWeek(DateTime d) {
+    final day = _startOfDay(d);
+    return day.subtract(Duration(days: day.weekday % 7));
+  }
+
+  Future<List<ScheduleRow>> getScheduleForCustomer(String customerId) async {
+    final rows = await _supabase
+        .from('customer_schedule')
+        .select()
+        .eq('customer_id', customerId)
+        .order('weekday', ascending: true);
+    return (rows as List)
+        .map((r) => ScheduleRow.fromRow(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<ScheduleRow>> getMySchedule() async {
+    final rows = await _supabase
+        .from('customer_schedule')
+        .select()
+        .order('weekday', ascending: true)
+        .order('visit_hour', ascending: true);
+    return (rows as List)
+        .map((r) => ScheduleRow.fromRow(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> addSchedule({
+    required String customerId,
+    required int weekday,
+    required int hour,
+    required int minute,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    await _supabase.from('customer_schedule').upsert({
+      'customer_id': customerId,
+      'rep_id': userId,
+      'weekday': weekday,
+      'visit_hour': hour,
+      'visit_minute': minute,
+    }, onConflict: 'customer_id,weekday');
+  }
+
+  Future<void> removeSchedule(String scheduleId) async {
+    await _supabase.from('customer_schedule').delete().eq('id', scheduleId);
   }
 }
