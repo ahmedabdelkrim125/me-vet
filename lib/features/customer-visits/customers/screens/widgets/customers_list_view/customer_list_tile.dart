@@ -68,8 +68,7 @@ class CustomerListTile extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10.r),

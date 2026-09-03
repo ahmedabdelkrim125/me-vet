@@ -4,9 +4,10 @@ import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../data/customers_repository.dart';
-import '../../data/visits_repository.dart';
-import '../../domain/models/customer_model.dart';
+
+import '../data/customers_repository.dart';
+import '../data/visits_repository.dart';
+import '../domain/models/customer_model.dart';
 
 const List<String> _shortDayNames = [
   'أحد',
@@ -112,12 +113,12 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
               child: TextField(
                 textAlign: TextAlign.right,
                 onChanged: (v) => setState(() => _search = v),
-                style: AppTextStyles.cairoRegular14
-                    .copyWith(color: colors.text),
+                style:
+                    AppTextStyles.cairoRegular14.copyWith(color: colors.text),
                 decoration: InputDecoration(
                   hintText: 'ابحث عن عميل',
-                  hintStyle: AppTextStyles.almaraiRegular14.copyWith(
-                      color: colors.textMuted, fontSize: 12.sp),
+                  hintStyle: AppTextStyles.almaraiRegular14
+                      .copyWith(color: colors.textMuted, fontSize: 12.sp),
                   prefixIcon: Icon(CupertinoIcons.search,
                       size: 18.sp, color: colors.textMuted),
                   filled: true,
@@ -174,8 +175,7 @@ class _Header extends StatelessWidget {
         children: [
           IconButton(
             onPressed: onBack,
-            icon: Icon(CupertinoIcons.back,
-                color: colors.primary, size: 22.sp),
+            icon: Icon(CupertinoIcons.back, color: colors.primary, size: 22.sp),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,8 +185,8 @@ class _Header extends StatelessWidget {
                       .copyWith(color: colors.primary, fontSize: 16.sp)),
               SizedBox(height: 2.h),
               Text('حدد أيام الزيارة الثابتة لكل عميل',
-                  style: AppTextStyles.almaraiRegular14.copyWith(
-                      color: colors.textMuted, fontSize: 10.sp)),
+                  style: AppTextStyles.almaraiRegular14
+                      .copyWith(color: colors.textMuted, fontSize: 10.sp)),
             ],
           ),
         ],

@@ -49,13 +49,7 @@ class CustomerDetailModel {
     required this.invoices,
   });
 
-  /// TODO(invoices-feature): topProducts/notBoughtRecently/seasonalSuggestions
-  /// و invoices هيتحسبوا من جدولي `invoices`/`invoice_items` الحقيقيين لما
-  /// نشتغل على فيتشر الفواتير. لحد وقتها بيرجعوا فاضيين بدل بيانات وهمية
-  /// (كانوا قبل كده seed data ثابتة بتظهر لكل عميل بالظبط).
-  ///
-  /// `notes` كمان هترجع من عمود `notes` الحقيقي في جدول customers بمجرد ما
-  /// تبقى شاشة إضافة/تعديل العميل فيها حقل للملاحظات (مش موجود لسه).
+ 
   factory CustomerDetailModel.mock(CustomerModel customer) {
     return CustomerDetailModel(
       customer: customer,
