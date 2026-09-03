@@ -46,6 +46,7 @@ class TodayRouteController {
   Future<void> initialize() async {
     if (_initialized) return;
     await CustomersRepository.instance.initialize();
+    await VisitsRepository.instance.generateTodayVisits();
     await _reloadToday();
     _initialized = true;
   }
@@ -56,7 +57,10 @@ class TodayRouteController {
     visitHistoryNotifier.value = <VisitHistoryModel>[];
   }
 
-  Future<void> refresh() => _reloadToday();
+  Future<void> refresh() async {
+    await VisitsRepository.instance.generateTodayVisits();
+    await _reloadToday();
+  }
 
   Future<void> _reloadToday() async {
     final rows =

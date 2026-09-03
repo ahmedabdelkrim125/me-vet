@@ -342,4 +342,10 @@ class VisitsRepository {
   Future<void> removeSchedule(String scheduleId) async {
     await _supabase.from('customer_schedule').delete().eq('id', scheduleId);
   }
+
+  Future<void> generateTodayVisits() async {
+    try {
+      await _supabase.rpc('generate_today_visits');
+    } catch (_) {}
+  }
 }

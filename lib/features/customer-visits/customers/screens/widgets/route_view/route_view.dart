@@ -13,7 +13,7 @@ import 'route_report_sheet.dart';
 import 'route_stop_tile.dart';
 import 'route_summary_card.dart';
 import 'route_visit_status_sheet.dart';
-import 'select_route_customers_sheet.dart';
+import '../../weekly_plan_screen.dart';
 import 'unplanned_visit_button.dart';
 
 class RouteView extends StatefulWidget {
@@ -69,17 +69,11 @@ class _RouteViewState extends State<RouteView>
     super.dispose();
   }
 
-  Future<void> _editRoute() async {
-    await _routeController.initialize();
-    if (!mounted) return;
-
-    final selected = await showSelectRouteCustomersSheet(
-      context,
-      initiallySelectedIds: _routeController.selectedCustomerIds,
+  Future<void> _openWeeklyPlan() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const WeeklyPlanScreen()),
     );
-    if (selected == null) return;
-
-    await _routeController.setSelectedCustomers(selected);
+    if (mounted) _routeController.refresh();
   }
 
   void _addUnplannedVisit(CustomerModel customer) =>
@@ -168,17 +162,17 @@ class _RouteViewState extends State<RouteView>
                   borderRadius: BorderRadius.circular(12.r),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12.r),
-                    onTap: _editRoute,
+                    onTap: _openWeeklyPlan,
                     child: Padding(
                       padding:
                           EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                       child: Row(
                         children: [
-                          Icon(CupertinoIcons.pencil,
+                          Icon(CupertinoIcons.calendar,
                               size: 14.sp, color: context.colors.primary),
                           SizedBox(width: 6.w),
                           Text(
-                            'تعديل خط اليوم',
+                            'تخطيط الأسبوع',
                             style: AppTextStyles.cairoMedium16.copyWith(
                                 color: context.colors.primary, fontSize: 12.sp),
                           ),
