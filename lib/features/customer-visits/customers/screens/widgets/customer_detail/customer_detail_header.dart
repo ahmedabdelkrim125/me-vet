@@ -10,6 +10,7 @@ import '../../../domain/models/customer_model.dart';
 import '../../../domain/models/customer_status.dart';
 import '../customers_list_view/customer_status_style.dart';
 import 'edit_customer_bottom_sheet.dart';
+import 'customer_schedule_sheet.dart';
 
 class CustomerDetailHeader extends StatelessWidget {
   final CustomerModel customer;
@@ -98,10 +99,19 @@ class CustomerDetailHeader extends StatelessWidget {
             onSelected: (value) {
               if (value == 'edit') _editCustomer(context);
               if (value == 'delete') _deleteCustomer(context);
+              if (value == 'schedule') {
+                showCustomerScheduleSheet(
+                  context,
+                  customerId: customer.id,
+                  customerName: customer.name,
+                );
+              }
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
                   value: 'edit', child: Text('تعديل بيانات العميل')),
+              const PopupMenuItem(
+                  value: 'schedule', child: Text('مواعيد الزيارة الثابتة')),
               const PopupMenuItem(
                 value: 'delete',
                 child: Text('حذف العميل', style: TextStyle(color: Colors.red)),
