@@ -111,8 +111,7 @@ class CustomerDetailHeader extends StatelessWidget {
               const PopupMenuItem(
                   value: 'edit', child: Text('تعديل بيانات العميل')),
               const PopupMenuItem(
-                  value: 'schedule',
-                  child: Text('مواعيد الزيارة الثابتة')),
+                  value: 'schedule', child: Text('مواعيد الزيارة الثابتة')),
               const PopupMenuItem(
                 value: 'delete',
                 child: Text('حذف العميل', style: TextStyle(color: Colors.red)),

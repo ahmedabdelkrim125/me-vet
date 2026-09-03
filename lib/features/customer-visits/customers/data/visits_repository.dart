@@ -245,8 +245,8 @@ class VisitsRepository {
     if (existing != null) {
       await _supabase
           .from('customer_visits')
-          .update({'scheduled_at': scheduledAt.toIso8601String()})
-          .eq('id', existing['id'] as String);
+          .update({'scheduled_at': scheduledAt.toIso8601String()}).eq(
+              'id', existing['id'] as String);
       return;
     }
 

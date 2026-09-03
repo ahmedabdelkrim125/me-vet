@@ -130,10 +130,8 @@ class TodayRouteController {
 
   Future<void> carryIncompleteToDay(DateTime targetDay) async {
     await initialize();
-    final visitIds = incompleteStops
-        .map((s) => s.visitId)
-        .whereType<String>()
-        .toList();
+    final visitIds =
+        incompleteStops.map((s) => s.visitId).whereType<String>().toList();
     await VisitsRepository.instance.carryVisitsToDay(visitIds, targetDay);
     await _reloadToday();
   }

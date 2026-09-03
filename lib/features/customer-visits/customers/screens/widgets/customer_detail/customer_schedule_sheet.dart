@@ -197,9 +197,7 @@ class _DayRow extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  selected
-                      ? Icons.check_circle_rounded
-                      : Icons.circle_outlined,
+                  selected ? Icons.check_circle_rounded : Icons.circle_outlined,
                   color: selected ? colors.primary : colors.textMuted,
                   size: 20.sp,
                 ),
@@ -216,8 +214,8 @@ class _DayRow extends StatelessWidget {
                 if (timeLabel != null)
                   Text(
                     timeLabel!,
-                    style: AppTextStyles.almaraiRegular14.copyWith(
-                        color: colors.primary, fontSize: 12.sp),
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.primary, fontSize: 12.sp),
                   ),
               ],
             ),
