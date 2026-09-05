@@ -1,4 +1,6 @@
 
+import '../../customer-visits/customers/domain/models/customer_model.dart';
+
 class DiscountEligibility {
   final bool isEligible;
   final double suggestedPercentage;

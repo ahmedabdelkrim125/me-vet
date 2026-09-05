@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/errors/app_exception.dart';
 
+import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../domain/entities/sales_return.dart';
 import '../../domain/usecases/create_sales_return.dart';
 import '../../domain/usecases/get_customer_ledger.dart';

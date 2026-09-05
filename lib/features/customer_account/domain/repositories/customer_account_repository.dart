@@ -1,3 +1,4 @@
+import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../entities/customer_ledger.dart';
 import '../entities/sales_return.dart';
 

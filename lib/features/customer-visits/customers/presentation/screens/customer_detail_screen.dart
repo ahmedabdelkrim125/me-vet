@@ -130,15 +130,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../customer_account/presentation/screens/customer_account_screen.dart';
-import '../../../home/domain/models/quick_invoice_models.dart';
-import '../../../home/presentation/widgets/quick_invoice_dialog.dart';
-import '../data/customers_repository.dart';
-import '../domain/models/customer_detail_model.dart';
-import '../domain/models/customer_model.dart';
-import '../presentation/cubit/customer_analysis_cubit.dart';
-import '../presentation/cubit/customer_analysis_state.dart';
-import '../presentation/screens/widgets/customer_detail/customer_quick_actions_bar.dart';
+import '../../../../home/domain/models/quick_invoice_models.dart';
+import '../../data/customers_repository.dart';
+import '../../domain/models/customer_detail_model.dart';
+import '../../domain/models/customer_model.dart';
+import '../cubit/customer_analysis_cubit.dart';
+import '../cubit/customer_analysis_state.dart';
+
 
 
 class CustomerDetailScreen extends StatelessWidget {

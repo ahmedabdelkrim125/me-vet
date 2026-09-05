@@ -4,6 +4,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/features/customer-visits/customers/screens/customer_detail_screen.dart';
+import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../domain/models/app_notification_model.dart';
 import '../../domain/notification_repository.dart';
 import 'notification_time_label.dart';

@@ -5,6 +5,8 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/launch_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
+import '../../../../domain/models/customer_model.dart';
+
 class CustomerQuickActionsBar extends StatelessWidget {
   final CustomerModel customer;
   final VoidCallback? onInvoiceTap;
