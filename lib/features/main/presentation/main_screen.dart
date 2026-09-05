@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../customer-visits/customers/screens/customers_screen.dart';
 import '../../daily_report/presentation/screens/daily_report_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../inventory/presentation/screens/inventory_screen.dart';

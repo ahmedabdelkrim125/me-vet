@@ -1,9 +1,3 @@
-import '../../customer-visits/customers/data/customers_repository.dart';
-import '../../customer-visits/customers/data/invoices_repository.dart';
-import '../../customer-visits/customers/domain/models/collection_record_model.dart';
-import '../../customer-visits/customers/data/visits_repository.dart';
-import '../../customer-visits/customers/domain/today_route_controller.dart';
-import '../../customer-visits/customers/domain/models/visit_status.dart';
 import '../../inventory/domain/mock_inventory_repository.dart';
 import '../../inventory/domain/mock_stock_adjustments_repository.dart';
 import '../../inventory/domain/models/stock_adjustment_model.dart';

@@ -3,8 +3,8 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import '../../../domain/models/customer_detail_model.dart';
-import '../../invoice_detail_screen.dart';
+import '../../../../../customer_account/presentation/screens/customer_account_screen.dart';
+
 
 const _arabicMonths = [
   '',
@@ -22,7 +22,13 @@ const _arabicMonths = [
   'ديسمبر',
 ];
 
+/// Invoice-only preview (kept for continuity with the existing analysis
+/// cubit). The full financial ledger — invoices, payments, returns,
+/// refunds, adjustments, authoritative running balance — lives in
+/// CustomerAccountScreen; this section now links to it instead of trying
+/// to duplicate it.
 class CustomerAccountStatementSection extends StatefulWidget {
+  final String customerId;
   final List<InvoiceSummaryModel> recentInvoices;
   final List<InvoiceSummaryModel> allInvoices;
   final String customerName;
@@ -31,6 +37,7 @@ class CustomerAccountStatementSection extends StatefulWidget {
 
   const CustomerAccountStatementSection({
     super.key,
+    required this.customerId,
     required this.recentInvoices,
     required this.allInvoices,
     required this.customerName,
@@ -62,6 +69,18 @@ class _CustomerAccountStatementSectionState
       map.putIfAbsent(key, () => []).add(inv);
     }
     return map;
+  }
+
+  void _openFullAccount(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CustomerAccountScreen(
+          customerId: widget.customerId,
+          customerName: widget.customerName,
+          fallbackBalance: widget.currentBalance,
+        ),
+      ),
+    );
   }
 
   @override
@@ -99,6 +118,20 @@ class _CustomerAccountStatementSectionState
                   ),
                 ),
             ],
+          ),
+          SizedBox(height: 4.h),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () => _openFullAccount(context),
+              icon: Icon(Icons.account_balance_wallet_outlined,
+                  color: colors.primary, size: 16.sp),
+              label: Text(
+                'عرض الحساب والمعاملات بالكامل',
+                style: AppTextStyles.cairoMedium16
+                    .copyWith(color: colors.primary, fontSize: 11.sp),
+              ),
+            ),
           ),
           if (widget.isLoading)
             Skeletonizer(

@@ -1,0 +1,2313 @@
+diff --git a/lib/core/di/service_locator.dart b/lib/core/di/service_locator.dart
+index 8eb3fad..02820dd 100644
+--- a/lib/core/di/service_locator.dart
++++ b/lib/core/di/service_locator.dart
+@@ -3,6 +3,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
+ 
+ import '../../features/home/data/home_repository.dart';
+ import '../../features/home/presentation/cubit/home_cubit.dart';
++import '../../features/customer_account/data/datasources/customer_account_remote_data_source.dart';
++import '../../features/customer_account/data/repositories/customer_account_repository_impl.dart';
++import '../../features/customer_account/domain/repositories/customer_account_repository.dart';
++import '../../features/customer_account/domain/usecases/create_sales_return.dart';
++import '../../features/customer_account/domain/usecases/get_customer_ledger.dart';
++import '../../features/customer_account/domain/usecases/record_customer_payment.dart';
++import '../../features/customer_account/presentation/cubit/customer_account_cubit.dart';
+ 
+ final sl = GetIt.instance;
+ 
+@@ -14,4 +21,25 @@ void setupServiceLocator() {
+   sl.registerFactory<HomeCubit>(
+     () => HomeCubit(sl<HomeRepository>()),
+   );
++
++  // --- Customer account feature ---
++  sl.registerLazySingleton<CustomerAccountRemoteDataSource>(
++    () => CustomerAccountRemoteDataSource(Supabase.instance.client),
++  );
++
++  sl.registerLazySingleton<CustomerAccountRepository>(
++    () => CustomerAccountRepositoryImpl(sl()),
++  );
++
++  sl.registerFactory<GetCustomerLedger>(() => GetCustomerLedger(sl()));
++  sl.registerFactory<RecordCustomerPayment>(() => RecordCustomerPayment(sl()));
++  sl.registerFactory<CreateSalesReturn>(() => CreateSalesReturn(sl()));
++
++  sl.registerFactory<CustomerAccountCubit>(
++    () => CustomerAccountCubit(
++      getCustomerLedger: sl(),
++      recordCustomerPayment: sl(),
++      createSalesReturn: sl(),
++    ),
++  );
+ }
+diff --git a/lib/features/customer-visits/customers/data/invoices_repository.dart b/lib/features/customer-visits/customers/data/invoices_repository.dart
+index e1a9b73..20364ab 100644
+--- a/lib/features/customer-visits/customers/data/invoices_repository.dart
++++ b/lib/features/customer-visits/customers/data/invoices_repository.dart
+@@ -4,12 +4,14 @@ import '../domain/models/invoice_line_input.dart';
+ import '../domain/models/invoice_record_model.dart';
+ 
+ class InvoiceItemRow {
++  final String id;
+   final String productName;
+   final double unitPrice;
+   final int quantity;
+   final double lineTotal;
+ 
+   const InvoiceItemRow({
++    required this.id,
+     required this.productName,
+     required this.unitPrice,
+     required this.quantity,
+@@ -18,6 +20,7 @@ class InvoiceItemRow {
+ }
+ 
+ class InvoiceFullDetail {
++  final String id;
+   final String code;
+   final DateTime date;
+   final double subtotal;
+@@ -30,6 +33,7 @@ class InvoiceFullDetail {
+   final List<InvoiceItemRow> items;
+ 
+   const InvoiceFullDetail({
++    required this.id,
+     required this.code,
+     required this.date,
+     required this.subtotal,
+@@ -124,14 +128,18 @@ class InvoicesRepository {
+     final invoice =
+         await _supabase.from('invoices').select().eq('code', code).single();
+ 
++    // 'id' is selected so callers (e.g. the sales-return flow) have the
++    // real invoice UUID that create_sales_return requires — the invoice
++    // code alone isn't enough for that RPC.
+     final itemRows = await _supabase
+         .from('invoice_items')
+-        .select('product_name, unit_price, quantity, line_total')
++        .select('id, product_name, unit_price, quantity, line_total')
+         .eq('invoice_id', invoice['id'] as String);
+ 
+     final items = (itemRows as List).map((r) {
+       final m = r as Map<String, dynamic>;
+       return InvoiceItemRow(
++        id: m['id'] as String,
+         productName: m['product_name'] as String? ?? '',
+         unitPrice: (m['unit_price'] as num).toDouble(),
+         quantity: (m['quantity'] as num).toInt(),
+@@ -140,6 +148,7 @@ class InvoicesRepository {
+     }).toList();
+ 
+     return InvoiceFullDetail(
++      id: invoice['id'] as String,
+       code: invoice['code'] as String,
+       date: DateTime.parse(invoice['invoice_date'] as String),
+       subtotal: (invoice['subtotal'] as num).toDouble(),
+diff --git a/lib/features/customer-visits/customers/domain/models/invoice_record_model.dart b/lib/features/customer-visits/customers/domain/models/invoice_record_model.dart
+index 7536181..316b5d1 100644
+--- a/lib/features/customer-visits/customers/domain/models/invoice_record_model.dart
++++ b/lib/features/customer-visits/customers/domain/models/invoice_record_model.dart
+@@ -14,12 +14,14 @@ extension InvoiceStatusX on InvoiceStatus {
+ }
+ 
+ class InvoiceRecordModel {
++  final String id;
+   final String code;
+   final DateTime date;
+   final double amount;
+   final InvoiceStatus status;
+ 
+   const InvoiceRecordModel({
++    required this.id,
+     required this.code,
+     required this.date,
+     required this.amount,
+@@ -27,6 +29,7 @@ class InvoiceRecordModel {
+   });
+ 
+   Map<String, dynamic> toJson() => {
++        'id': id,
+         'code': code,
+         'date': date.toIso8601String(),
+         'amount': amount,
+@@ -35,6 +38,9 @@ class InvoiceRecordModel {
+ 
+   factory InvoiceRecordModel.fromJson(Map<String, dynamic> json) {
+     return InvoiceRecordModel(
++      // Defensive fallback: locally cached JSON written before this field
++      // existed won't have an 'id' key.
++      id: json['id'] as String? ?? '',
+       code: json['code'] as String,
+       date: DateTime.parse(json['date'] as String),
+       amount: (json['amount'] as num).toDouble(),
+@@ -47,6 +53,7 @@ class InvoiceRecordModel {
+ 
+   factory InvoiceRecordModel.fromSupabaseRow(Map<String, dynamic> row) {
+     return InvoiceRecordModel(
++      id: row['id'] as String,
+       code: row['code'] as String,
+       date: DateTime.parse(row['invoice_date'] as String),
+       amount: (row['total_amount'] as num).toDouble(),
+diff --git a/lib/features/customer-visits/customers/screens/customer_detail_screen.dart b/lib/features/customer-visits/customers/screens/customer_detail_screen.dart
+index 3f23e88..dca704a 100644
+--- a/lib/features/customer-visits/customers/screens/customer_detail_screen.dart
++++ b/lib/features/customer-visits/customers/screens/customer_detail_screen.dart
+@@ -1,6 +1,7 @@
+ import 'package:flutter/material.dart';
+ import 'package:flutter_bloc/flutter_bloc.dart';
+ import 'package:mivet_app/core/utils/responsive_extension.dart';
++import '../../../customer_account/presentation/screens/customer_account_screen.dart';
+ import '../../../home/domain/models/quick_invoice_models.dart';
+ import '../../../home/presentation/widgets/quick_invoice_dialog.dart';
+ import '../data/customers_repository.dart';
+@@ -9,7 +10,6 @@ import '../domain/models/customer_model.dart';
+ import '../presentation/cubit/customer_analysis_cubit.dart';
+ import '../presentation/cubit/customer_analysis_state.dart';
+ import 'widgets/customer_detail/customer_account_statement_section.dart';
+-import 'widgets/customer_detail/customer_collect_payment_sheet.dart';
+ import 'widgets/customer_detail/customer_detail_header.dart';
+ import 'widgets/customer_detail/customer_financial_info_card.dart';
+ import 'widgets/customer_detail/customer_notes_section.dart';
+@@ -73,11 +73,28 @@ class CustomerDetailScreen extends StatelessWidget {
+                                     )
+                                     .then((_) => cubit.load());
+                               },
+-                              onCollectTap: () =>
+-                                  showCustomerCollectPaymentSheet(
+-                                context,
+-                                detail: detail,
+-                              ),
++                              // Was: showCustomerCollectPaymentSheet(context, detail: detail).
++                              // The old collection-only sheet is replaced by the full
++                              // customer financial account (invoices, payments, returns,
++                              // running balance). NOTE: the "التحصيل" button label lives
++                              // inside CustomerQuickActionsBar (not provided to us) — its
++                              // text should be updated there to "الحساب والمعاملات" or similar.
++                              onCollectTap: () {
++                                final cubit =
++                                    context.read<CustomerAnalysisCubit>();
++                                Navigator.of(context)
++                                    .push(
++                                      MaterialPageRoute(
++                                        builder: (_) => CustomerAccountScreen(
++                                          customerId: currentCustomer.id,
++                                          customerName: currentCustomer.name,
++                                          fallbackBalance:
++                                              currentCustomer.currentBalance,
++                                        ),
++                                      ),
++                                    )
++                                    .then((_) => cubit.load());
++                              },
+                             ),
+                             SizedBox(height: 16.h),
+                             CustomerFinancialInfoCard(detail: detail),
+@@ -101,6 +118,7 @@ class CustomerDetailScreen extends StatelessWidget {
+                                 customerId: currentCustomer.id),
+                             SizedBox(height: 16.h),
+                             CustomerAccountStatementSection(
++                              customerId: currentCustomer.id,
+                               recentInvoices: analysis.recentInvoices,
+                               allInvoices: analysis.allInvoices,
+                               customerName: currentCustomer.name,
+diff --git a/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_account_statement_section.dart b/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_account_statement_section.dart
+index 452c2c6..27e0a53 100644
+--- a/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_account_statement_section.dart
++++ b/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_account_statement_section.dart
+@@ -3,6 +3,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+ import 'package:mivet_app/core/theme/app_text_styles.dart';
+ import 'package:mivet_app/core/utils/responsive_extension.dart';
+ import 'package:skeletonizer/skeletonizer.dart';
++import '../../../../../customer_account/presentation/screens/customer_account_screen.dart';
+ import '../../../domain/models/customer_detail_model.dart';
+ import '../../invoice_detail_screen.dart';
+ 
+@@ -22,7 +23,13 @@ const _arabicMonths = [
+   'ديسمبر',
+ ];
+ 
++/// Invoice-only preview (kept for continuity with the existing analysis
++/// cubit). The full financial ledger — invoices, payments, returns,
++/// refunds, adjustments, authoritative running balance — lives in
++/// CustomerAccountScreen; this section now links to it instead of trying
++/// to duplicate it.
+ class CustomerAccountStatementSection extends StatefulWidget {
++  final String customerId;
+   final List<InvoiceSummaryModel> recentInvoices;
+   final List<InvoiceSummaryModel> allInvoices;
+   final String customerName;
+@@ -31,6 +38,7 @@ class CustomerAccountStatementSection extends StatefulWidget {
+ 
+   const CustomerAccountStatementSection({
+     super.key,
++    required this.customerId,
+     required this.recentInvoices,
+     required this.allInvoices,
+     required this.customerName,
+@@ -64,6 +72,18 @@ class _CustomerAccountStatementSectionState
+     return map;
+   }
+ 
++  void _openFullAccount(BuildContext context) {
++    Navigator.of(context).push(
++      MaterialPageRoute(
++        builder: (_) => CustomerAccountScreen(
++          customerId: widget.customerId,
++          customerName: widget.customerName,
++          fallbackBalance: widget.currentBalance,
++        ),
++      ),
++    );
++  }
++
+   @override
+   Widget build(BuildContext context) {
+     final colors = context.colors;
+@@ -100,6 +120,20 @@ class _CustomerAccountStatementSectionState
+                 ),
+             ],
+           ),
++          SizedBox(height: 4.h),
++          Align(
++            alignment: AlignmentDirectional.centerStart,
++            child: TextButton.icon(
++              onPressed: () => _openFullAccount(context),
++              icon: Icon(Icons.account_balance_wallet_outlined,
++                  color: colors.primary, size: 16.sp),
++              label: Text(
++                'عرض الحساب والمعاملات بالكامل',
++                style: AppTextStyles.cairoMedium16
++                    .copyWith(color: colors.primary, fontSize: 11.sp),
++              ),
++            ),
++          ),
+           if (widget.isLoading)
+             Skeletonizer(
+               enabled: true,
+diff --git a/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_products_section/account_statement_section.dart b/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_products_section/account_statement_section.dart
+deleted file mode 100644
+index 5a89c1f..0000000
+--- a/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_products_section/account_statement_section.dart
++++ /dev/null
+@@ -1,57 +0,0 @@
+-import 'package:flutter/material.dart';
+-import 'package:hugeicons/hugeicons.dart';
+-import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+-import 'package:mivet_app/core/theme/app_text_styles.dart';
+-import 'package:mivet_app/core/utils/responsive_extension.dart';
+-import '../../../../domain/models/customer_detail_model.dart';
+-import 'invoice_row.dart';
+-
+-class CustomerAccountStatementSection extends StatelessWidget {
+-  final List<InvoiceSummaryModel> invoices;
+-
+-  const CustomerAccountStatementSection({super.key, required this.invoices});
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    final colors = context.colors;
+-    return Container(
+-      padding: EdgeInsets.all(16.w),
+-      decoration: BoxDecoration(
+-        color: colors.surface,
+-        borderRadius: BorderRadius.circular(18.r),
+-        border: Border.all(color: colors.border),
+-      ),
+-      child: Column(
+-        crossAxisAlignment: CrossAxisAlignment.stretch,
+-        children: [
+-          Row(
+-            children: [
+-              Text('كشف الحساب (آخر 6 شهور)',
+-                  style: AppTextStyles.cairoMedium16
+-                      .copyWith(color: colors.text, fontSize: 13.sp)),
+-              const Spacer(),
+-              IconButton(
+-                onPressed: () {},
+-                icon: HugeIcon(
+-                  icon: HugeIcons.strokeRoundedPrinter,
+-                  color: colors.textMuted,
+-                  size: 18.sp,
+-                ),
+-              ),
+-              IconButton(
+-                onPressed: () {},
+-                icon: HugeIcon(
+-                  icon: HugeIcons.strokeRoundedShare08,
+-                  color: colors.primary,
+-                  size: 18.sp,
+-                ),
+-              ),
+-            ],
+-          ),
+-          for (final invoice in invoices)
+-            InvoiceRow(invoice: invoice, colors: colors),
+-        ],
+-      ),
+-    );
+-  }
+-}
+diff --git a/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_quick_actions_bar.dart b/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_quick_actions_bar.dart
+index 3132ba8..0eba6eb 100644
+--- a/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_quick_actions_bar.dart
++++ b/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_quick_actions_bar.dart
+@@ -35,7 +35,7 @@ class CustomerQuickActionsBar extends StatelessWidget {
+         Expanded(
+           child: _ActionItem(
+             icon: CupertinoIcons.money_dollar_circle_fill,
+-            label: 'تحصيل',
++            label: 'الحساب',
+             color: colors.statBlue,
+             onTap: onCollectTap ?? () {},
+           ),
+diff --git a/lib/features/customer_account/data/datasources/customer_account_remote_data_source.dart b/lib/features/customer_account/data/datasources/customer_account_remote_data_source.dart
+new file mode 100644
+index 0000000..9e91a2e
+--- /dev/null
++++ b/lib/features/customer_account/data/datasources/customer_account_remote_data_source.dart
+@@ -0,0 +1,57 @@
++import 'package:supabase_flutter/supabase_flutter.dart';
++
++/// The ONLY class in this feature allowed to talk to Supabase. Calls the
++/// three verified RPCs exactly as documented in the backend contract:
++/// get_customer_ledger, record_customer_payment, create_sales_return.
++class CustomerAccountRemoteDataSource {
++  const CustomerAccountRemoteDataSource(this._client);
++
++  final SupabaseClient _client;
++
++  Future<List<dynamic>> getCustomerLedger({
++    required String customerId,
++    DateTime? from,
++    DateTime? to,
++  }) async {
++    final result = await _client.rpc('get_customer_ledger', params: {
++      'p_customer_id': customerId,
++      'p_from': from?.toIso8601String(),
++      'p_to': to?.toIso8601String(),
++    });
++    return result as List<dynamic>;
++  }
++
++  Future<Map<String, dynamic>> recordCustomerPayment({
++    required String customerId,
++    required double amount,
++    String? invoiceId,
++    required String source,
++    String? notes,
++  }) async {
++    final result = await _client.rpc('record_customer_payment', params: {
++      'p_customer_id': customerId,
++      'p_amount': amount,
++      'p_invoice_id': invoiceId,
++      'p_source': source,
++      'p_notes': notes,
++    });
++    return result as Map<String, dynamic>;
++  }
++
++  Future<Map<String, dynamic>> createSalesReturn({
++    required String customerId,
++    required String invoiceId,
++    required List<Map<String, dynamic>> items,
++    required String reason,
++    String? notes,
++  }) async {
++    final result = await _client.rpc('create_sales_return', params: {
++      'p_customer_id': customerId,
++      'p_invoice_id': invoiceId,
++      'p_items': items,
++      'p_reason': reason,
++      'p_notes': notes,
++    });
++    return result as Map<String, dynamic>;
++  }
++}
+diff --git a/lib/features/customer_account/data/models/customer_ledger_model.dart b/lib/features/customer_account/data/models/customer_ledger_model.dart
+new file mode 100644
+index 0000000..18e5f56
+--- /dev/null
++++ b/lib/features/customer_account/data/models/customer_ledger_model.dart
+@@ -0,0 +1,20 @@
++import '../../domain/entities/customer_ledger.dart';
++import 'customer_transaction_model.dart';
++
++class CustomerLedgerModel extends CustomerLedger {
++  CustomerLedgerModel({
++    required super.customerId,
++    required super.transactions,
++  });
++
++  factory CustomerLedgerModel.fromSupabaseRows(
++    String customerId,
++    List<dynamic> rows,
++  ) {
++    final transactions = rows
++        .map((row) =>
++            CustomerTransactionModel.fromSupabaseRow(row as Map<String, dynamic>))
++        .toList();
++    return CustomerLedgerModel(customerId: customerId, transactions: transactions);
++  }
++}
+diff --git a/lib/features/customer_account/data/models/customer_transaction_model.dart b/lib/features/customer_account/data/models/customer_transaction_model.dart
+new file mode 100644
+index 0000000..2f30c80
+--- /dev/null
++++ b/lib/features/customer_account/data/models/customer_transaction_model.dart
+@@ -0,0 +1,36 @@
++import '../../domain/entities/customer_transaction.dart';
++
++/// Parses one row of `get_customer_ledger`'s result set. Model extends the
++/// entity so a `List<CustomerTransactionModel>` can be used wherever
++/// `List<CustomerTransaction>` is expected, with no separate mapping step.
++class CustomerTransactionModel extends CustomerTransaction {
++  const CustomerTransactionModel({
++    required super.id,
++    required super.customerId,
++    super.repId,
++    required super.type,
++    super.referenceId,
++    super.referenceCode,
++    required super.debit,
++    required super.credit,
++    required super.balanceAfter,
++    required super.occurredAt,
++    super.notes,
++  });
++
++  factory CustomerTransactionModel.fromSupabaseRow(Map<String, dynamic> row) {
++    return CustomerTransactionModel(
++      id: row['id'] as String,
++      customerId: row['customer_id'] as String,
++      repId: row['rep_id'] as String?,
++      type: customerTransactionTypeFromDb(row['transaction_type'] as String?),
++      referenceId: row['reference_id'] as String?,
++      referenceCode: row['reference_code'] as String?,
++      debit: (row['debit'] as num?)?.toDouble() ?? 0,
++      credit: (row['credit'] as num?)?.toDouble() ?? 0,
++      balanceAfter: (row['balance_after'] as num).toDouble(),
++      occurredAt: DateTime.parse(row['occurred_at'] as String),
++      notes: row['notes'] as String?,
++    );
++  }
++}
+diff --git a/lib/features/customer_account/data/models/sales_return_model.dart b/lib/features/customer_account/data/models/sales_return_model.dart
+new file mode 100644
+index 0000000..8baeee4
+--- /dev/null
++++ b/lib/features/customer_account/data/models/sales_return_model.dart
+@@ -0,0 +1,34 @@
++import '../../domain/entities/sales_return.dart';
++
++/// `public.sales_returns`'s full column set is not part of the verified
++/// contract (only `id` and `code` are confirmed, via the join used inside
++/// `get_customer_ledger`). Parsing here stays deliberately defensive and
++/// only reads those two confirmed fields — everything else on this object
++/// comes from what Flutter already sent in the request.
++class SalesReturnModel extends SalesReturn {
++  const SalesReturnModel({
++    super.id,
++    super.code,
++    required super.customerId,
++    required super.invoiceId,
++    required super.reason,
++    super.notes,
++  });
++
++  factory SalesReturnModel.fromSupabaseRow(
++    Map<String, dynamic> row, {
++    required String customerId,
++    required String invoiceId,
++    required String reason,
++    String? notes,
++  }) {
++    return SalesReturnModel(
++      id: row['id'] as String?,
++      code: row['code'] as String?,
++      customerId: customerId,
++      invoiceId: invoiceId,
++      reason: reason,
++      notes: notes,
++    );
++  }
++}
+diff --git a/lib/features/customer_account/data/repositories/customer_account_repository_impl.dart b/lib/features/customer_account/data/repositories/customer_account_repository_impl.dart
+new file mode 100644
+index 0000000..dfa6dce
+--- /dev/null
++++ b/lib/features/customer_account/data/repositories/customer_account_repository_impl.dart
+@@ -0,0 +1,60 @@
++import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
++import '../../domain/entities/customer_ledger.dart';
++import '../../domain/entities/sales_return.dart';
++import '../../domain/repositories/customer_account_repository.dart';
++import '../datasources/customer_account_remote_data_source.dart';
++import '../models/customer_ledger_model.dart';
++
++class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
++  const CustomerAccountRepositoryImpl(this._remote);
++
++  final CustomerAccountRemoteDataSource _remote;
++
++  @override
++  Future<CustomerLedger> getLedger({
++    required String customerId,
++    DateTime? from,
++    DateTime? to,
++  }) async {
++    final rows = await _remote.getCustomerLedger(
++      customerId: customerId,
++      from: from,
++      to: to,
++    );
++    return CustomerLedgerModel.fromSupabaseRows(customerId, rows);
++  }
++
++  @override
++  Future<void> recordPayment({
++    required String customerId,
++    required double amount,
++    String? invoiceId,
++    required CollectionSource source,
++    String? notes,
++  }) async {
++    await _remote.recordCustomerPayment(
++      customerId: customerId,
++      amount: amount,
++      invoiceId: invoiceId,
++      source: source.dbValue,
++      notes: notes,
++    );
++  }
++
++  @override
++  Future<void> createSalesReturn({
++    required String customerId,
++    required String invoiceId,
++    required List<SalesReturnItemInput> items,
++    required String reason,
++    String? notes,
++  }) async {
++    await _remote.createSalesReturn(
++      customerId: customerId,
++      invoiceId: invoiceId,
++      items: items.map((item) => item.toRpcJson()).toList(),
++      reason: reason,
++      notes: notes,
++    );
++  }
++}
+diff --git a/lib/features/customer_account/domain/customer_statement_pdf_builder.dart b/lib/features/customer_account/domain/customer_statement_pdf_builder.dart
+new file mode 100644
+index 0000000..a0578c0
+--- /dev/null
++++ b/lib/features/customer_account/domain/customer_statement_pdf_builder.dart
+@@ -0,0 +1,127 @@
++import 'dart:typed_data';
++
++import 'package:flutter/services.dart' show rootBundle;
++import 'package:mivet_app/core/theme/app_colors.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:pdf/pdf.dart';
++import 'package:pdf/widgets.dart' as pw;
++
++import 'entities/customer_ledger.dart';
++import 'entities/customer_transaction.dart';
++
++/// Dedicated to the customer's full financial statement — a different
++/// document from [InvoicePdfBuilder], which stays scoped to one invoice.
++class CustomerStatementPdfBuilder {
++  CustomerStatementPdfBuilder._();
++
++  static final _navy = PdfColor.fromInt(AppColors.primary.value);
++  static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
++
++  static Future<Uint8List> build({
++    required String customerName,
++    required CustomerLedger ledger,
++  }) async {
++    final document = pw.Document();
++
++    final regularFontData = await rootBundle.load(
++      'assets/fonts/${AppTextStyles.cairoRegular14.fontFamily}-Regular.ttf',
++    );
++    final boldFontData = await rootBundle.load(
++      'assets/fonts/${AppTextStyles.cairoBold18.fontFamily}-Bold.ttf',
++    );
++    final regularFont = pw.Font.ttf(regularFontData);
++    final boldFont = pw.Font.ttf(boldFontData);
++
++    document.addPage(
++      pw.MultiPage(
++        pageTheme: pw.PageTheme(
++          pageFormat: PdfPageFormat.a4,
++          margin: const pw.EdgeInsets.all(28),
++          theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
++        ),
++        build: (context) => [
++          pw.Directionality(
++            textDirection: pw.TextDirection.rtl,
++            child: pw.Column(
++              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
++              children: [
++                pw.Text('كشف حساب العميل',
++                    style: pw.TextStyle(font: boldFont, fontSize: 18, color: _navy)),
++                pw.SizedBox(height: 6),
++                pw.Text(customerName, style: pw.TextStyle(font: boldFont, fontSize: 13)),
++                pw.SizedBox(height: 16),
++                _buildTable(ledger.transactions, boldFont, regularFont),
++                pw.SizedBox(height: 16),
++                pw.Align(
++                  alignment: pw.Alignment.centerLeft,
++                  child: pw.Text(
++                    'الرصيد الحالي: ${(ledger.currentBalance ?? 0).toStringAsFixed(0)} ج.م',
++                    style: pw.TextStyle(font: boldFont, fontSize: 13, color: _navy),
++                  ),
++                ),
++              ],
++            ),
++          ),
++        ],
++      ),
++    );
++
++    return document.save();
++  }
++
++  static pw.Widget _buildTable(
++    List<CustomerTransaction> transactions,
++    pw.Font boldFont,
++    pw.Font regularFont,
++  ) {
++    final headers = ['الرصيد بعدها', 'دائن', 'مدين', 'الوقت', 'التاريخ', 'المرجع', 'النوع'];
++
++    final rows = transactions.map((t) {
++      final d = t.occurredAt;
++      final date =
++          '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
++      final time = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
++      return [
++        t.balanceAfter.toStringAsFixed(0),
++        t.credit > 0 ? t.credit.toStringAsFixed(0) : '-',
++        t.debit > 0 ? t.debit.toStringAsFixed(0) : '-',
++        time,
++        date,
++        t.referenceCode ?? '-',
++        t.type.label,
++      ];
++    }).toList();
++
++    return pw.Table(
++      border: pw.TableBorder.all(color: _border, width: 0.6),
++      children: [
++        pw.TableRow(
++          decoration: pw.BoxDecoration(color: _navy),
++          children: headers
++              .map((h) => pw.Padding(
++                    padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 3),
++                    child: pw.Text(
++                      h,
++                      textAlign: pw.TextAlign.center,
++                      style: pw.TextStyle(font: boldFont, fontSize: 8, color: PdfColors.white),
++                    ),
++                  ))
++              .toList(),
++        ),
++        for (final row in rows)
++          pw.TableRow(
++            children: row
++                .map((cell) => pw.Padding(
++                      padding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 3),
++                      child: pw.Text(
++                        cell,
++                        textAlign: pw.TextAlign.center,
++                        style: pw.TextStyle(font: regularFont, fontSize: 8),
++                      ),
++                    ))
++                .toList(),
++          ),
++      ],
++    );
++  }
++}
+diff --git a/lib/features/customer_account/domain/entities/customer_ledger.dart b/lib/features/customer_account/domain/entities/customer_ledger.dart
+new file mode 100644
+index 0000000..de456d8
+--- /dev/null
++++ b/lib/features/customer_account/domain/entities/customer_ledger.dart
+@@ -0,0 +1,18 @@
++import 'customer_transaction.dart';
++
++class CustomerLedger {
++  final String customerId;
++  final List<CustomerTransaction> transactions;
++
++  const CustomerLedger({
++    required this.customerId,
++    required this.transactions,
++  });
++
++  /// `balance_after` of the most recent transaction (rows arrive ordered
++  /// desc by `occurred_at` from `get_customer_ledger`). Null when the
++  /// customer has no ledger rows yet — callers should fall back to a
++  /// display-only balance in that case, never to zero.
++  double? get currentBalance =>
++      transactions.isEmpty ? null : transactions.first.balanceAfter;
++}
+diff --git a/lib/features/customer_account/domain/entities/customer_transaction.dart b/lib/features/customer_account/domain/entities/customer_transaction.dart
+new file mode 100644
+index 0000000..e18bfa9
+--- /dev/null
++++ b/lib/features/customer_account/domain/entities/customer_transaction.dart
+@@ -0,0 +1,68 @@
++enum CustomerTransactionType { invoice, payment, salesReturn, refund, adjustment }
++
++extension CustomerTransactionTypeLabel on CustomerTransactionType {
++  String get label {
++    switch (this) {
++      case CustomerTransactionType.invoice:
++        return 'فاتورة';
++      case CustomerTransactionType.payment:
++        return 'تحصيل';
++      case CustomerTransactionType.salesReturn:
++        return 'مرتجع مبيعات';
++      case CustomerTransactionType.refund:
++        return 'رد مبلغ';
++      case CustomerTransactionType.adjustment:
++        return 'تسوية';
++    }
++  }
++}
++
++/// Maps the `customer_transaction_type` Postgres enum to its Dart counterpart.
++/// Falls back to [CustomerTransactionType.adjustment] for any unrecognized
++/// value instead of throwing, since debit/credit/balance_after still render
++/// correctly even if the type label itself is generic.
++CustomerTransactionType customerTransactionTypeFromDb(String? value) {
++  switch (value) {
++    case 'invoice':
++      return CustomerTransactionType.invoice;
++    case 'payment':
++      return CustomerTransactionType.payment;
++    case 'sales_return':
++      return CustomerTransactionType.salesReturn;
++    case 'refund':
++      return CustomerTransactionType.refund;
++    case 'adjustment':
++    default:
++      return CustomerTransactionType.adjustment;
++  }
++}
++
++/// A single row from `get_customer_ledger`. `balanceAfter` is the backend's
++/// authoritative running balance — Flutter never recomputes it.
++class CustomerTransaction {
++  final String id;
++  final String customerId;
++  final String? repId;
++  final CustomerTransactionType type;
++  final String? referenceId;
++  final String? referenceCode;
++  final double debit;
++  final double credit;
++  final double balanceAfter;
++  final DateTime occurredAt;
++  final String? notes;
++
++  const CustomerTransaction({
++    required this.id,
++    required this.customerId,
++    this.repId,
++    required this.type,
++    this.referenceId,
++    this.referenceCode,
++    required this.debit,
++    required this.credit,
++    required this.balanceAfter,
++    required this.occurredAt,
++    this.notes,
++  });
++}
+diff --git a/lib/features/customer_account/domain/entities/sales_return.dart b/lib/features/customer_account/domain/entities/sales_return.dart
+new file mode 100644
+index 0000000..2ce708d
+--- /dev/null
++++ b/lib/features/customer_account/domain/entities/sales_return.dart
+@@ -0,0 +1,38 @@
++/// One line of a sales return request, matching `create_sales_return`'s
++/// `p_items` shape: `[{"invoice_item_id":"<uuid>","quantity":1}]`.
++class SalesReturnItemInput {
++  final String invoiceItemId;
++  final int quantity;
++
++  const SalesReturnItemInput({
++    required this.invoiceItemId,
++    required this.quantity,
++  });
++
++  Map<String, dynamic> toRpcJson() => {
++        'invoice_item_id': invoiceItemId,
++        'quantity': quantity,
++      };
++}
++
++/// Result of `create_sales_return`. Only `id` and `code` are read from the
++/// RPC response — `public.sales_returns`'s other columns are not part of the
++/// verified contract, and the ledger refresh (not this object) is what the
++/// UI relies on afterwards.
++class SalesReturn {
++  final String? id;
++  final String? code;
++  final String customerId;
++  final String invoiceId;
++  final String reason;
++  final String? notes;
++
++  const SalesReturn({
++    this.id,
++    this.code,
++    required this.customerId,
++    required this.invoiceId,
++    required this.reason,
++    this.notes,
++  });
++}
+diff --git a/lib/features/customer_account/domain/repositories/customer_account_repository.dart b/lib/features/customer_account/domain/repositories/customer_account_repository.dart
+new file mode 100644
+index 0000000..c5ec2fc
+--- /dev/null
++++ b/lib/features/customer_account/domain/repositories/customer_account_repository.dart
+@@ -0,0 +1,30 @@
++import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
++import '../entities/customer_ledger.dart';
++import '../entities/sales_return.dart';
++
++/// Contract for the customer-account feature's data access. Implemented by
++/// [CustomerAccountRepositoryImpl] in the data layer; this file has no
++/// Supabase dependency.
++abstract class CustomerAccountRepository {
++  Future<CustomerLedger> getLedger({
++    required String customerId,
++    DateTime? from,
++    DateTime? to,
++  });
++
++  Future<void> recordPayment({
++    required String customerId,
++    required double amount,
++    String? invoiceId,
++    required CollectionSource source,
++    String? notes,
++  });
++
++  Future<void> createSalesReturn({
++    required String customerId,
++    required String invoiceId,
++    required List<SalesReturnItemInput> items,
++    required String reason,
++    String? notes,
++  });
++}
+diff --git a/lib/features/customer_account/domain/usecases/create_sales_return.dart b/lib/features/customer_account/domain/usecases/create_sales_return.dart
+new file mode 100644
+index 0000000..68b7d5a
+--- /dev/null
++++ b/lib/features/customer_account/domain/usecases/create_sales_return.dart
+@@ -0,0 +1,32 @@
++import 'package:mivet_app/core/errors/app_exception.dart';
++
++import '../entities/sales_return.dart';
++import '../repositories/customer_account_repository.dart';
++
++class CreateSalesReturn {
++  const CreateSalesReturn(this._repository);
++
++  final CustomerAccountRepository _repository;
++
++  Future<void> call({
++    required String customerId,
++    required String invoiceId,
++    required List<SalesReturnItemInput> items,
++    required String reason,
++    String? notes,
++  }) {
++    if (items.isEmpty) {
++      throw const AppException('لازم تختار صنف واحد على الأقل عشان ترجّعه');
++    }
++    if (items.any((item) => item.quantity <= 0)) {
++      throw const AppException('الكمية المرتجعة لازم تكون أكبر من صفر');
++    }
++    return _repository.createSalesReturn(
++      customerId: customerId,
++      invoiceId: invoiceId,
++      items: items,
++      reason: reason,
++      notes: notes,
++    );
++  }
++}
+diff --git a/lib/features/customer_account/domain/usecases/get_customer_ledger.dart b/lib/features/customer_account/domain/usecases/get_customer_ledger.dart
+new file mode 100644
+index 0000000..c2b7fcd
+--- /dev/null
++++ b/lib/features/customer_account/domain/usecases/get_customer_ledger.dart
+@@ -0,0 +1,16 @@
++import '../entities/customer_ledger.dart';
++import '../repositories/customer_account_repository.dart';
++
++class GetCustomerLedger {
++  const GetCustomerLedger(this._repository);
++
++  final CustomerAccountRepository _repository;
++
++  Future<CustomerLedger> call({
++    required String customerId,
++    DateTime? from,
++    DateTime? to,
++  }) {
++    return _repository.getLedger(customerId: customerId, from: from, to: to);
++  }
++}
+diff --git a/lib/features/customer_account/domain/usecases/record_customer_payment.dart b/lib/features/customer_account/domain/usecases/record_customer_payment.dart
+new file mode 100644
+index 0000000..2c4245f
+--- /dev/null
++++ b/lib/features/customer_account/domain/usecases/record_customer_payment.dart
+@@ -0,0 +1,29 @@
++import 'package:mivet_app/core/errors/app_exception.dart';
++
++import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
++import '../repositories/customer_account_repository.dart';
++
++class RecordCustomerPayment {
++  const RecordCustomerPayment(this._repository);
++
++  final CustomerAccountRepository _repository;
++
++  Future<void> call({
++    required String customerId,
++    required double amount,
++    String? invoiceId,
++    required CollectionSource source,
++    String? notes,
++  }) {
++    if (amount <= 0) {
++      throw const AppException('المبلغ المحصّل لازم يكون أكبر من صفر');
++    }
++    return _repository.recordPayment(
++      customerId: customerId,
++      amount: amount,
++      invoiceId: invoiceId,
++      source: source,
++      notes: notes,
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/cubit/customer_account_cubit.dart b/lib/features/customer_account/presentation/cubit/customer_account_cubit.dart
+new file mode 100644
+index 0000000..4c15960
+--- /dev/null
++++ b/lib/features/customer_account/presentation/cubit/customer_account_cubit.dart
+@@ -0,0 +1,123 @@
++import 'package:flutter_bloc/flutter_bloc.dart';
++import 'package:mivet_app/core/errors/app_exception.dart';
++
++import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
++import '../../domain/entities/sales_return.dart';
++import '../../domain/usecases/create_sales_return.dart';
++import '../../domain/usecases/get_customer_ledger.dart';
++import '../../domain/usecases/record_customer_payment.dart';
++import 'customer_account_state.dart';
++
++class CustomerAccountCubit extends Cubit<CustomerAccountState> {
++  CustomerAccountCubit({
++    required GetCustomerLedger getCustomerLedger,
++    required RecordCustomerPayment recordCustomerPayment,
++    required CreateSalesReturn createSalesReturn,
++  })  : _getCustomerLedger = getCustomerLedger,
++        _recordCustomerPayment = recordCustomerPayment,
++        _createSalesReturn = createSalesReturn,
++        super(const CustomerAccountState(customerId: '', customerName: ''));
++
++  final GetCustomerLedger _getCustomerLedger;
++  final RecordCustomerPayment _recordCustomerPayment;
++  final CreateSalesReturn _createSalesReturn;
++
++  Future<void> init({
++    required String customerId,
++    required String customerName,
++    double? fallbackBalance,
++  }) async {
++    emit(CustomerAccountState(
++      customerId: customerId,
++      customerName: customerName,
++      fallbackBalance: fallbackBalance,
++      isLoading: true,
++    ));
++    await _loadLedger();
++  }
++
++  Future<void> refresh() => _loadLedger();
++
++  Future<void> _loadLedger() async {
++    if (isClosed) return;
++    emit(state.copyWith(isLoading: true));
++    try {
++      final ledger = await _getCustomerLedger(customerId: state.customerId);
++      if (isClosed) return;
++      emit(state.copyWith(isLoading: false, ledger: ledger));
++    } catch (e) {
++      if (isClosed) return;
++      emit(state.copyWith(isLoading: false, actionError: mapErrorToAppException(e)));
++    }
++  }
++
++  Future<void> recordPayment({
++    required double amount,
++    String? invoiceId,
++    required CollectionSource source,
++    String? notes,
++  }) async {
++    emit(state.copyWith(actionStatus: CustomerAccountActionStatus.submitting));
++    try {
++      await _recordCustomerPayment(
++        customerId: state.customerId,
++        amount: amount,
++        invoiceId: invoiceId,
++        source: source,
++        notes: notes,
++      );
++      if (isClosed) return;
++      emit(state.copyWith(
++        actionStatus: CustomerAccountActionStatus.success,
++        actionSuccessMessage: 'تم تسجيل التحصيل بنجاح',
++      ));
++      await _loadLedger();
++    } catch (e) {
++      if (isClosed) return;
++      emit(state.copyWith(
++        actionStatus: CustomerAccountActionStatus.failure,
++        actionError: mapErrorToAppException(e),
++      ));
++    }
++  }
++
++  Future<void> submitSalesReturn({
++    required String invoiceId,
++    required List<SalesReturnItemInput> items,
++    required String reason,
++    String? notes,
++  }) async {
++    emit(state.copyWith(actionStatus: CustomerAccountActionStatus.submitting));
++    try {
++      await _createSalesReturn(
++        customerId: state.customerId,
++        invoiceId: invoiceId,
++        items: items,
++        reason: reason,
++        notes: notes,
++      );
++      if (isClosed) return;
++      emit(state.copyWith(
++        actionStatus: CustomerAccountActionStatus.success,
++        actionSuccessMessage: 'تم تسجيل مرتجع المبيعات بنجاح',
++      ));
++      await _loadLedger();
++    } catch (e) {
++      if (isClosed) return;
++      emit(state.copyWith(
++        actionStatus: CustomerAccountActionStatus.failure,
++        actionError: mapErrorToAppException(e),
++      ));
++    }
++  }
++
++  /// Resets the one-shot action flags after a BlocListener has already
++  /// shown the toast for them, so they don't refire on the next rebuild.
++  void acknowledgeAction() {
++    emit(state.copyWith(
++      actionStatus: CustomerAccountActionStatus.idle,
++      clearActionError: true,
++      clearActionSuccess: true,
++    ));
++  }
++}
+diff --git a/lib/features/customer_account/presentation/cubit/customer_account_state.dart b/lib/features/customer_account/presentation/cubit/customer_account_state.dart
+new file mode 100644
+index 0000000..491e113
+--- /dev/null
++++ b/lib/features/customer_account/presentation/cubit/customer_account_state.dart
+@@ -0,0 +1,70 @@
++import 'package:equatable/equatable.dart';
++import 'package:mivet_app/core/errors/app_exception.dart';
++
++import '../../domain/entities/customer_ledger.dart';
++
++enum CustomerAccountActionStatus { idle, submitting, success, failure }
++
++class CustomerAccountState extends Equatable {
++  final String customerId;
++  final String customerName;
++  final bool isLoading;
++  final CustomerLedger? ledger;
++
++  /// Display-only fallback (the customer's `current_balance` at the time
++  /// this screen was opened). Used only when the ledger has no rows yet —
++  /// once the ledger loads with transactions, `balance_after` takes over.
++  final double? fallbackBalance;
++
++  final CustomerAccountActionStatus actionStatus;
++  final AppException? actionError;
++  final String? actionSuccessMessage;
++
++  const CustomerAccountState({
++    required this.customerId,
++    required this.customerName,
++    this.isLoading = true,
++    this.ledger,
++    this.fallbackBalance,
++    this.actionStatus = CustomerAccountActionStatus.idle,
++    this.actionError,
++    this.actionSuccessMessage,
++  });
++
++  double get balance => ledger?.currentBalance ?? fallbackBalance ?? 0;
++
++  CustomerAccountState copyWith({
++    bool? isLoading,
++    CustomerLedger? ledger,
++    CustomerAccountActionStatus? actionStatus,
++    AppException? actionError,
++    String? actionSuccessMessage,
++    bool clearActionError = false,
++    bool clearActionSuccess = false,
++  }) {
++    return CustomerAccountState(
++      customerId: customerId,
++      customerName: customerName,
++      isLoading: isLoading ?? this.isLoading,
++      ledger: ledger ?? this.ledger,
++      fallbackBalance: fallbackBalance,
++      actionStatus: actionStatus ?? this.actionStatus,
++      actionError: clearActionError ? null : (actionError ?? this.actionError),
++      actionSuccessMessage: clearActionSuccess
++          ? null
++          : (actionSuccessMessage ?? this.actionSuccessMessage),
++    );
++  }
++
++  @override
++  List<Object?> get props => [
++        customerId,
++        customerName,
++        isLoading,
++        ledger,
++        fallbackBalance,
++        actionStatus,
++        actionError,
++        actionSuccessMessage,
++      ];
++}
+diff --git a/lib/features/customer_account/presentation/screens/customer_account_screen.dart b/lib/features/customer_account/presentation/screens/customer_account_screen.dart
+new file mode 100644
+index 0000000..e55bbc9
+--- /dev/null
++++ b/lib/features/customer_account/presentation/screens/customer_account_screen.dart
+@@ -0,0 +1,192 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_bloc/flutter_bloc.dart';
++import 'package:mivet_app/core/di/service_locator.dart';
++import 'package:mivet_app/core/errors/app_toast.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../presentation/cubit/customer_account_cubit.dart';
++import '../../presentation/cubit/customer_account_state.dart';
++import '../widgets/account_summary_card.dart';
++import '../widgets/payment_dialog.dart';
++import '../widgets/transaction_list.dart';
++import 'customer_statement_pdf_screen.dart';
++import 'sales_return_screen.dart';
++
++/// Entry point for the full customer financial account. Requires the real
++/// Supabase customer UUID — never the customer name or code.
++class CustomerAccountScreen extends StatelessWidget {
++  final String customerId;
++  final String customerName;
++
++  /// Display-only starting balance (e.g. `CustomerModel.currentBalance`),
++  /// used only until the ledger loads or if it comes back empty.
++  final double? fallbackBalance;
++
++  const CustomerAccountScreen({
++    super.key,
++    required this.customerId,
++    required this.customerName,
++    this.fallbackBalance,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    return BlocProvider(
++      create: (_) => sl<CustomerAccountCubit>()
++        ..init(
++          customerId: customerId,
++          customerName: customerName,
++          fallbackBalance: fallbackBalance,
++        ),
++      child: const _CustomerAccountView(),
++    );
++  }
++}
++
++class _CustomerAccountView extends StatelessWidget {
++  const _CustomerAccountView();
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Scaffold(
++      backgroundColor: colors.background,
++      body: SafeArea(
++        child: BlocConsumer<CustomerAccountCubit, CustomerAccountState>(
++          listenWhen: (p, c) => p.actionStatus != c.actionStatus,
++          listener: (context, state) {
++            final cubit = context.read<CustomerAccountCubit>();
++            if (state.actionStatus == CustomerAccountActionStatus.success &&
++                state.actionSuccessMessage != null) {
++              showAppSuccess(context, state.actionSuccessMessage!);
++              cubit.acknowledgeAction();
++            } else if (state.actionStatus == CustomerAccountActionStatus.failure &&
++                state.actionError != null) {
++              showAppError(context, state.actionError!);
++              cubit.acknowledgeAction();
++            }
++          },
++          builder: (context, state) {
++            return Column(
++              children: [
++                _Header(customerName: state.customerName),
++                Expanded(
++                  child: RefreshIndicator(
++                    onRefresh: () => context.read<CustomerAccountCubit>().refresh(),
++                    child: ListView(
++                      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 30.h),
++                      children: [
++                        AccountSummaryCard(
++                          customerName: state.customerName,
++                          balance: state.balance,
++                        ),
++                        SizedBox(height: 14.h),
++                        _ActionsBar(
++                          customerId: state.customerId,
++                          customerName: state.customerName,
++                        ),
++                        SizedBox(height: 16.h),
++                        Text('حركة الحساب',
++                            style: AppTextStyles.cairoMedium16
++                                .copyWith(color: colors.text, fontSize: 13.sp)),
++                        SizedBox(height: 8.h),
++                        TransactionList(
++                          transactions: state.ledger?.transactions ?? const [],
++                          isLoading: state.isLoading,
++                        ),
++                      ],
++                    ),
++                  ),
++                ),
++              ],
++            );
++          },
++        ),
++      ),
++    );
++  }
++}
++
++class _Header extends StatelessWidget {
++  final String customerName;
++
++  const _Header({required this.customerName});
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Container(
++      color: colors.surface,
++      padding: EdgeInsets.fromLTRB(12.w, 12.h, 16.w, 16.h),
++      child: Row(
++        children: [
++          IconButton(
++            onPressed: () => Navigator.of(context).pop(),
++            icon: Icon(Icons.arrow_forward, color: colors.primary, size: 22.sp),
++          ),
++          Expanded(
++            child: Text(
++              'الحساب والمعاملات — $customerName',
++              style: AppTextStyles.cairoBold18.copyWith(color: colors.primary, fontSize: 15.sp),
++              overflow: TextOverflow.ellipsis,
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _ActionsBar extends StatelessWidget {
++  final String customerId;
++  final String customerName;
++
++  const _ActionsBar({required this.customerId, required this.customerName});
++
++  @override
++  Widget build(BuildContext context) {
++    final cubit = context.read<CustomerAccountCubit>();
++    return Row(
++      children: [
++        Expanded(
++          child: OutlinedButton(
++            onPressed: () => showPaymentDialog(context),
++            child: const Text('تحصيل'),
++          ),
++        ),
++        SizedBox(width: 10.w),
++        Expanded(
++          child: OutlinedButton(
++            onPressed: () => Navigator.of(context)
++                .push(
++                  MaterialPageRoute(
++                    builder: (_) => SalesReturnScreen(
++                      customerId: customerId,
++                      customerName: customerName,
++                    ),
++                  ),
++                )
++                .then((_) => cubit.refresh()),
++            child: const Text('مرتجع مبيعات'),
++          ),
++        ),
++        SizedBox(width: 10.w),
++        Expanded(
++          child: OutlinedButton(
++            onPressed: () => Navigator.of(context).push(
++              MaterialPageRoute(
++                builder: (_) => BlocProvider.value(
++                  value: cubit,
++                  child: const CustomerStatementPdfScreen(),
++                ),
++              ),
++            ),
++            child: const Text('كشف حساب PDF'),
++          ),
++        ),
++      ],
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart b/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart
+new file mode 100644
+index 0000000..306b056
+--- /dev/null
++++ b/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart
+@@ -0,0 +1,52 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_bloc/flutter_bloc.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:printing/printing.dart';
++
++import '../../domain/customer_statement_pdf_builder.dart';
++import '../cubit/customer_account_cubit.dart';
++import '../cubit/customer_account_state.dart';
++
++/// Renders the full ledger already loaded by [CustomerAccountCubit] as a
++/// PDF. A different document from the per-invoice PDF built by
++/// InvoicePdfBuilder — this one covers every transaction type.
++class CustomerStatementPdfScreen extends StatelessWidget {
++  const CustomerStatementPdfScreen({super.key});
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Scaffold(
++      backgroundColor: colors.background,
++      appBar: AppBar(
++        title: const Text('كشف حساب PDF'),
++        backgroundColor: colors.surface,
++        foregroundColor: colors.primary,
++      ),
++      body: BlocBuilder<CustomerAccountCubit, CustomerAccountState>(
++        builder: (context, state) {
++          if (state.isLoading) {
++            return const Center(child: CircularProgressIndicator());
++          }
++          final ledger = state.ledger;
++          if (ledger == null || ledger.transactions.isEmpty) {
++            return Center(
++              child: Text('لا توجد معاملات لعرضها في كشف الحساب',
++                  style: AppTextStyles.almaraiRegular14.copyWith(color: colors.textMuted)),
++            );
++          }
++          return PdfPreview(
++            build: (_) => CustomerStatementPdfBuilder.build(
++              customerName: state.customerName,
++              ledger: ledger,
++            ),
++            allowSharing: true,
++            allowPrinting: true,
++            canChangePageFormat: false,
++          );
++        },
++      ),
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/screens/sales_return_screen.dart b/lib/features/customer_account/presentation/screens/sales_return_screen.dart
+new file mode 100644
+index 0000000..be59bc9
+--- /dev/null
++++ b/lib/features/customer_account/presentation/screens/sales_return_screen.dart
+@@ -0,0 +1,256 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_bloc/flutter_bloc.dart';
++import 'package:mivet_app/core/errors/app_toast.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++import 'package:mivet_app/features/customer-visits/customers/data/invoices_repository.dart';
++import 'package:mivet_app/features/customer-visits/customers/domain/models/invoice_record_model.dart';
++
++import '../../domain/entities/sales_return.dart';
++import '../cubit/customer_account_cubit.dart';
++import '../cubit/customer_account_state.dart';
++import '../widgets/return_item_selector.dart';
++import '../widgets/return_summary.dart';
++
++/// Two-step return flow: pick the original invoice, then pick lines/quantities
++/// to return from it. Requires a [CustomerAccountCubit] above it in the tree
++/// (provided by [CustomerAccountScreen]'s `_ActionsBar`).
++class SalesReturnScreen extends StatefulWidget {
++  final String customerId;
++  final String customerName;
++
++  const SalesReturnScreen({
++    super.key,
++    required this.customerId,
++    required this.customerName,
++  });
++
++  @override
++  State<SalesReturnScreen> createState() => _SalesReturnScreenState();
++}
++
++class _SalesReturnScreenState extends State<SalesReturnScreen> {
++  List<InvoiceRecordModel>? _invoices;
++  InvoiceFullDetail? _selectedInvoice;
++  bool _loadingInvoices = true;
++  bool _loadingDetail = false;
++  final Map<String, int> _selectedQuantities = {};
++  final _reasonController = TextEditingController();
++  final _notesController = TextEditingController();
++
++  @override
++  void initState() {
++    super.initState();
++    _loadInvoices();
++  }
++
++  @override
++  void dispose() {
++    _reasonController.dispose();
++    _notesController.dispose();
++    super.dispose();
++  }
++
++  Future<void> _loadInvoices() async {
++    try {
++      final invoices =
++          await InvoicesRepository.instance.getInvoicesForCustomer(widget.customerId);
++      if (!mounted) return;
++      setState(() {
++        _invoices = invoices;
++        _loadingInvoices = false;
++      });
++    } catch (e) {
++      if (!mounted) return;
++      setState(() => _loadingInvoices = false);
++      showAppError(context, e);
++    }
++  }
++
++  Future<void> _selectInvoice(InvoiceRecordModel invoice) async {
++    setState(() => _loadingDetail = true);
++    try {
++      final detail = await InvoicesRepository.instance.getInvoiceDetailByCode(invoice.code);
++      if (!mounted) return;
++      setState(() {
++        _selectedInvoice = detail;
++        _loadingDetail = false;
++        _selectedQuantities.clear();
++      });
++    } catch (e) {
++      if (!mounted) return;
++      setState(() => _loadingDetail = false);
++      showAppError(context, e);
++    }
++  }
++
++  double get _returnTotal {
++    final invoice = _selectedInvoice;
++    if (invoice == null) return 0;
++    var total = 0.0;
++    for (final item in invoice.items) {
++      final qty = _selectedQuantities[item.id] ?? 0;
++      if (qty > 0) total += item.unitPrice * qty;
++    }
++    return total;
++  }
++
++  void _submit() {
++    final invoice = _selectedInvoice;
++    if (invoice == null) return;
++    final items = _selectedQuantities.entries
++        .where((e) => e.value > 0)
++        .map((e) => SalesReturnItemInput(invoiceItemId: e.key, quantity: e.value))
++        .toList();
++    if (items.isEmpty) return;
++    context.read<CustomerAccountCubit>().submitSalesReturn(
++          invoiceId: invoice.id,
++          items: items,
++          reason:
++              _reasonController.text.trim().isEmpty ? 'مرتجع من العميل' : _reasonController.text.trim(),
++          notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
++        );
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Scaffold(
++      backgroundColor: colors.background,
++      appBar: AppBar(
++        title: const Text('مرتجع مبيعات'),
++        backgroundColor: colors.surface,
++        foregroundColor: colors.primary,
++      ),
++      body: BlocConsumer<CustomerAccountCubit, CustomerAccountState>(
++        listenWhen: (p, c) => p.actionStatus != c.actionStatus,
++        listener: (context, state) {
++          final cubit = context.read<CustomerAccountCubit>();
++          if (state.actionStatus == CustomerAccountActionStatus.success) {
++            showAppSuccess(context, state.actionSuccessMessage ?? 'تم الحفظ');
++            cubit.acknowledgeAction();
++            Navigator.of(context).pop();
++          } else if (state.actionStatus == CustomerAccountActionStatus.failure &&
++              state.actionError != null) {
++            showAppError(context, state.actionError!);
++            cubit.acknowledgeAction();
++          }
++        },
++        builder: (context, state) {
++          final isSubmitting = state.actionStatus == CustomerAccountActionStatus.submitting;
++          if (_selectedInvoice == null) {
++            return _InvoicePicker(
++              invoices: _invoices,
++              isLoading: _loadingInvoices || _loadingDetail,
++              onSelect: _selectInvoice,
++            );
++          }
++          return Column(
++            children: [
++              Expanded(
++                child: ListView(
++                  padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 16.h),
++                  children: [
++                    Row(
++                      children: [
++                        Expanded(
++                          child: Text(
++                            'فاتورة ${_selectedInvoice!.code}',
++                            style: AppTextStyles.cairoMedium16
++                                .copyWith(color: colors.text, fontSize: 13.sp),
++                          ),
++                        ),
++                        TextButton(
++                          onPressed: () => setState(() => _selectedInvoice = null),
++                          child: const Text('تغيير الفاتورة'),
++                        ),
++                      ],
++                    ),
++                    SizedBox(height: 8.h),
++                    for (final item in _selectedInvoice!.items)
++                      ReturnItemSelector(
++                        item: item,
++                        quantity: _selectedQuantities[item.id] ?? 0,
++                        onChanged: (qty) => setState(() => _selectedQuantities[item.id] = qty),
++                      ),
++                    SizedBox(height: 12.h),
++                    TextField(
++                      controller: _reasonController,
++                      decoration: const InputDecoration(labelText: 'سبب الإرجاع'),
++                    ),
++                    SizedBox(height: 12.h),
++                    TextField(
++                      controller: _notesController,
++                      maxLines: 2,
++                      decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
++                    ),
++                    SizedBox(height: 12.h),
++                    ReturnSummary(total: _returnTotal),
++                  ],
++                ),
++              ),
++              Padding(
++                padding: EdgeInsets.all(16.w),
++                child: ElevatedButton(
++                  onPressed: isSubmitting || _returnTotal <= 0 ? null : _submit,
++                  child: isSubmitting
++                      ? const SizedBox(
++                          width: 20,
++                          height: 20,
++                          child: CircularProgressIndicator(strokeWidth: 2),
++                        )
++                      : const Text('تأكيد المرتجع'),
++                ),
++              ),
++            ],
++          );
++        },
++      ),
++    );
++  }
++}
++
++class _InvoicePicker extends StatelessWidget {
++  final List<InvoiceRecordModel>? invoices;
++  final bool isLoading;
++  final ValueChanged<InvoiceRecordModel> onSelect;
++
++  const _InvoicePicker({
++    required this.invoices,
++    required this.isLoading,
++    required this.onSelect,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    if (isLoading) {
++      return const Center(child: CircularProgressIndicator());
++    }
++    final list = invoices ?? const [];
++    if (list.isEmpty) {
++      return Center(
++        child: Text('لا توجد فواتير لهذا العميل',
++            style: AppTextStyles.almaraiRegular14.copyWith(color: colors.textMuted)),
++      );
++    }
++    return ListView.builder(
++      padding: EdgeInsets.all(16.w),
++      itemCount: list.length,
++      itemBuilder: (context, index) {
++        final invoice = list[index];
++        return Card(
++          child: ListTile(
++            title: Text(invoice.code),
++            subtitle: Text(
++              '${invoice.date.year}/${invoice.date.month.toString().padLeft(2, '0')}/${invoice.date.day.toString().padLeft(2, '0')} — ${invoice.amount.toStringAsFixed(0)} ج.م',
++            ),
++            trailing: Text(invoice.status.label),
++            onTap: () => onSelect(invoice),
++          ),
++        );
++      },
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/widgets/account_summary_card.dart b/lib/features/customer_account/presentation/widgets/account_summary_card.dart
+new file mode 100644
+index 0000000..6ae80f0
+--- /dev/null
++++ b/lib/features/customer_account/presentation/widgets/account_summary_card.dart
+@@ -0,0 +1,55 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++class AccountSummaryCard extends StatelessWidget {
++  final String customerName;
++  final double balance;
++
++  const AccountSummaryCard({
++    super.key,
++    required this.customerName,
++    required this.balance,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    final String statusLabel;
++    final Color statusColor;
++    if (balance > 0) {
++      statusLabel = 'مستحق على العميل';
++      statusColor = colors.statusNotReached;
++    } else if (balance < 0) {
++      statusLabel = 'رصيد دائن للعميل';
++      statusColor = colors.primary;
++    } else {
++      statusLabel = 'الحساب مسدد';
++      statusColor = colors.primary;
++    }
++
++    return Container(
++      width: double.infinity,
++      padding: EdgeInsets.all(16.w),
++      decoration: BoxDecoration(
++        color: colors.surface,
++        borderRadius: BorderRadius.circular(18.r),
++        border: Border.all(color: colors.border),
++      ),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Text(customerName,
++              style: AppTextStyles.cairoBold18.copyWith(color: colors.text, fontSize: 15.sp)),
++          SizedBox(height: 10.h),
++          Text('${balance.abs().toStringAsFixed(0)} ج.م',
++              style: AppTextStyles.cairoBold18.copyWith(color: statusColor, fontSize: 24.sp)),
++          SizedBox(height: 4.h),
++          Text(statusLabel,
++              style: AppTextStyles.cairoMedium16.copyWith(color: statusColor, fontSize: 12.sp)),
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/widgets/payment_dialog.dart b/lib/features/customer_account/presentation/widgets/payment_dialog.dart
+new file mode 100644
+index 0000000..390e141
+--- /dev/null
++++ b/lib/features/customer_account/presentation/widgets/payment_dialog.dart
+@@ -0,0 +1,155 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_bloc/flutter_bloc.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
++import '../cubit/customer_account_cubit.dart';
++import '../cubit/customer_account_state.dart';
++
++Future<void> showPaymentDialog(BuildContext context) {
++  final cubit = context.read<CustomerAccountCubit>();
++  return showModalBottomSheet(
++    context: context,
++    isScrollControlled: true,
++    backgroundColor: Colors.transparent,
++    builder: (_) => BlocProvider.value(
++      value: cubit,
++      child: const PaymentDialog(),
++    ),
++  );
++}
++
++class PaymentDialog extends StatefulWidget {
++  const PaymentDialog({super.key});
++
++  @override
++  State<PaymentDialog> createState() => _PaymentDialogState();
++}
++
++class _PaymentDialogState extends State<PaymentDialog> {
++  final _amountController = TextEditingController();
++  final _invoiceIdController = TextEditingController();
++  final _notesController = TextEditingController();
++  CollectionSource _source = CollectionSource.oldDebtPayment;
++
++  @override
++  void dispose() {
++    _amountController.dispose();
++    _invoiceIdController.dispose();
++    _notesController.dispose();
++    super.dispose();
++  }
++
++  void _submit() {
++    final amount = double.tryParse(_amountController.text.trim());
++    if (amount == null || amount <= 0) return;
++    context.read<CustomerAccountCubit>().recordPayment(
++          amount: amount,
++          invoiceId: _source == CollectionSource.newInvoicePayment &&
++                  _invoiceIdController.text.trim().isNotEmpty
++              ? _invoiceIdController.text.trim()
++              : null,
++          source: _source,
++          notes: _notesController.text.trim().isEmpty
++              ? null
++              : _notesController.text.trim(),
++        );
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Padding(
++      padding: EdgeInsets.only(
++        left: 16.w,
++        right: 16.w,
++        top: 16.h,
++        bottom: MediaQuery.of(context).viewInsets.bottom + 16.h,
++      ),
++      child: Container(
++        decoration: BoxDecoration(
++          color: colors.surface,
++          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
++        ),
++        padding: EdgeInsets.all(16.w),
++        child: BlocConsumer<CustomerAccountCubit, CustomerAccountState>(
++          listenWhen: (p, c) => p.actionStatus != c.actionStatus,
++          listener: (context, state) {
++            if (state.actionStatus == CustomerAccountActionStatus.success) {
++              Navigator.of(context).pop();
++            }
++          },
++          builder: (context, state) {
++            final isSubmitting =
++                state.actionStatus == CustomerAccountActionStatus.submitting;
++            return Column(
++              mainAxisSize: MainAxisSize.min,
++              crossAxisAlignment: CrossAxisAlignment.stretch,
++              children: [
++                Text('تسجيل تحصيل',
++                    style:
++                        AppTextStyles.cairoBold18.copyWith(color: colors.text, fontSize: 15.sp)),
++                SizedBox(height: 12.h),
++                _SourceSelector(
++                  value: _source,
++                  onChanged: (v) => setState(() => _source = v),
++                ),
++                SizedBox(height: 12.h),
++                TextField(
++                  controller: _amountController,
++                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
++                  decoration: const InputDecoration(labelText: 'المبلغ'),
++                ),
++                if (_source == CollectionSource.newInvoicePayment) ...[
++                  SizedBox(height: 12.h),
++                  TextField(
++                    controller: _invoiceIdController,
++                    decoration:
++                        const InputDecoration(labelText: 'معرف الفاتورة (اختياري)'),
++                  ),
++                ],
++                SizedBox(height: 12.h),
++                TextField(
++                  controller: _notesController,
++                  maxLines: 2,
++                  decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
++                ),
++                SizedBox(height: 16.h),
++                ElevatedButton(
++                  onPressed: isSubmitting ? null : _submit,
++                  child: isSubmitting
++                      ? const SizedBox(
++                          width: 20,
++                          height: 20,
++                          child: CircularProgressIndicator(strokeWidth: 2),
++                        )
++                      : const Text('تأكيد التحصيل'),
++                ),
++              ],
++            );
++          },
++        ),
++      ),
++    );
++  }
++}
++
++class _SourceSelector extends StatelessWidget {
++  final CollectionSource value;
++  final ValueChanged<CollectionSource> onChanged;
++
++  const _SourceSelector({required this.value, required this.onChanged});
++
++  @override
++  Widget build(BuildContext context) {
++    return SegmentedButton<CollectionSource>(
++      segments: CollectionSource.values
++          .map((s) => ButtonSegment(value: s, label: Text(s.label)))
++          .toList(),
++      selected: {value},
++      onSelectionChanged: (selection) => onChanged(selection.first),
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/widgets/return_item_selector.dart b/lib/features/customer_account/presentation/widgets/return_item_selector.dart
+new file mode 100644
+index 0000000..27e7baa
+--- /dev/null
++++ b/lib/features/customer_account/presentation/widgets/return_item_selector.dart
+@@ -0,0 +1,66 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++import 'package:mivet_app/features/customer-visits/customers/data/invoices_repository.dart';
++
++/// The quantity stepper is capped at the invoice line's original quantity.
++/// The backend also enforces the true remaining-returnable quantity
++/// (original minus previous returns) inside `create_sales_return` — that
++/// number isn't exposed by any verified RPC, so Flutter cannot pre-filter
++/// against it and relies on the server rejecting an over-return.
++class ReturnItemSelector extends StatelessWidget {
++  final InvoiceItemRow item;
++  final int quantity;
++  final ValueChanged<int> onChanged;
++
++  const ReturnItemSelector({
++    super.key,
++    required this.item,
++    required this.quantity,
++    required this.onChanged,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Container(
++      margin: EdgeInsets.only(bottom: 8.h),
++      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
++      decoration: BoxDecoration(
++        color: colors.surface,
++        borderRadius: BorderRadius.circular(12.r),
++        border: Border.all(color: colors.border),
++      ),
++      child: Row(
++        children: [
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                Text(item.productName,
++                    style: AppTextStyles.cairoMedium16
++                        .copyWith(color: colors.text, fontSize: 12.sp)),
++                Text(
++                  'الكمية الأصلية: ${item.quantity} — السعر: ${item.unitPrice.toStringAsFixed(0)} ج.م',
++                  style: AppTextStyles.almaraiRegular14
++                      .copyWith(color: colors.textMuted, fontSize: 10.sp),
++                ),
++              ],
++            ),
++          ),
++          IconButton(
++            onPressed: quantity > 0 ? () => onChanged(quantity - 1) : null,
++            icon: const Icon(Icons.remove_circle_outline),
++          ),
++          Text('$quantity',
++              style: AppTextStyles.cairoMedium16.copyWith(color: colors.text, fontSize: 13.sp)),
++          IconButton(
++            onPressed: quantity < item.quantity ? () => onChanged(quantity + 1) : null,
++            icon: const Icon(Icons.add_circle_outline),
++          ),
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/widgets/return_summary.dart b/lib/features/customer_account/presentation/widgets/return_summary.dart
+new file mode 100644
+index 0000000..e2b92c9
+--- /dev/null
++++ b/lib/features/customer_account/presentation/widgets/return_summary.dart
+@@ -0,0 +1,33 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++class ReturnSummary extends StatelessWidget {
++  final double total;
++
++  const ReturnSummary({super.key, required this.total});
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Container(
++      padding: EdgeInsets.all(14.w),
++      decoration: BoxDecoration(
++        color: colors.surface,
++        borderRadius: BorderRadius.circular(14.r),
++        border: Border.all(color: colors.border),
++      ),
++      child: Row(
++        children: [
++          Text('إجمالي المرتجع',
++              style: AppTextStyles.almaraiRegular14
++                  .copyWith(color: colors.textMuted, fontSize: 12.sp)),
++          const Spacer(),
++          Text('${total.toStringAsFixed(0)} ج.م',
++              style: AppTextStyles.cairoBold18.copyWith(color: colors.primary, fontSize: 15.sp)),
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/widgets/transaction_item.dart b/lib/features/customer_account/presentation/widgets/transaction_item.dart
+new file mode 100644
+index 0000000..cd89bd0
+--- /dev/null
++++ b/lib/features/customer_account/presentation/widgets/transaction_item.dart
+@@ -0,0 +1,143 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../domain/entities/customer_transaction.dart';
++import 'transaction_type_badge.dart';
++
++class TransactionItem extends StatelessWidget {
++  final CustomerTransaction transaction;
++
++  const TransactionItem({super.key, required this.transaction});
++
++  String _two(int n) => n.toString().padLeft(2, '0');
++
++  String get _dateLabel {
++    final d = transaction.occurredAt;
++    return '${d.year}/${_two(d.month)}/${_two(d.day)}';
++  }
++
++  String get _timeLabel {
++    final d = transaction.occurredAt;
++    return '${_two(d.hour)}:${_two(d.minute)}';
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    final hasDebit = transaction.debit > 0;
++    final hasCredit = transaction.credit > 0;
++    final hasFooter =
++        transaction.repId != null || (transaction.notes?.isNotEmpty ?? false);
++
++    return Container(
++      margin: EdgeInsets.only(bottom: 10.h),
++      padding: EdgeInsets.all(12.w),
++      decoration: BoxDecoration(
++        color: colors.surface,
++        borderRadius: BorderRadius.circular(14.r),
++        border: Border.all(color: colors.border),
++      ),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.stretch,
++        children: [
++          Row(
++            children: [
++              TransactionTypeBadge(type: transaction.type),
++              SizedBox(width: 8.w),
++              if (transaction.referenceCode != null)
++                Expanded(
++                  child: Text(
++                    transaction.referenceCode!,
++                    style: AppTextStyles.cairoMedium16
++                        .copyWith(color: colors.text, fontSize: 12.sp),
++                  ),
++                )
++              else
++                const Spacer(),
++              Text(
++                '$_dateLabel  $_timeLabel',
++                style: AppTextStyles.almaraiRegular14
++                    .copyWith(color: colors.textMuted, fontSize: 10.sp),
++              ),
++            ],
++          ),
++          SizedBox(height: 8.h),
++          Row(
++            children: [
++              if (hasDebit)
++                Expanded(
++                  child: _AmountLabel(
++                    label: 'مدين',
++                    amount: transaction.debit,
++                    color: colors.statusNotReached,
++                  ),
++                ),
++              if (hasCredit)
++                Expanded(
++                  child: _AmountLabel(
++                    label: 'دائن',
++                    amount: transaction.credit,
++                    color: colors.primary,
++                  ),
++                ),
++              Expanded(
++                child: _AmountLabel(
++                  label: 'الرصيد بعدها',
++                  amount: transaction.balanceAfter,
++                  color: colors.text,
++                ),
++              ),
++            ],
++          ),
++          if (hasFooter) ...[
++            SizedBox(height: 6.h),
++            if (transaction.repId != null)
++              Text(
++                'المندوب: ${transaction.repId}',
++                style: AppTextStyles.almaraiRegular14
++                    .copyWith(color: colors.textMuted, fontSize: 10.sp),
++              ),
++            if (transaction.notes?.isNotEmpty ?? false)
++              Padding(
++                padding: EdgeInsets.only(top: 2.h),
++                child: Text(
++                  transaction.notes!,
++                  style: AppTextStyles.almaraiRegular14
++                      .copyWith(color: colors.textMuted, fontSize: 10.sp),
++                ),
++              ),
++          ],
++        ],
++      ),
++    );
++  }
++}
++
++class _AmountLabel extends StatelessWidget {
++  final String label;
++  final double amount;
++  final Color color;
++
++  const _AmountLabel({
++    required this.label,
++    required this.amount,
++    required this.color,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.start,
++      children: [
++        Text(label,
++            style: AppTextStyles.almaraiRegular14
++                .copyWith(color: colors.textMuted, fontSize: 9.sp)),
++        Text('${amount.toStringAsFixed(0)} ج.م',
++            style: AppTextStyles.cairoMedium16.copyWith(color: color, fontSize: 12.sp)),
++      ],
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/widgets/transaction_list.dart b/lib/features/customer_account/presentation/widgets/transaction_list.dart
+new file mode 100644
+index 0000000..958f180
+--- /dev/null
++++ b/lib/features/customer_account/presentation/widgets/transaction_list.dart
+@@ -0,0 +1,46 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../domain/entities/customer_transaction.dart';
++import 'transaction_item.dart';
++
++class TransactionList extends StatelessWidget {
++  final List<CustomerTransaction> transactions;
++  final bool isLoading;
++
++  const TransactionList({
++    super.key,
++    required this.transactions,
++    this.isLoading = false,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    if (isLoading && transactions.isEmpty) {
++      return Padding(
++        padding: EdgeInsets.only(top: 40.h),
++        child: const Center(child: CircularProgressIndicator()),
++      );
++    }
++    if (transactions.isEmpty) {
++      return Padding(
++        padding: EdgeInsets.only(top: 24.h),
++        child: Center(
++          child: Text(
++            'لسه مفيش معاملات مسجلة على الحساب ده',
++            style: AppTextStyles.almaraiRegular14
++                .copyWith(color: colors.textMuted, fontSize: 12.sp),
++          ),
++        ),
++      );
++    }
++    return Column(
++      children: [
++        for (final tx in transactions) TransactionItem(transaction: tx),
++      ],
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/widgets/transaction_type_badge.dart b/lib/features/customer_account/presentation/widgets/transaction_type_badge.dart
+new file mode 100644
+index 0000000..cb1e4a1
+--- /dev/null
++++ b/lib/features/customer_account/presentation/widgets/transaction_type_badge.dart
+@@ -0,0 +1,43 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../domain/entities/customer_transaction.dart';
++
++class TransactionTypeBadge extends StatelessWidget {
++  final CustomerTransactionType type;
++
++  const TransactionTypeBadge({super.key, required this.type});
++
++  Color _colorFor(AppColorScheme colors) {
++    switch (type) {
++      case CustomerTransactionType.invoice:
++        return colors.statOrange;
++      case CustomerTransactionType.payment:
++        return colors.primary;
++      case CustomerTransactionType.salesReturn:
++      case CustomerTransactionType.refund:
++        return colors.statusNotReached;
++      case CustomerTransactionType.adjustment:
++        return colors.textMuted;
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    final color = _colorFor(colors);
++    return Container(
++      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
++      decoration: BoxDecoration(
++        color: color.withOpacity(0.12),
++        borderRadius: BorderRadius.circular(8.r),
++      ),
++      child: Text(
++        type.label,
++        style: AppTextStyles.cairoMedium16.copyWith(color: color, fontSize: 10.sp),
++      ),
++    );
++  }
++}
