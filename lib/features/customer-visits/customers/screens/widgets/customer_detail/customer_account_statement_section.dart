@@ -5,7 +5,7 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../../customer_account/presentation/screens/customer_account_screen.dart';
 import '../../../domain/models/customer_detail_model.dart';
-
+import '../../invoice_detail_screen.dart';
 
 const _arabicMonths = [
   '',

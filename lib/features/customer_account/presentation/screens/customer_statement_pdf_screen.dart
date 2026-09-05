@@ -33,7 +33,8 @@ class CustomerStatementPdfScreen extends StatelessWidget {
           if (ledger == null || ledger.transactions.isEmpty) {
             return Center(
               child: Text('لا توجد معاملات لعرضها في كشف الحساب',
-                  style: AppTextStyles.almaraiRegular14.copyWith(color: colors.textMuted)),
+                  style: AppTextStyles.almaraiRegular14
+                      .copyWith(color: colors.textMuted)),
             );
           }
           return PdfPreview(

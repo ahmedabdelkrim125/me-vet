@@ -36,7 +36,8 @@ class TransactionTypeBadge extends StatelessWidget {
       ),
       child: Text(
         type.label,
-        style: AppTextStyles.cairoMedium16.copyWith(color: color, fontSize: 10.sp),
+        style:
+            AppTextStyles.cairoMedium16.copyWith(color: color, fontSize: 10.sp),
       ),
     );
   }

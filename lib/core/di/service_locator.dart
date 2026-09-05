@@ -1,20 +1,3 @@
-// import 'package:get_it/get_it.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
-
-// import '../../features/home/data/home_repository.dart';
-// import '../../features/home/presentation/cubit/home_cubit.dart';
-
-// final sl = GetIt.instance;
-
-// void setupServiceLocator() {
-//   sl.registerLazySingleton<HomeRepository>(
-//     () => HomeRepository(Supabase.instance.client),
-//   );
-
-//   sl.registerFactory<HomeCubit>(
-//     () => HomeCubit(sl<HomeRepository>()),
-//   );
-// }
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -26,6 +9,7 @@ import '../../features/customer_account/domain/repositories/customer_account_rep
 import '../../features/customer_account/domain/usecases/create_sales_return.dart';
 import '../../features/customer_account/domain/usecases/get_customer_ledger.dart';
 import '../../features/customer_account/domain/usecases/record_customer_payment.dart';
+import '../../features/customer_account/domain/usecases/get_invoice_returned_quantities.dart';
 import '../../features/customer_account/presentation/cubit/customer_account_cubit.dart';
 
 final sl = GetIt.instance;
@@ -51,12 +35,15 @@ void setupServiceLocator() {
   sl.registerFactory<GetCustomerLedger>(() => GetCustomerLedger(sl()));
   sl.registerFactory<RecordCustomerPayment>(() => RecordCustomerPayment(sl()));
   sl.registerFactory<CreateSalesReturn>(() => CreateSalesReturn(sl()));
+  sl.registerFactory<GetInvoiceReturnedQuantities>(
+      () => GetInvoiceReturnedQuantities(sl()));
 
   sl.registerFactory<CustomerAccountCubit>(
     () => CustomerAccountCubit(
       getCustomerLedger: sl(),
       recordCustomerPayment: sl(),
       createSalesReturn: sl(),
+      getInvoiceReturnedQuantities: sl(),
     ),
   );
 }

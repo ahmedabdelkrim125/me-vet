@@ -1,4 +1,10 @@
-enum CustomerTransactionType { invoice, payment, salesReturn, refund, adjustment }
+enum CustomerTransactionType {
+  invoice,
+  payment,
+  salesReturn,
+  refund,
+  adjustment
+}
 
 extension CustomerTransactionTypeLabel on CustomerTransactionType {
   String get label {

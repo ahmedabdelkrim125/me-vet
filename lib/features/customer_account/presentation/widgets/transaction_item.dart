@@ -136,7 +136,8 @@ class _AmountLabel extends StatelessWidget {
             style: AppTextStyles.almaraiRegular14
                 .copyWith(color: colors.textMuted, fontSize: 9.sp)),
         Text('${amount.toStringAsFixed(0)} ج.م',
-            style: AppTextStyles.cairoMedium16.copyWith(color: color, fontSize: 12.sp)),
+            style: AppTextStyles.cairoMedium16
+                .copyWith(color: color, fontSize: 12.sp)),
       ],
     );
   }

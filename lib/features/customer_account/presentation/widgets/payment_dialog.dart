@@ -88,8 +88,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('تسجيل تحصيل',
-                    style:
-                        AppTextStyles.cairoBold18.copyWith(color: colors.text, fontSize: 15.sp)),
+                    style: AppTextStyles.cairoBold18
+                        .copyWith(color: colors.text, fontSize: 15.sp)),
                 SizedBox(height: 12.h),
                 _SourceSelector(
                   value: _source,
@@ -98,22 +98,24 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 SizedBox(height: 12.h),
                 TextField(
                   controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'المبلغ'),
                 ),
                 if (_source == CollectionSource.newInvoicePayment) ...[
                   SizedBox(height: 12.h),
                   TextField(
                     controller: _invoiceIdController,
-                    decoration:
-                        const InputDecoration(labelText: 'معرف الفاتورة (اختياري)'),
+                    decoration: const InputDecoration(
+                        labelText: 'معرف الفاتورة (اختياري)'),
                   ),
                 ],
                 SizedBox(height: 12.h),
                 TextField(
                   controller: _notesController,
                   maxLines: 2,
-                  decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
+                  decoration:
+                      const InputDecoration(labelText: 'ملاحظات (اختياري)'),
                 ),
                 SizedBox(height: 16.h),
                 ElevatedButton(

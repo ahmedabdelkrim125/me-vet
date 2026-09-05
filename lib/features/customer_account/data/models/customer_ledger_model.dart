@@ -12,9 +12,10 @@ class CustomerLedgerModel extends CustomerLedger {
     List<dynamic> rows,
   ) {
     final transactions = rows
-        .map((row) =>
-            CustomerTransactionModel.fromSupabaseRow(row as Map<String, dynamic>))
+        .map((row) => CustomerTransactionModel.fromSupabaseRow(
+            row as Map<String, dynamic>))
         .toList();
-    return CustomerLedgerModel(customerId: customerId, transactions: transactions);
+    return CustomerLedgerModel(
+        customerId: customerId, transactions: transactions);
   }
 }

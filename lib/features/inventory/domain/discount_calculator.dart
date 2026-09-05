@@ -1,5 +1,5 @@
-
 import '../../customer-visits/customers/domain/models/customer_model.dart';
+import '../../customer-visits/customers/domain/models/customer_status.dart';
 
 class DiscountEligibility {
   final bool isEligible;

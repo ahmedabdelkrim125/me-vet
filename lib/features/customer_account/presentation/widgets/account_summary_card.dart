@@ -41,13 +41,16 @@ class AccountSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(customerName,
-              style: AppTextStyles.cairoBold18.copyWith(color: colors.text, fontSize: 15.sp)),
+              style: AppTextStyles.cairoBold18
+                  .copyWith(color: colors.text, fontSize: 15.sp)),
           SizedBox(height: 10.h),
           Text('${balance.abs().toStringAsFixed(0)} ج.م',
-              style: AppTextStyles.cairoBold18.copyWith(color: statusColor, fontSize: 24.sp)),
+              style: AppTextStyles.cairoBold18
+                  .copyWith(color: statusColor, fontSize: 24.sp)),
           SizedBox(height: 4.h),
           Text(statusLabel,
-              style: AppTextStyles.cairoMedium16.copyWith(color: statusColor, fontSize: 12.sp)),
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: statusColor, fontSize: 12.sp)),
         ],
       ),
     );

@@ -4,6 +4,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../../../domain/models/customer_detail_model.dart';
+import '../../../../../screens/widgets/customer_detail/customer_products_section/invoice_row.dart';
 
 class CustomerAccountStatementSection extends StatelessWidget {
   final List<InvoiceSummaryModel> invoices;

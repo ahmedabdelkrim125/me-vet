@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../domain/models/visit_status.dart';
 
 class VisitRow {
   final String id;

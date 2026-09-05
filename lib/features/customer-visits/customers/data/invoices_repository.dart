@@ -213,6 +213,7 @@
 // }
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../domain/models/invoice_line_input.dart';
 import '../domain/models/invoice_record_model.dart';
 
 class InvoiceItemRow {

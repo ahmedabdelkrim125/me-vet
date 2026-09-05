@@ -25,7 +25,8 @@ class ReturnSummary extends StatelessWidget {
                   .copyWith(color: colors.textMuted, fontSize: 12.sp)),
           const Spacer(),
           Text('${total.toStringAsFixed(0)} ج.م',
-              style: AppTextStyles.cairoBold18.copyWith(color: colors.primary, fontSize: 15.sp)),
+              style: AppTextStyles.cairoBold18
+                  .copyWith(color: colors.primary, fontSize: 15.sp)),
         ],
       ),
     );

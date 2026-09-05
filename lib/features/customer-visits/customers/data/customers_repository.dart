@@ -3,8 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/models/collection_record_model.dart';
 import '../domain/models/customer_model.dart';
-
-
+import '../domain/models/customer_status.dart';
 
 class CustomersRepository {
   CustomersRepository._internal();

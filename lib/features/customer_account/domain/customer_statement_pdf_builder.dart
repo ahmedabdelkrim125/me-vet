@@ -46,9 +46,11 @@ class CustomerStatementPdfBuilder {
               crossAxisAlignment: pw.CrossAxisAlignment.stretch,
               children: [
                 pw.Text('كشف حساب العميل',
-                    style: pw.TextStyle(font: boldFont, fontSize: 18, color: _navy)),
+                    style: pw.TextStyle(
+                        font: boldFont, fontSize: 18, color: _navy)),
                 pw.SizedBox(height: 6),
-                pw.Text(customerName, style: pw.TextStyle(font: boldFont, fontSize: 13)),
+                pw.Text(customerName,
+                    style: pw.TextStyle(font: boldFont, fontSize: 13)),
                 pw.SizedBox(height: 16),
                 _buildTable(ledger.transactions, boldFont, regularFont),
                 pw.SizedBox(height: 16),
@@ -56,7 +58,8 @@ class CustomerStatementPdfBuilder {
                   alignment: pw.Alignment.centerLeft,
                   child: pw.Text(
                     'الرصيد الحالي: ${(ledger.currentBalance ?? 0).toStringAsFixed(0)} ج.م',
-                    style: pw.TextStyle(font: boldFont, fontSize: 13, color: _navy),
+                    style: pw.TextStyle(
+                        font: boldFont, fontSize: 13, color: _navy),
                   ),
                 ),
               ],
@@ -74,13 +77,22 @@ class CustomerStatementPdfBuilder {
     pw.Font boldFont,
     pw.Font regularFont,
   ) {
-    final headers = ['الرصيد بعدها', 'دائن', 'مدين', 'الوقت', 'التاريخ', 'المرجع', 'النوع'];
+    final headers = [
+      'الرصيد بعدها',
+      'دائن',
+      'مدين',
+      'الوقت',
+      'التاريخ',
+      'المرجع',
+      'النوع'
+    ];
 
     final rows = transactions.map((t) {
       final d = t.occurredAt;
       final date =
           '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
-      final time = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+      final time =
+          '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
       return [
         t.balanceAfter.toStringAsFixed(0),
         t.credit > 0 ? t.credit.toStringAsFixed(0) : '-',
@@ -99,11 +111,13 @@ class CustomerStatementPdfBuilder {
           decoration: pw.BoxDecoration(color: _navy),
           children: headers
               .map((h) => pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 3),
+                    padding: const pw.EdgeInsets.symmetric(
+                        vertical: 6, horizontal: 3),
                     child: pw.Text(
                       h,
                       textAlign: pw.TextAlign.center,
-                      style: pw.TextStyle(font: boldFont, fontSize: 8, color: PdfColors.white),
+                      style: pw.TextStyle(
+                          font: boldFont, fontSize: 8, color: PdfColors.white),
                     ),
                   ))
               .toList(),
@@ -112,7 +126,8 @@ class CustomerStatementPdfBuilder {
           pw.TableRow(
             children: row
                 .map((cell) => pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 3),
+                      padding: const pw.EdgeInsets.symmetric(
+                          vertical: 5, horizontal: 3),
                       child: pw.Text(
                         cell,
                         textAlign: pw.TextAlign.center,
