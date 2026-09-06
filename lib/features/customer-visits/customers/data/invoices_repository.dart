@@ -212,6 +212,7 @@
 //   }
 // }
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../customer_account/domain/entities/payment_method.dart';
 
 import '../domain/models/invoice_line_input.dart';
 import '../domain/models/invoice_record_model.dart';
@@ -289,14 +290,16 @@ class InvoicesRepository {
     required double discountPercent,
     required bool isCashSale,
     required double paidNow,
+    PaymentMethod? paymentMethod,
     String? notes,
   }) async {
-    final row = await _supabase.rpc('issue_invoice', params: {
+    final row = await _supabase.rpc('issue_invoice_v2', params: {
       'p_customer_id': customerId,
       'p_items': items.map((item) => item.toRpcJson()).toList(),
       'p_discount_percent': discountPercent,
       'p_sale_type': isCashSale ? 'cash' : 'credit',
       'p_paid_now': paidNow,
+      'p_payment_method': paymentMethod?.backendValue,
       'p_notes': notes,
     });
 

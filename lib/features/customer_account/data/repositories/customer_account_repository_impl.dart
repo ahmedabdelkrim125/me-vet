@@ -60,6 +60,7 @@
 // }
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../domain/entities/customer_ledger.dart';
+import '../../domain/entities/payment_method.dart';
 import '../../domain/entities/sales_return.dart';
 import '../../domain/repositories/customer_account_repository.dart';
 import '../datasources/customer_account_remote_data_source.dart';
@@ -90,13 +91,15 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
     required double amount,
     String? invoiceId,
     required CollectionSource source,
+    required PaymentMethod paymentMethod,
     String? notes,
   }) async {
-    await _remote.recordCustomerPayment(
+    await _remote.recordCustomerPaymentV2(
       customerId: customerId,
       amount: amount,
       invoiceId: invoiceId,
       source: source.dbValue,
+      paymentMethod: paymentMethod,
       notes: notes,
     );
   }

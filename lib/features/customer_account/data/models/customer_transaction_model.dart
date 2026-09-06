@@ -1,4 +1,5 @@
 import '../../domain/entities/customer_transaction.dart';
+import '../../domain/entities/payment_method.dart';
 
 /// Parses one row of `get_customer_ledger`'s result set. Model extends the
 /// entity so a `List<CustomerTransactionModel>` can be used wherever
@@ -8,6 +9,7 @@ class CustomerTransactionModel extends CustomerTransaction {
     required super.id,
     required super.customerId,
     super.repId,
+    super.repName,
     required super.type,
     super.referenceId,
     super.referenceCode,
@@ -16,6 +18,7 @@ class CustomerTransactionModel extends CustomerTransaction {
     required super.balanceAfter,
     required super.occurredAt,
     super.notes,
+    super.paymentMethod,
   });
 
   factory CustomerTransactionModel.fromSupabaseRow(Map<String, dynamic> row) {
@@ -23,6 +26,7 @@ class CustomerTransactionModel extends CustomerTransaction {
       id: row['id'] as String,
       customerId: row['customer_id'] as String,
       repId: row['rep_id'] as String?,
+      repName: row['rep_name'] as String?,
       type: customerTransactionTypeFromDb(row['transaction_type'] as String?),
       referenceId: row['reference_id'] as String?,
       referenceCode: row['reference_code'] as String?,
@@ -31,6 +35,7 @@ class CustomerTransactionModel extends CustomerTransaction {
       balanceAfter: (row['balance_after'] as num).toDouble(),
       occurredAt: DateTime.parse(row['occurred_at'] as String),
       notes: row['notes'] as String?,
+      paymentMethod: paymentMethodFromBackend(row['payment_method'] as String?),
     );
   }
 }

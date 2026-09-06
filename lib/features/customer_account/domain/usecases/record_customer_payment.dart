@@ -1,4 +1,5 @@
 import 'package:mivet_app/core/errors/app_exception.dart';
+import '../entities/payment_method.dart';
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../repositories/customer_account_repository.dart';
 
@@ -12,6 +13,7 @@ class RecordCustomerPayment {
     required double amount,
     String? invoiceId,
     required CollectionSource source,
+    required PaymentMethod paymentMethod,
     String? notes,
   }) {
     if (amount <= 0) {
@@ -22,6 +24,7 @@ class RecordCustomerPayment {
       amount: amount,
       invoiceId: invoiceId,
       source: source,
+      paymentMethod: paymentMethod,
       notes: notes,
     );
   }

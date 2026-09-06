@@ -1,3 +1,5 @@
+import 'payment_method.dart';
+
 enum CustomerTransactionType {
   invoice,
   payment,
@@ -49,6 +51,7 @@ class CustomerTransaction {
   final String id;
   final String customerId;
   final String? repId;
+  final String? repName;
   final CustomerTransactionType type;
   final String? referenceId;
   final String? referenceCode;
@@ -57,11 +60,13 @@ class CustomerTransaction {
   final double balanceAfter;
   final DateTime occurredAt;
   final String? notes;
+  final PaymentMethod? paymentMethod;
 
   const CustomerTransaction({
     required this.id,
     required this.customerId,
     this.repId,
+    this.repName,
     required this.type,
     this.referenceId,
     this.referenceCode,
@@ -70,5 +75,6 @@ class CustomerTransaction {
     required this.balanceAfter,
     required this.occurredAt,
     this.notes,
+    this.paymentMethod,
   });
 }

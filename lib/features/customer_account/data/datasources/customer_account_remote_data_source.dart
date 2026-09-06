@@ -57,6 +57,8 @@
 // }
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../domain/entities/payment_method.dart';
+
 class CustomerAccountRemoteDataSource {
   const CustomerAccountRemoteDataSource(this._client);
 
@@ -87,6 +89,25 @@ class CustomerAccountRemoteDataSource {
       'p_amount': amount,
       'p_invoice_id': invoiceId,
       'p_source': source,
+      'p_notes': notes,
+    });
+    return result as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> recordCustomerPaymentV2({
+    required String customerId,
+    required double amount,
+    String? invoiceId,
+    required String source,
+    required PaymentMethod paymentMethod,
+    String? notes,
+  }) async {
+    final result = await _client.rpc('record_customer_payment_v2', params: {
+      'p_customer_id': customerId,
+      'p_amount': amount,
+      'p_invoice_id': invoiceId,
+      'p_source': source,
+      'p_payment_method': paymentMethod.backendValue,
       'p_notes': notes,
     });
     return result as Map<String, dynamic>;

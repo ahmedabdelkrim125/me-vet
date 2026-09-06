@@ -5,6 +5,7 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 import '../../domain/entities/customer_transaction.dart';
 import 'transaction_type_badge.dart';
+import 'payment_method_display.dart';
 
 class TransactionItem extends StatelessWidget {
   final CustomerTransaction transaction;
@@ -29,7 +30,7 @@ class TransactionItem extends StatelessWidget {
     final hasDebit = transaction.debit > 0;
     final hasCredit = transaction.credit > 0;
     final hasFooter =
-        transaction.repId != null || (transaction.notes?.isNotEmpty ?? false);
+        transaction.repName != null || (transaction.notes?.isNotEmpty ?? false);
 
     return Container(
       margin: EdgeInsets.only(bottom: 10.h),
@@ -64,6 +65,10 @@ class TransactionItem extends StatelessWidget {
             ],
           ),
           SizedBox(height: 8.h),
+          if (transaction.type == CustomerTransactionType.payment) ...[
+            PaymentMethodDisplay(method: transaction.paymentMethod),
+            SizedBox(height: 6.h),
+          ],
           Row(
             children: [
               if (hasDebit)
@@ -93,9 +98,9 @@ class TransactionItem extends StatelessWidget {
           ),
           if (hasFooter) ...[
             SizedBox(height: 6.h),
-            if (transaction.repId != null)
+            if (transaction.repName != null)
               Text(
-                'المندوب: ${transaction.repId}',
+                'المندوب: ${transaction.repName}',
                 style: AppTextStyles.almaraiRegular14
                     .copyWith(color: colors.textMuted, fontSize: 10.sp),
               ),

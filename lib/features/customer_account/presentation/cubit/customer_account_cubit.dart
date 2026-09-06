@@ -127,6 +127,7 @@ import 'package:mivet_app/core/errors/app_exception.dart';
 
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../domain/entities/sales_return.dart';
+import '../../domain/entities/payment_method.dart';
 import '../../domain/usecases/create_sales_return.dart';
 import '../../domain/usecases/get_customer_ledger.dart';
 import '../../domain/usecases/record_customer_payment.dart';
@@ -197,6 +198,7 @@ class CustomerAccountCubit extends Cubit<CustomerAccountState> {
     required double amount,
     String? invoiceId,
     required CollectionSource source,
+    required PaymentMethod paymentMethod,
     String? notes,
   }) async {
     emit(state.copyWith(actionStatus: CustomerAccountActionStatus.submitting));
@@ -206,6 +208,7 @@ class CustomerAccountCubit extends Cubit<CustomerAccountState> {
         amount: amount,
         invoiceId: invoiceId,
         source: source,
+        paymentMethod: paymentMethod,
         notes: notes,
       );
       if (isClosed) return;

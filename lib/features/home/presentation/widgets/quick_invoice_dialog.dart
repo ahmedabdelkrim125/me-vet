@@ -15,6 +15,8 @@ import '../../../inventory/domain/models/product_model.dart';
 import '../../../inventory/domain/models/product_unit.dart';
 import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../../domain/models/quick_invoice_models.dart';
+import '../../../customer_account/domain/entities/payment_method.dart';
+import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
 
 /// ---------------------------------------------------------------------
 /// Repository-backed data sources
@@ -92,6 +94,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   final notesController = TextEditingController();
   final paidNowController = TextEditingController(text: '0');
   bool _isIssuing = false;
+  PaymentMethod? _paymentMethod;
 
   @override
   void initState() {
@@ -146,6 +149,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
         customer = picked;
         lineItems.clear();
         paidNowController.text = '0';
+        _paymentMethod = null;
       });
     }
   }
@@ -209,6 +213,10 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       _toast('المبلغ المدفوع أكبر من إجمالي المستحق على العميل');
       return;
     }
+    if (paid > 0 && _paymentMethod == null) {
+      _toast('اختر طريقة دفع للمبلغ المدفوع الآن');
+      return;
+    }
 
     for (final item in lineItems) {
       final stock = MockInventoryRepository.instance.stockOf(item.product.id);
@@ -244,6 +252,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
         discountPercent: discountPercent,
         isCashSale: !isDeferredSale,
         paidNow: paid,
+        paymentMethod: paid > 0 ? _paymentMethod : null,
         notes: notesController.text.trim().isEmpty
             ? null
             : notesController.text.trim(),
@@ -404,6 +413,16 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                             saleType: saleType,
                           ),
                         ),
+                        if (paidNow > 0) ...[
+                          SizedBox(height: 14.h),
+                          _SectionCard(
+                            child: PaymentMethodSelector(
+                              value: _paymentMethod,
+                              onChanged: (method) =>
+                                  setState(() => _paymentMethod = method),
+                            ),
+                          ),
+                        ],
                       ],
                       SizedBox(height: 14.h),
                       _SectionCard(

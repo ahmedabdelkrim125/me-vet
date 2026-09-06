@@ -8,6 +8,8 @@ import '../../../customer-visits/customers/domain/models/invoice_record_model.da
 import '../../../customer-visits/customers/data/invoices_repository.dart';
 import '../cubit/customer_account_cubit.dart';
 import '../cubit/customer_account_state.dart';
+import '../../domain/entities/payment_method.dart';
+import 'payment_method_selector.dart';
 
 Future<void> showPaymentDialog(BuildContext context) {
   final cubit = context.read<CustomerAccountCubit>();
@@ -38,6 +40,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
   String? _invoiceError;
   String? _validationMessage;
   CollectionSource _source = CollectionSource.oldDebtPayment;
+  PaymentMethod? _paymentMethod;
 
   @override
   void initState() {
@@ -81,6 +84,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
       setState(() => _validationMessage = 'اختر الفاتورة أولًا');
       return;
     }
+    if (_paymentMethod == null) {
+      setState(() => _validationMessage = 'اختر طريقة الدفع أولًا');
+      return;
+    }
     setState(() => _validationMessage = null);
     context.read<CustomerAccountCubit>().recordPayment(
           amount: amount,
@@ -88,6 +95,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
               ? _selectedInvoice!.id
               : null,
           source: _source,
+          paymentMethod: _paymentMethod!,
           notes: _notesController.text.trim().isEmpty
               ? null
               : _notesController.text.trim(),
@@ -133,6 +141,14 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   onChanged: (v) => setState(() {
                     _source = v;
                     _selectedInvoice = null;
+                    _validationMessage = null;
+                  }),
+                ),
+                SizedBox(height: 12.h),
+                PaymentMethodSelector(
+                  value: _paymentMethod,
+                  onChanged: (method) => setState(() {
+                    _paymentMethod = method;
                     _validationMessage = null;
                   }),
                 ),
