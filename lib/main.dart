@@ -8,6 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/di/service_locator.dart';
 import 'core/notifications/push_notification_service.dart';
+import 'core/storage/secure_local_storage.dart';
 import 'me_vet_app.dart';
 
 Future<void> main() async {
@@ -23,6 +24,9 @@ Future<void> main() async {
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL'] ?? '',
     publishableKey: dotenv.env['SUPABASE_PUBLISHABLE_KEY'] ?? '',
+    authOptions: FlutterAuthClientOptions(
+      localStorage: SecureLocalStorage(),
+    ),
   );
 
   setupServiceLocator();
@@ -34,6 +38,7 @@ Future<void> main() async {
     debugPrint('[Push] Firebase.initializeApp() فشل: $e');
     debugPrint('[Push] Stack trace: $stack');
   }
+
   FirebaseMessaging.onBackgroundMessage(
       PushNotificationService.firebaseBackgroundHandler);
   await PushNotificationService.instance.initializeLocalNotifications();

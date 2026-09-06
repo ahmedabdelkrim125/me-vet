@@ -63,25 +63,29 @@ class TodayRouteController {
   }
 
   Future<void> _reloadToday() async {
-    final rows =
-        await VisitsRepository.instance.getVisitsForDay(DateTime.now());
-    final loaded = <RouteStopModel>[];
-    for (int i = 0; i < rows.length; i++) {
-      final row = rows[i];
-      final customer = _customerById(row.customerId);
-      if (customer == null) continue;
-      loaded.add(RouteStopModel(
-        visitId: row.id,
-        customerId: row.customerId,
-        order: i + 1,
-        customerName: customer.name,
-        area: customer.area,
-        status: row.status,
-        scheduledAt: row.scheduledAt,
-        statusUpdatedAt: row.statusUpdatedAt,
-      ));
+    try {
+      final rows =
+          await VisitsRepository.instance.getVisitsForDay(DateTime.now());
+      final loaded = <RouteStopModel>[];
+      for (int i = 0; i < rows.length; i++) {
+        final row = rows[i];
+        final customer = _customerById(row.customerId);
+        if (customer == null) continue;
+        loaded.add(RouteStopModel(
+          visitId: row.id,
+          customerId: row.customerId,
+          order: i + 1,
+          customerName: customer.name,
+          area: customer.area,
+          status: row.status,
+          scheduledAt: row.scheduledAt,
+          statusUpdatedAt: row.statusUpdatedAt,
+        ));
+      }
+      stopsNotifier.value = loaded;
+    } catch (e) {
+      debugPrint('Error reloading today route: $e');
     }
-    stopsNotifier.value = loaded;
   }
 
   Future<void> setSelectedCustomers(List<CustomerModel> customers) async {
@@ -150,26 +154,30 @@ class TodayRouteController {
       _reloadHistoryForCustomer(customerId);
 
   Future<void> _reloadHistoryForCustomer(String customerId) async {
-    final rows =
-        await VisitsRepository.instance.getVisitsForCustomer(customerId);
-    final customer = _customerById(customerId);
-    final history = List<VisitHistoryModel>.from(visitHistoryNotifier.value)
-      ..removeWhere((v) => v.customerId == customerId);
+    try {
+      final rows =
+          await VisitsRepository.instance.getVisitsForCustomer(customerId);
+      final customer = _customerById(customerId);
+      final history = List<VisitHistoryModel>.from(visitHistoryNotifier.value)
+        ..removeWhere((v) => v.customerId == customerId);
 
-    for (final row in rows) {
-      history.add(VisitHistoryModel(
-        visitId: row.id,
-        customerId: row.customerId,
-        customerName: customer?.name ?? '',
-        area: customer?.area ?? '',
-        status: row.status,
-        scheduledAt: row.scheduledAt,
-        statusUpdatedAt: row.statusUpdatedAt,
-      ));
+      for (final row in rows) {
+        history.add(VisitHistoryModel(
+          visitId: row.id,
+          customerId: row.customerId,
+          customerName: customer?.name ?? '',
+          area: customer?.area ?? '',
+          status: row.status,
+          scheduledAt: row.scheduledAt,
+          statusUpdatedAt: row.statusUpdatedAt,
+        ));
+      }
+
+      history.sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
+      visitHistoryNotifier.value = List<VisitHistoryModel>.from(history);
+    } catch (e) {
+      debugPrint('Error reloading history for customer $customerId: $e');
     }
-
-    history.sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
-    visitHistoryNotifier.value = List<VisitHistoryModel>.from(history);
   }
 
   CustomerModel? _customerById(String id) {
