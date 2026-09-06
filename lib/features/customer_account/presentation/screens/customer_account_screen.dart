@@ -5,6 +5,9 @@ import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import 'package:mivet_app/features/customer-visits/customers/data/customers_repository.dart';
+import 'package:mivet_app/features/home/domain/models/quick_invoice_models.dart';
+import 'package:mivet_app/features/home/presentation/widgets/quick_invoice_dialog.dart';
 import '../../presentation/cubit/customer_account_cubit.dart';
 import '../../presentation/cubit/customer_account_state.dart';
 import '../widgets/account_summary_card.dart';
@@ -191,11 +194,29 @@ class _ActionsBar extends StatelessWidget {
         SizedBox(width: 10.w),
         Expanded(
           child: OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => _openNewInvoice(context),
             child: const Text('فاتورة جديدة'),
           ),
         ),
       ],
     );
+  }
+
+  Future<void> _openNewInvoice(BuildContext context) async {
+    try {
+      final repository = CustomersRepository.instance;
+      await repository.initialize();
+      final customer = repository.getCustomerById(customerId);
+      if (customer == null || !context.mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => QuickInvoiceDialog(
+            initialCustomer: InvoiceCustomerModel(customer: customer),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (context.mounted) showAppError(context, error);
+    }
   }
 }

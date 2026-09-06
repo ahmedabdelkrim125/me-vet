@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
+import '../../../customer-visits/customers/domain/models/invoice_record_model.dart';
+import '../../../customer-visits/customers/data/invoices_repository.dart';
 import '../cubit/customer_account_cubit.dart';
 import '../cubit/customer_account_state.dart';
 
@@ -29,26 +31,61 @@ class PaymentDialog extends StatefulWidget {
 
 class _PaymentDialogState extends State<PaymentDialog> {
   final _amountController = TextEditingController();
-  final _invoiceIdController = TextEditingController();
   final _notesController = TextEditingController();
+  InvoiceRecordModel? _selectedInvoice;
+  List<InvoiceRecordModel> _invoices = const [];
+  bool _isLoadingInvoices = true;
+  String? _invoiceError;
+  String? _validationMessage;
   CollectionSource _source = CollectionSource.oldDebtPayment;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInvoices();
+  }
 
   @override
   void dispose() {
     _amountController.dispose();
-    _invoiceIdController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
+  Future<void> _loadInvoices() async {
+    try {
+      final invoices = await InvoicesRepository.instance.getInvoicesForCustomer(
+          context.read<CustomerAccountCubit>().state.customerId);
+      if (!mounted) return;
+      setState(() {
+        _invoices = invoices.where((invoice) => invoice.remaining > 0).toList();
+        _isLoadingInvoices = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingInvoices = false;
+        _invoiceError = 'تعذر تحميل فواتير العميل';
+      });
+    }
+  }
+
   void _submit() {
     final amount = double.tryParse(_amountController.text.trim());
-    if (amount == null || amount <= 0) return;
+    if (amount == null || amount <= 0) {
+      setState(() => _validationMessage = 'أدخل مبلغًا صحيحًا');
+      return;
+    }
+    if (_source == CollectionSource.newInvoicePayment &&
+        _selectedInvoice == null) {
+      setState(() => _validationMessage = 'اختر الفاتورة أولًا');
+      return;
+    }
+    setState(() => _validationMessage = null);
     context.read<CustomerAccountCubit>().recordPayment(
           amount: amount,
-          invoiceId: _source == CollectionSource.newInvoicePayment &&
-                  _invoiceIdController.text.trim().isNotEmpty
-              ? _invoiceIdController.text.trim()
+          invoiceId: _source == CollectionSource.newInvoicePayment
+              ? _selectedInvoice!.id
               : null,
           source: _source,
           notes: _notesController.text.trim().isEmpty
@@ -93,7 +130,11 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 SizedBox(height: 12.h),
                 _SourceSelector(
                   value: _source,
-                  onChanged: (v) => setState(() => _source = v),
+                  onChanged: (v) => setState(() {
+                    _source = v;
+                    _selectedInvoice = null;
+                    _validationMessage = null;
+                  }),
                 ),
                 SizedBox(height: 12.h),
                 TextField(
@@ -104,10 +145,13 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 ),
                 if (_source == CollectionSource.newInvoicePayment) ...[
                   SizedBox(height: 12.h),
-                  TextField(
-                    controller: _invoiceIdController,
-                    decoration: const InputDecoration(
-                        labelText: 'معرف الفاتورة (اختياري)'),
+                  _InvoiceSelector(
+                    invoice: _selectedInvoice,
+                    invoices: _invoices,
+                    isLoading: _isLoadingInvoices,
+                    errorMessage: _invoiceError,
+                    onSelect: (invoice) =>
+                        setState(() => _selectedInvoice = invoice),
                   ),
                 ],
                 SizedBox(height: 12.h),
@@ -117,6 +161,14 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   decoration:
                       const InputDecoration(labelText: 'ملاحظات (اختياري)'),
                 ),
+                if (_validationMessage != null) ...[
+                  SizedBox(height: 8.h),
+                  Text(
+                    _validationMessage!,
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.statusNotReached),
+                  ),
+                ],
                 SizedBox(height: 16.h),
                 ElevatedButton(
                   onPressed: isSubmitting ? null : _submit,
@@ -132,6 +184,120 @@ class _PaymentDialogState extends State<PaymentDialog> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _InvoiceSelector extends StatelessWidget {
+  final InvoiceRecordModel? invoice;
+  final List<InvoiceRecordModel> invoices;
+  final bool isLoading;
+  final String? errorMessage;
+  final ValueChanged<InvoiceRecordModel> onSelect;
+
+  const _InvoiceSelector({
+    required this.invoice,
+    required this.invoices,
+    required this.isLoading,
+    required this.errorMessage,
+    required this.onSelect,
+  });
+
+  Future<void> _openPicker(BuildContext context) async {
+    if (isLoading || invoices.isEmpty) return;
+    final selected = await showModalBottomSheet<InvoiceRecordModel>(
+      context: context,
+      backgroundColor: context.colors.surface,
+      showDragHandle: true,
+      builder: (_) => _InvoicePickerSheet(invoices: invoices),
+    );
+    if (selected != null) onSelect(selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    if (isLoading) {
+      return const InputDecorator(
+        decoration: InputDecoration(labelText: 'الفاتورة'),
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    if (errorMessage != null || invoices.isEmpty) {
+      return InputDecorator(
+        decoration: const InputDecoration(labelText: 'الفاتورة'),
+        child: Text(
+          errorMessage ?? 'لا توجد فواتير مستحقة لهذا العميل',
+          style: AppTextStyles.almaraiRegular14.copyWith(
+            color: colors.textMuted,
+          ),
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: () => _openPicker(context),
+      borderRadius: BorderRadius.circular(8.r),
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'الفاتورة',
+          suffixIcon: Icon(Icons.keyboard_arrow_down),
+        ),
+        child: Text(
+          invoice == null
+              ? 'اختر الفاتورة'
+              : '${invoice!.code} — المتبقي ${invoice!.remaining.toStringAsFixed(0)} ج.م',
+          style: AppTextStyles.almaraiRegular14.copyWith(color: colors.text),
+        ),
+      ),
+    );
+  }
+}
+
+class _InvoicePickerSheet extends StatelessWidget {
+  final List<InvoiceRecordModel> invoices;
+
+  const _InvoicePickerSheet({required this.invoices});
+
+  String _date(DateTime value) =>
+      '${value.year}/${value.month.toString().padLeft(2, '0')}/${value.day.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+        children: [
+          Text(
+            'اختر الفاتورة',
+            style: AppTextStyles.cairoBold18
+                .copyWith(color: colors.text, fontSize: 15.sp),
+          ),
+          SizedBox(height: 8.h),
+          for (final invoice in invoices)
+            Card(
+              child: ListTile(
+                title: Text(invoice.code),
+                subtitle: Text(
+                  'التاريخ: ${_date(invoice.date)}\n'
+                  'الإجمالي: ${invoice.amount.toStringAsFixed(0)} ج.م — '
+                  'المدفوع: ${invoice.paidAmount.toStringAsFixed(0)} ج.م\n'
+                  'المتبقي: ${invoice.remaining.toStringAsFixed(0)} ج.م',
+                ),
+                onTap: () => Navigator.of(context).pop(invoice),
+              ),
+            ),
+        ],
       ),
     );
   }

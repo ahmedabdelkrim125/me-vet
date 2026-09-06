@@ -9,10 +9,16 @@ class CustomerLedger {
     required this.transactions,
   });
 
-  /// `balance_after` of the most recent transaction (rows arrive ordered
-  /// desc by `occurred_at` from `get_customer_ledger`). Null when the
-  /// customer has no ledger rows yet — callers should fall back to a
-  /// display-only balance in that case, never to zero.
-  double? get currentBalance =>
-      transactions.isEmpty ? null : transactions.first.balanceAfter;
+  /// `balance_after` of the most recent transaction. Null when the customer
+  /// has no ledger rows yet.
+  double? get currentBalance {
+    if (transactions.isEmpty) return null;
+    CustomerTransaction latest = transactions.first;
+    for (final transaction in transactions.skip(1)) {
+      if (transaction.occurredAt.isAfter(latest.occurredAt)) {
+        latest = transaction;
+      }
+    }
+    return latest.balanceAfter;
+  }
 }

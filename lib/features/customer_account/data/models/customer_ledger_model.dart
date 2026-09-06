@@ -1,4 +1,5 @@
 import '../../domain/entities/customer_ledger.dart';
+import '../../domain/entities/customer_transaction.dart';
 import 'customer_transaction_model.dart';
 
 class CustomerLedgerModel extends CustomerLedger {
@@ -11,9 +12,10 @@ class CustomerLedgerModel extends CustomerLedger {
     String customerId,
     List<dynamic> rows,
   ) {
-    final transactions = rows
-        .map((row) => CustomerTransactionModel.fromSupabaseRow(
-            row as Map<String, dynamic>))
+    final List<CustomerTransaction> transactions = rows
+        .map<CustomerTransaction>((row) =>
+            CustomerTransactionModel.fromSupabaseRow(
+                row as Map<String, dynamic>))
         .toList();
     return CustomerLedgerModel(
         customerId: customerId, transactions: transactions);
