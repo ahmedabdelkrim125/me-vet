@@ -49,7 +49,6 @@ class CustomerDetailModel {
     required this.invoices,
   });
 
- 
   factory CustomerDetailModel.mock(CustomerModel customer) {
     return CustomerDetailModel(
       customer: customer,

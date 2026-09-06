@@ -4,7 +4,7 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../domain/models/visit_status.dart';
 import '../../../domain/models/visit_history_model.dart';
-import '../../../domain/today_route_controller.dart';
+import '../../../presentation/controllers/today_route_controller.dart';
 import '../route_view/route_status_style.dart';
 
 class CustomerVisitHistorySection extends StatefulWidget {

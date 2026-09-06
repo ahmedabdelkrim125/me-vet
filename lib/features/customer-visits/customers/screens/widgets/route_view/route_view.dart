@@ -6,14 +6,14 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../domain/models/customer_model.dart';
 import '../../../domain/models/route_stop_model.dart';
 import '../../../domain/models/visit_status.dart';
-import '../../../domain/today_route_controller.dart';
+import '../../../presentation/controllers/today_route_controller.dart';
+import '../../weekly_plan_screen.dart';
 import 'route_actions_bar.dart';
 import 'route_incomplete_customers_sheet.dart';
 import 'route_report_sheet.dart';
 import 'route_stop_tile.dart';
 import 'route_summary_card.dart';
 import 'route_visit_status_sheet.dart';
-import '../../weekly_plan_screen.dart';
 import 'unplanned_visit_button.dart';
 
 class RouteView extends StatefulWidget {

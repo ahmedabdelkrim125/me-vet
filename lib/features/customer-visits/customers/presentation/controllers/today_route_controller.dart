@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 
-import '../data/customers_repository.dart';
-import '../data/visits_repository.dart';
-import 'models/customer_model.dart';
-import 'models/route_stop_model.dart';
-import 'models/visit_status.dart';
-import 'models/visit_history_model.dart';
+import '../../data/customers_repository.dart';
+import '../../data/visits_repository.dart';
+import '../../domain/models/customer_model.dart';
+import '../../domain/models/route_stop_model.dart';
+import '../../domain/models/visit_history_model.dart';
+import '../../domain/models/visit_status.dart';
 
 class TodayRouteController {
   TodayRouteController._internal();
