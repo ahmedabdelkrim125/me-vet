@@ -46,7 +46,9 @@ class ProductImagePicker extends StatelessWidget {
             ),
             clipBehavior: Clip.antiAlias,
             child: hasImage
-                ? Image.file(File(imagePath!), fit: BoxFit.cover)
+                ? imagePath!.startsWith('http')
+                    ? Image.network(imagePath!, fit: BoxFit.cover)
+                    : Image.file(File(imagePath!), fit: BoxFit.cover)
                 : Icon(Icons.add_photo_alternate_outlined,
                     color: context.colors.primary, size: 26.sp),
           ),

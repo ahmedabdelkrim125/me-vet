@@ -11,15 +11,8 @@ class InvoiceLineInput {
     required this.quantity,
   });
 
-  static final RegExp _uuidPattern = RegExp(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-    caseSensitive: false,
-  );
-
   Map<String, dynamic> toRpcJson() => {
-        'product_id': (productId != null && _uuidPattern.hasMatch(productId!))
-            ? productId
-            : '',
+        if (productId != null) 'product_id': productId,
         'product_name': productName,
         'unit_price': unitPrice,
         'quantity': quantity,

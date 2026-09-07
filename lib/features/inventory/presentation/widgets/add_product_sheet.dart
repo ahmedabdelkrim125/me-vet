@@ -275,7 +275,8 @@ import 'package:intl/intl.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../domain/mock_inventory_repository.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
+import '../../data/products_repository.dart';
 import '../../domain/models/product_category.dart';
 import '../../domain/models/product_model.dart';
 import '../../domain/models/product_unit.dart';
@@ -302,13 +303,12 @@ class _AddProductSheet extends StatefulWidget {
 
 class _AddProductSheetState extends State<_AddProductSheet> {
   late final TextEditingController _nameController;
-  late final TextEditingController _priceController;
   late final TextEditingController _thresholdController;
-  late final TextEditingController _warehouseQtyController;
   late ProductCategory _category;
   late ProductUnit _unit;
   String? _imagePath;
   DateTime? _expiryDate;
+  bool _saving = false;
 
   bool get _isEditing => widget.productToEdit != null;
 
@@ -317,11 +317,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
     super.initState();
     final product = widget.productToEdit;
     _nameController = TextEditingController(text: product?.name ?? '');
-    _priceController = TextEditingController(
-        text: product != null ? product.basePrice.toStringAsFixed(0) : '');
     _thresholdController =
         TextEditingController(text: '${product?.minStockThreshold ?? 5}');
-    _warehouseQtyController = TextEditingController(text: '0');
     _category = product?.category ?? ProductCategory.poultry;
     _unit = product?.unit ?? ProductUnit.piece;
     _imagePath = product?.imagePath;
@@ -340,37 +337,57 @@ class _AddProductSheetState extends State<_AddProductSheet> {
 
   Future<void> _submit() async {
     if (_nameController.text.trim().isEmpty) return;
-    final price = double.tryParse(_priceController.text) ?? 0;
     final threshold = int.tryParse(_thresholdController.text) ?? 5;
 
-    if (_isEditing) {
-      await MockInventoryRepository.instance.updateProduct(
-        widget.productToEdit!.copyWith(
+    if (_saving) return;
+    setState(() => _saving = true);
+    String? uploadedImagePath;
+
+    try {
+      var imagePath = _imagePath;
+      if (imagePath != null && !imagePath.startsWith('http')) {
+        uploadedImagePath =
+            await ProductsRepository.instance.uploadProductImage(imagePath);
+        imagePath = uploadedImagePath;
+      }
+
+      if (_isEditing) {
+        final oldPath = widget.productToEdit!.imagePath;
+        await ProductsRepository.instance.updateProduct(
+          widget.productToEdit!.copyWith(
+            name: _nameController.text.trim(),
+            imagePath: imagePath,
+            category: _category,
+            unit: _unit,
+            minStockThreshold: threshold,
+            expiryDate: _expiryDate,
+          ),
+        );
+        if (oldPath != null && oldPath != imagePath) {
+          await ProductsRepository.instance.deleteProductImage(oldPath);
+        }
+      } else {
+        await ProductsRepository.instance.createProduct(
           name: _nameController.text.trim(),
-          imagePath: _imagePath,
           category: _category,
           unit: _unit,
-          basePrice: price,
           minStockThreshold: threshold,
+          imagePath: imagePath,
           expiryDate: _expiryDate,
-        ),
-      );
-    } else {
-      final warehouseQty = int.tryParse(_warehouseQtyController.text) ?? 0;
-      await MockInventoryRepository.instance.addProduct(
-        ProductModel(
-          id: 'P-${DateTime.now().millisecondsSinceEpoch}',
-          name: _nameController.text.trim(),
-          imagePath: _imagePath,
-          category: _category,
-          unit: _unit,
-          basePrice: price,
-          minStockThreshold: threshold,
-          expiryDate: _expiryDate,
-          createdAt: DateTime.now(),
-        ),
-        initialWarehouseQuantity: warehouseQty,
-      );
+        );
+      }
+    } catch (error) {
+      if (uploadedImagePath != null && !_isEditing) {
+        try {
+          await ProductsRepository.instance
+              .deleteProductImage(uploadedImagePath);
+        } catch (_) {}
+      }
+      if (mounted) {
+        setState(() => _saving = false);
+        showAppError(context, error);
+      }
+      return;
     }
 
     if (mounted) Navigator.of(context).pop();
@@ -415,22 +432,9 @@ class _AddProductSheetState extends State<_AddProductSheet> {
               _Field(label: 'اسم الصنف', controller: _nameController),
               SizedBox(height: 14.h),
               _Field(
-                  label: 'السعر الأساسي',
-                  controller: _priceController,
-                  keyboardType: TextInputType.number),
-              SizedBox(height: 14.h),
-              _Field(
                   label: 'الحد الأدنى العام',
                   controller: _thresholdController,
                   keyboardType: TextInputType.number),
-              if (!_isEditing) ...[
-                SizedBox(height: 14.h),
-                _Field(
-                  label: 'الكمية الابتدائية في المخزن الرئيسي',
-                  controller: _warehouseQtyController,
-                  keyboardType: TextInputType.number,
-                ),
-              ],
               SizedBox(height: 14.h),
               Text('تاريخ الصلاحية (اختياري)',
                   style: AppTextStyles.almaraiRegular14.copyWith(
@@ -526,11 +530,14 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                 borderRadius: BorderRadius.circular(14.r),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14.r),
-                  onTap: _submit,
+                  onTap: _saving ? null : _submit,
                   child: Container(
                     alignment: Alignment.center,
                     padding: EdgeInsets.symmetric(vertical: 15.h),
-                    child: Text(_isEditing ? 'حفظ التعديلات' : 'حفظ الصنف',
+                    child: Text(
+                        _saving
+                            ? 'جار الحفظ...'
+                            : (_isEditing ? 'حفظ التعديلات' : 'حفظ الصنف'),
                         style: AppTextStyles.cairoMedium16
                             .copyWith(color: Colors.white, fontSize: 14.sp)),
                   ),

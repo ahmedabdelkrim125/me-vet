@@ -6,6 +6,7 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/core/widgets/custom_alert_dialog.dart';
 import '../../domain/mock_inventory_repository.dart';
+import '../../data/products_repository.dart';
 import '../../domain/models/product_category.dart';
 import '../../domain/models/product_model.dart';
 import '../../domain/models/product_unit.dart';
@@ -38,7 +39,7 @@ class ProductDetailSheet extends StatelessWidget {
         secondaryButtonText: 'إلغاء',
         primaryButtonColor: dialogContext.colors.statusNotReached,
         onPrimaryPressed: () async {
-          await MockInventoryRepository.instance.deleteProduct(product.id);
+          await ProductsRepository.instance.deleteProduct(product.id);
           if (dialogContext.mounted) Navigator.of(dialogContext).pop();
         },
         onSecondaryPressed: () => Navigator.of(dialogContext).pop(),
@@ -87,8 +88,11 @@ class ProductDetailSheet extends StatelessWidget {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: hasImage
-                        ? Image.file(File(product.imagePath!),
-                            fit: BoxFit.cover)
+                        ? product.imagePath!.startsWith('http')
+                            ? Image.network(product.imagePath!,
+                                fit: BoxFit.cover)
+                            : Image.file(File(product.imagePath!),
+                                fit: BoxFit.cover)
                         : Icon(Icons.medication_liquid_outlined,
                             color: context.colors.primary, size: 26.sp),
                   ),

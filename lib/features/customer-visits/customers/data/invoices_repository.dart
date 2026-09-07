@@ -216,9 +216,11 @@ import '../../../customer_account/domain/entities/payment_method.dart';
 
 import '../domain/models/invoice_line_input.dart';
 import '../domain/models/invoice_record_model.dart';
+import '../../../invoices/domain/invoice_draft.dart';
 
 class InvoiceItemRow {
   final String id;
+  final String? productId;
   final String productName;
   final double unitPrice;
   final int quantity;
@@ -226,6 +228,7 @@ class InvoiceItemRow {
 
   const InvoiceItemRow({
     required this.id,
+    required this.productId,
     required this.productName,
     required this.unitPrice,
     required this.quantity,
@@ -284,6 +287,19 @@ class InvoicesRepository {
 
   SupabaseClient get _supabase => Supabase.instance.client;
 
+  Future<Map<String, CustomerProductPrice>> getCustomerProductPrices(
+    String customerId,
+  ) async {
+    final rows = await _supabase.rpc('get_customer_product_prices', params: {
+      'p_customer_id': customerId,
+    });
+    return {
+      for (final row in (rows as List))
+        (row as Map<String, dynamic>)['product_id'] as String:
+            CustomerProductPrice.fromJson(row),
+    };
+  }
+
   Future<InvoiceRecordModel> issueInvoice({
     required String customerId,
     required List<InvoiceLineInput> items,
@@ -304,6 +320,22 @@ class InvoicesRepository {
     });
 
     return InvoiceRecordModel.fromSupabaseRow(row as Map<String, dynamic>);
+  }
+
+  Future<void> editInvoice({
+    required String invoiceId,
+    required List<InvoiceItemDraft> items,
+    required double discountPercent,
+    required String reason,
+    String? notes,
+  }) async {
+    await _supabase.rpc('edit_invoice', params: {
+      'p_invoice_id': invoiceId,
+      'p_items': items.map((item) => item.toRpcJson()).toList(),
+      'p_discount_percent': discountPercent,
+      'p_notes': notes,
+      'p_reason': reason,
+    });
   }
 
   Future<List<InvoiceRecordModel>> getInvoicesForCustomer(
@@ -349,13 +381,15 @@ class InvoicesRepository {
     // code alone isn't enough for that RPC.
     final itemRows = await _supabase
         .from('invoice_items')
-        .select('id, product_name, unit_price, quantity, line_total')
+        .select(
+            'id, product_id, product_name, unit_price, quantity, line_total')
         .eq('invoice_id', invoice['id'] as String);
 
     final items = (itemRows as List).map((r) {
       final m = r as Map<String, dynamic>;
       return InvoiceItemRow(
         id: m['id'] as String,
+        productId: m['product_id'] as String?,
         productName: m['product_name'] as String? ?? '',
         unitPrice: (m['unit_price'] as num).toDouble(),
         quantity: (m['quantity'] as num).toInt(),

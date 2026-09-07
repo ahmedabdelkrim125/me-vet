@@ -34,10 +34,17 @@ class InvoiceProductModel {
 class InvoiceLineItemModel {
   final InvoiceProductModel product;
   int quantity;
+  double unitPrice;
+  final double? previousCustomerPrice;
 
-  InvoiceLineItemModel({required this.product, this.quantity = 1});
+  InvoiceLineItemModel({
+    required this.product,
+    this.quantity = 1,
+    required this.unitPrice,
+    this.previousCustomerPrice,
+  });
 
-  double get total => product.price * quantity;
+  double get total => unitPrice * quantity;
 }
 
 /// A single row inside the "كشف حساب - آخر 6 شهور" statement sheet.
