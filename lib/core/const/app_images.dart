@@ -11,5 +11,15 @@ abstract class AppImages {
 
   static const String moon = 'assets/images/moon.png';
 
-  static const String invoiceWatermark = 'assets/images/invoice_watermark.png';
+  static const String invoiceWatermark =
+      'assets/images/invoice_watermark.png';
+
+  static const String vodafoneCash =
+      'assets/images/vodafone_cash.png';
+
+  static const String instaPay =
+      'assets/images/INSTA_PAY.png';
+
+  static const String errorIllustration =
+      'assets/images/error_illustration.png';
 }

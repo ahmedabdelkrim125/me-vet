@@ -125,28 +125,28 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/errors/app_exception.dart';
 
-import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 import '../../domain/entities/sales_return.dart';
+import '../../domain/entities/payment_method.dart';
 import '../../domain/usecases/create_sales_return.dart';
 import '../../domain/usecases/get_customer_ledger.dart';
-import '../../domain/usecases/record_customer_payment.dart';
+import '../../domain/usecases/record_customer_account_payment.dart';
 import '../../domain/usecases/get_invoice_returned_quantities.dart';
 import 'customer_account_state.dart';
 
 class CustomerAccountCubit extends Cubit<CustomerAccountState> {
   CustomerAccountCubit({
     required GetCustomerLedger getCustomerLedger,
-    required RecordCustomerPayment recordCustomerPayment,
+    required RecordCustomerAccountPayment recordCustomerAccountPayment,
     required CreateSalesReturn createSalesReturn,
     required GetInvoiceReturnedQuantities getInvoiceReturnedQuantities,
   })  : _getCustomerLedger = getCustomerLedger,
-        _recordCustomerPayment = recordCustomerPayment,
+        _recordCustomerAccountPayment = recordCustomerAccountPayment,
         _createSalesReturn = createSalesReturn,
         _getInvoiceReturnedQuantities = getInvoiceReturnedQuantities,
         super(const CustomerAccountState(customerId: '', customerName: ''));
 
   final GetCustomerLedger _getCustomerLedger;
-  final RecordCustomerPayment _recordCustomerPayment;
+  final RecordCustomerAccountPayment _recordCustomerAccountPayment;
   final CreateSalesReturn _createSalesReturn;
   final GetInvoiceReturnedQuantities _getInvoiceReturnedQuantities;
 
@@ -168,7 +168,7 @@ class CustomerAccountCubit extends Cubit<CustomerAccountState> {
 
   Future<void> _loadLedger() async {
     if (isClosed) return;
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, clearLedgerError: true));
     try {
       final ledger = await _getCustomerLedger(customerId: state.customerId);
       if (isClosed) return;
@@ -176,7 +176,9 @@ class CustomerAccountCubit extends Cubit<CustomerAccountState> {
     } catch (e) {
       if (isClosed) return;
       emit(state.copyWith(
-          isLoading: false, actionError: mapErrorToAppException(e)));
+        isLoading: false,
+        ledgerError: mapErrorToAppException(e),
+      ));
     }
   }
 
@@ -195,17 +197,15 @@ class CustomerAccountCubit extends Cubit<CustomerAccountState> {
 
   Future<void> recordPayment({
     required double amount,
-    String? invoiceId,
-    required CollectionSource source,
+    required PaymentMethod paymentMethod,
     String? notes,
   }) async {
     emit(state.copyWith(actionStatus: CustomerAccountActionStatus.submitting));
     try {
-      await _recordCustomerPayment(
+      await _recordCustomerAccountPayment(
         customerId: state.customerId,
         amount: amount,
-        invoiceId: invoiceId,
-        source: source,
+        paymentMethod: paymentMethod,
         notes: notes,
       );
       if (isClosed) return;
@@ -259,5 +259,9 @@ class CustomerAccountCubit extends Cubit<CustomerAccountState> {
       clearActionError: true,
       clearActionSuccess: true,
     ));
+  }
+
+  void acknowledgeLedgerError() {
+    emit(state.copyWith(clearLedgerError: true));
   }
 }

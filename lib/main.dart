@@ -25,6 +25,7 @@ Future<void> main() async {
     url: dotenv.env['SUPABASE_URL'] ?? '',
     publishableKey: dotenv.env['SUPABASE_PUBLISHABLE_KEY'] ?? '',
     authOptions: FlutterAuthClientOptions(
+      autoRefreshToken: true,
       localStorage: SecureLocalStorage(),
     ),
   );

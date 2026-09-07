@@ -29,6 +29,7 @@
 //   });
 // }
 import '../../domain/entities/customer_ledger.dart';
+import '../../domain/entities/payment_method.dart';
 import '../../domain/entities/sales_return.dart';
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 
@@ -44,6 +45,14 @@ abstract class CustomerAccountRepository {
     required double amount,
     String? invoiceId,
     required CollectionSource source,
+    required PaymentMethod paymentMethod,
+    String? notes,
+  });
+
+  Future<void> recordAccountPayment({
+    required String customerId,
+    required double amount,
+    required PaymentMethod paymentMethod,
     String? notes,
   });
 

@@ -52,11 +52,17 @@ class _CustomerAccountView extends StatelessWidget {
       backgroundColor: colors.background,
       body: SafeArea(
         child: BlocConsumer<CustomerAccountCubit, CustomerAccountState>(
-          listenWhen: (p, c) => p.actionStatus != c.actionStatus,
+          listenWhen: (p, c) =>
+              p.actionStatus != c.actionStatus ||
+              p.ledgerError != c.ledgerError,
           listener: (context, state) {
             final cubit = context.read<CustomerAccountCubit>();
 
-            if (state.actionStatus == CustomerAccountActionStatus.success &&
+            if (state.ledgerError != null) {
+              showAppError(context, state.ledgerError!);
+              cubit.acknowledgeLedgerError();
+            } else if (state.actionStatus ==
+                    CustomerAccountActionStatus.success &&
                 state.actionSuccessMessage != null) {
               showAppSuccess(context, state.actionSuccessMessage!);
               cubit.acknowledgeAction();
