@@ -55,6 +55,7 @@
 //     return result as Map<String, dynamic>;
 //   }
 // }
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/payment_method.dart';
@@ -69,12 +70,58 @@ class CustomerAccountRemoteDataSource {
     DateTime? from,
     DateTime? to,
   }) async {
+    try {
+      return await _fetchCustomerLedger(
+        customerId: customerId,
+        from: from,
+        to: to,
+      );
+    } catch (error, stackTrace) {
+      if (!_isAuthenticationFailure(error)) rethrow;
+      if (kDebugMode) {
+        debugPrint(
+            '[CustomerLedger] auth failure; attempting one refresh: $error');
+        debugPrint('$stackTrace');
+      }
+      try {
+        await _client.auth.refreshSession();
+      } catch (refreshError) {
+        if (kDebugMode) {
+          debugPrint('[CustomerLedger] session refresh failed: $refreshError');
+        }
+        try {
+          await _client.auth.signOut();
+        } catch (_) {}
+        rethrow;
+      }
+      return _fetchCustomerLedger(
+        customerId: customerId,
+        from: from,
+        to: to,
+      );
+    }
+  }
+
+  Future<List<dynamic>> _fetchCustomerLedger({
+    required String customerId,
+    DateTime? from,
+    DateTime? to,
+  }) async {
     final result = await _client.rpc('get_customer_ledger', params: {
       'p_customer_id': customerId,
       'p_from': from?.toIso8601String(),
       'p_to': to?.toIso8601String(),
     });
     return result as List<dynamic>;
+  }
+
+  bool _isAuthenticationFailure(Object error) {
+    if (error is AuthException) return true;
+    if (error is PostgrestException) {
+      return error.code == '401' || error.code == 'PGRST301';
+    }
+    if (error is FunctionException) return error.status == 401;
+    return false;
   }
 
   Future<Map<String, dynamic>> recordCustomerPayment({
@@ -107,6 +154,22 @@ class CustomerAccountRemoteDataSource {
       'p_amount': amount,
       'p_invoice_id': invoiceId,
       'p_source': source,
+      'p_payment_method': paymentMethod.backendValue,
+      'p_notes': notes,
+    });
+    return result as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> recordCustomerAccountPayment({
+    required String customerId,
+    required double amount,
+    required PaymentMethod paymentMethod,
+    String? notes,
+  }) async {
+    final result =
+        await _client.rpc('record_customer_account_payment', params: {
+      'p_customer_id': customerId,
+      'p_amount': amount,
       'p_payment_method': paymentMethod.backendValue,
       'p_notes': notes,
     });

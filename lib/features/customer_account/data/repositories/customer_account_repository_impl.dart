@@ -105,6 +105,21 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
   }
 
   @override
+  Future<void> recordAccountPayment({
+    required String customerId,
+    required double amount,
+    required PaymentMethod paymentMethod,
+    String? notes,
+  }) async {
+    await _remote.recordCustomerAccountPayment(
+      customerId: customerId,
+      amount: amount,
+      paymentMethod: paymentMethod,
+      notes: notes,
+    );
+  }
+
+  @override
   Future<void> createSalesReturn({
     required String customerId,
     required String invoiceId,

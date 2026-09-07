@@ -28,6 +28,14 @@ class AuthErrorMapper implements ErrorMapper {
     final e = error as AuthException;
     final message = e.message.toLowerCase();
 
+    if (message.contains('expired') ||
+        message.contains('refresh token') ||
+        message.contains('invalid token') ||
+        message.contains('session')) {
+      return AppException('انتهت جلسة الدخول، سجّل الدخول مرة أخرى',
+          cause: error);
+    }
+
     if (message.contains('invalid login credentials') ||
         message.contains('invalid_credentials')) {
       return const AppException('رقم الموبايل أو الـ PIN غلط');
@@ -54,6 +62,10 @@ class PostgrestErrorMapper implements ErrorMapper {
   @override
   AppException map(Object error) {
     final e = error as PostgrestException;
+    if (e.code == '401' || e.code == 'PGRST301') {
+      return AppException('انتهت جلسة الدخول، سجّل الدخول مرة أخرى',
+          cause: error);
+    }
     switch (e.code) {
       case '23505':
         return const AppException(
@@ -81,6 +93,10 @@ class FunctionErrorMapper implements ErrorMapper {
   @override
   AppException map(Object error) {
     final e = error as FunctionException;
+    if (e.status == 401) {
+      return AppException('انتهت جلسة الدخول، سجّل الدخول مرة أخرى',
+          cause: error);
+    }
     final details = e.details;
     if (details is Map && details['error'] != null) {
       return AppException(details['error'].toString(), cause: error);

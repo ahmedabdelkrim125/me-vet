@@ -49,6 +49,13 @@ abstract class CustomerAccountRepository {
     String? notes,
   });
 
+  Future<void> recordAccountPayment({
+    required String customerId,
+    required double amount,
+    required PaymentMethod paymentMethod,
+    String? notes,
+  });
+
   Future<void> createSalesReturn({
     required String customerId,
     required String invoiceId,

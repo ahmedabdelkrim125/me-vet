@@ -85,6 +85,7 @@ class CustomerAccountState extends Equatable {
 
   final CustomerAccountActionStatus actionStatus;
   final AppException? actionError;
+  final AppException? ledgerError;
   final String? actionSuccessMessage;
 
   final Map<String, int>? returnedQuantities;
@@ -97,6 +98,7 @@ class CustomerAccountState extends Equatable {
     this.fallbackBalance,
     this.actionStatus = CustomerAccountActionStatus.idle,
     this.actionError,
+    this.ledgerError,
     this.actionSuccessMessage,
     this.returnedQuantities,
   });
@@ -108,9 +110,11 @@ class CustomerAccountState extends Equatable {
     CustomerLedger? ledger,
     CustomerAccountActionStatus? actionStatus,
     AppException? actionError,
+    AppException? ledgerError,
     String? actionSuccessMessage,
     bool clearActionError = false,
     bool clearActionSuccess = false,
+    bool clearLedgerError = false,
     Map<String, int>? returnedQuantities,
   }) {
     return CustomerAccountState(
@@ -121,6 +125,7 @@ class CustomerAccountState extends Equatable {
       fallbackBalance: fallbackBalance,
       actionStatus: actionStatus ?? this.actionStatus,
       actionError: clearActionError ? null : (actionError ?? this.actionError),
+      ledgerError: clearLedgerError ? null : (ledgerError ?? this.ledgerError),
       actionSuccessMessage: clearActionSuccess
           ? null
           : (actionSuccessMessage ?? this.actionSuccessMessage),
@@ -137,6 +142,7 @@ class CustomerAccountState extends Equatable {
         fallbackBalance,
         actionStatus,
         actionError,
+        ledgerError,
         actionSuccessMessage,
         returnedQuantities,
       ];

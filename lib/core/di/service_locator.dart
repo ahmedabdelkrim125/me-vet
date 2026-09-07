@@ -9,6 +9,7 @@ import '../../features/customer_account/domain/repositories/customer_account_rep
 import '../../features/customer_account/domain/usecases/create_sales_return.dart';
 import '../../features/customer_account/domain/usecases/get_customer_ledger.dart';
 import '../../features/customer_account/domain/usecases/record_customer_payment.dart';
+import '../../features/customer_account/domain/usecases/record_customer_account_payment.dart';
 import '../../features/customer_account/domain/usecases/get_invoice_returned_quantities.dart';
 import '../../features/customer_account/presentation/cubit/customer_account_cubit.dart';
 
@@ -34,6 +35,8 @@ void setupServiceLocator() {
 
   sl.registerFactory<GetCustomerLedger>(() => GetCustomerLedger(sl()));
   sl.registerFactory<RecordCustomerPayment>(() => RecordCustomerPayment(sl()));
+  sl.registerFactory<RecordCustomerAccountPayment>(
+      () => RecordCustomerAccountPayment(sl()));
   sl.registerFactory<CreateSalesReturn>(() => CreateSalesReturn(sl()));
   sl.registerFactory<GetInvoiceReturnedQuantities>(
       () => GetInvoiceReturnedQuantities(sl()));
@@ -41,7 +44,7 @@ void setupServiceLocator() {
   sl.registerFactory<CustomerAccountCubit>(
     () => CustomerAccountCubit(
       getCustomerLedger: sl(),
-      recordCustomerPayment: sl(),
+      recordCustomerAccountPayment: sl(),
       createSalesReturn: sl(),
       getInvoiceReturnedQuantities: sl(),
     ),
