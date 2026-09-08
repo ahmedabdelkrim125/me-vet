@@ -37,8 +37,7 @@ class CustomerAccountState extends Equatable {
     this.returnedQuantities,
   });
 
-  double get balance =>
-      ledger?.currentBalance ?? fallbackBalance ?? 0;
+  double get balance => ledger?.currentBalance ?? fallbackBalance ?? 0;
 
   CustomerAccountState copyWith({
     bool? isLoading,
@@ -59,17 +58,12 @@ class CustomerAccountState extends Equatable {
       ledger: ledger ?? this.ledger,
       fallbackBalance: fallbackBalance,
       actionStatus: actionStatus ?? this.actionStatus,
-      actionError: clearActionError
-          ? null
-          : (actionError ?? this.actionError),
-      ledgerError: clearLedgerError
-          ? null
-          : (ledgerError ?? this.ledgerError),
+      actionError: clearActionError ? null : (actionError ?? this.actionError),
+      ledgerError: clearLedgerError ? null : (ledgerError ?? this.ledgerError),
       actionSuccessMessage: clearActionSuccess
           ? null
           : (actionSuccessMessage ?? this.actionSuccessMessage),
-      returnedQuantities:
-          returnedQuantities ?? this.returnedQuantities,
+      returnedQuantities: returnedQuantities ?? this.returnedQuantities,
     );
   }
 

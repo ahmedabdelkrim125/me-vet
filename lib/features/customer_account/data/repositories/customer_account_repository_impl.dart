@@ -90,8 +90,7 @@ import '../../domain/repositories/customer_account_repository.dart';
 import '../datasources/customer_account_remote_data_source.dart';
 import '../models/customer_ledger_model.dart';
 
-class CustomerAccountRepositoryImpl
-    implements CustomerAccountRepository {
+class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
   const CustomerAccountRepositoryImpl(this._remote);
 
   final CustomerAccountRemoteDataSource _remote;
