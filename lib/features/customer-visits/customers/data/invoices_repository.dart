@@ -212,13 +212,15 @@
 //   }
 // }
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../customer_account/domain/entities/payment_method.dart';
 
+import '../../../customer_account/domain/entities/payment_method.dart';
 import '../domain/models/invoice_line_input.dart';
 import '../domain/models/invoice_record_model.dart';
+import '../../../invoices/domain/invoice_draft.dart';
 
 class InvoiceItemRow {
   final String id;
+  final String? productId;
   final String productName;
   final double unitPrice;
   final int quantity;
@@ -226,6 +228,7 @@ class InvoiceItemRow {
 
   const InvoiceItemRow({
     required this.id,
+    required this.productId,
     required this.productName,
     required this.unitPrice,
     required this.quantity,
@@ -236,6 +239,7 @@ class InvoiceItemRow {
 class InvoiceFullDetail {
   final String id;
   final String code;
+  final String customerId;
   final DateTime date;
   final double subtotal;
   final double discountPercent;
@@ -249,6 +253,7 @@ class InvoiceFullDetail {
   const InvoiceFullDetail({
     required this.id,
     required this.code,
+    required this.customerId,
     required this.date,
     required this.subtotal,
     required this.discountPercent,
@@ -284,6 +289,23 @@ class InvoicesRepository {
 
   SupabaseClient get _supabase => Supabase.instance.client;
 
+  Future<Map<String, CustomerProductPrice>> getCustomerProductPrices(
+    String customerId,
+  ) async {
+    final rows = await _supabase.rpc(
+      'get_customer_product_prices',
+      params: {
+        'p_customer_id': customerId,
+      },
+    );
+
+    return {
+      for (final row in (rows as List))
+        (row as Map<String, dynamic>)['product_id'] as String:
+            CustomerProductPrice.fromJson(row),
+    };
+  }
+
   Future<InvoiceRecordModel> issueInvoice({
     required String customerId,
     required List<InvoiceLineInput> items,
@@ -293,17 +315,41 @@ class InvoicesRepository {
     PaymentMethod? paymentMethod,
     String? notes,
   }) async {
-    final row = await _supabase.rpc('issue_invoice_v2', params: {
-      'p_customer_id': customerId,
-      'p_items': items.map((item) => item.toRpcJson()).toList(),
-      'p_discount_percent': discountPercent,
-      'p_sale_type': isCashSale ? 'cash' : 'credit',
-      'p_paid_now': paidNow,
-      'p_payment_method': paymentMethod?.backendValue,
-      'p_notes': notes,
-    });
+    final row = await _supabase.rpc(
+      'issue_invoice_v2',
+      params: {
+        'p_customer_id': customerId,
+        'p_items': items.map((item) => item.toRpcJson()).toList(),
+        'p_discount_percent': discountPercent,
+        'p_sale_type': isCashSale ? 'cash' : 'credit',
+        'p_paid_now': paidNow,
+        'p_payment_method': paymentMethod?.backendValue,
+        'p_notes': notes,
+      },
+    );
 
-    return InvoiceRecordModel.fromSupabaseRow(row as Map<String, dynamic>);
+    return InvoiceRecordModel.fromSupabaseRow(
+      row as Map<String, dynamic>,
+    );
+  }
+
+  Future<void> editInvoice({
+    required String invoiceId,
+    required List<InvoiceItemDraft> items,
+    required double discountPercent,
+    required String reason,
+    String? notes,
+  }) async {
+    await _supabase.rpc(
+      'edit_invoice',
+      params: {
+        'p_invoice_id': invoiceId,
+        'p_items': items.map((item) => item.toRpcJson()).toList(),
+        'p_discount_percent': discountPercent,
+        'p_notes': notes,
+        'p_reason': reason,
+      },
+    );
   }
 
   Future<List<InvoiceRecordModel>> getInvoicesForCustomer(
@@ -317,10 +363,17 @@ class InvoicesRepository {
       query = query.gte('invoice_date', since.toIso8601String());
     }
 
-    final rows = await query.order('invoice_date', ascending: false);
+    final rows = await query.order(
+      'invoice_date',
+      ascending: false,
+    );
+
     return (rows as List)
-        .map((row) =>
-            InvoiceRecordModel.fromSupabaseRow(row as Map<String, dynamic>))
+        .map(
+          (row) => InvoiceRecordModel.fromSupabaseRow(
+            row as Map<String, dynamic>,
+          ),
+        )
         .toList();
   }
 
@@ -333,46 +386,61 @@ class InvoicesRepository {
         .select()
         .gte('invoice_date', start.toIso8601String())
         .lt('invoice_date', end.toIso8601String())
-        .order('invoice_date', ascending: false);
+        .order(
+          'invoice_date',
+          ascending: false,
+        );
+
     return (rows as List)
-        .map((row) =>
-            InvoiceRecordModel.fromSupabaseRow(row as Map<String, dynamic>))
+        .map(
+          (row) => InvoiceRecordModel.fromSupabaseRow(
+            row as Map<String, dynamic>,
+          ),
+        )
         .toList();
   }
 
-  Future<InvoiceFullDetail> getInvoiceDetailByCode(String code) async {
+  Future<InvoiceFullDetail> getInvoiceDetailByCode(
+    String code,
+  ) async {
     final invoice =
         await _supabase.from('invoices').select().eq('code', code).single();
 
-    // 'id' is selected so callers (e.g. the sales-return flow) have the
-    // real invoice UUID that create_sales_return requires — the invoice
-    // code alone isn't enough for that RPC.
+    final invoiceId = invoice['id'] as String;
+
     final itemRows = await _supabase
         .from('invoice_items')
-        .select('id, product_name, unit_price, quantity, line_total')
-        .eq('invoice_id', invoice['id'] as String);
+        .select(
+          'id, product_id, product_name, unit_price, quantity, line_total',
+        )
+        .eq('invoice_id', invoiceId);
 
-    final items = (itemRows as List).map((r) {
-      final m = r as Map<String, dynamic>;
+    final items = (itemRows as List).map((row) {
+      final item = row as Map<String, dynamic>;
+
       return InvoiceItemRow(
-        id: m['id'] as String,
-        productName: m['product_name'] as String? ?? '',
-        unitPrice: (m['unit_price'] as num).toDouble(),
-        quantity: (m['quantity'] as num).toInt(),
-        lineTotal: (m['line_total'] as num).toDouble(),
+        id: item['id'] as String,
+        productId: item['product_id'] as String?,
+        productName: item['product_name'] as String? ?? '',
+        unitPrice: (item['unit_price'] as num).toDouble(),
+        quantity: (item['quantity'] as num).toInt(),
+        lineTotal: (item['line_total'] as num).toDouble(),
       );
     }).toList();
 
     return InvoiceFullDetail(
-      id: invoice['id'] as String,
+      id: invoiceId,
       code: invoice['code'] as String,
+      customerId: invoice['customer_id'] as String,
       date: DateTime.parse(invoice['invoice_date'] as String),
       subtotal: (invoice['subtotal'] as num).toDouble(),
       discountPercent: (invoice['discount_percent'] as num).toDouble(),
       totalAmount: (invoice['total_amount'] as num).toDouble(),
       paidNow: (invoice['paid_now'] as num).toDouble(),
       saleType: invoice['sale_type'] == 'cash' ? 'نقدي' : 'آجل',
-      statusLabel: _statusLabelFromDb(invoice['status'] as String?),
+      statusLabel: _statusLabelFromDb(
+        invoice['status'] as String?,
+      ),
       notes: invoice['notes'] as String?,
       items: items,
     );
@@ -394,36 +462,51 @@ class InvoicesRepository {
   ) async {
     final rows = await _supabase
         .from('invoice_items')
-        .select('product_name, unit_price, quantity, '
-            'invoices!inner(customer_id, invoice_date)')
+        .select(
+          'product_name, unit_price, quantity, '
+          'invoices!inner(customer_id, invoice_date)',
+        )
         .eq('invoices.customer_id', customerId);
 
     final byProduct = <String, List<Map<String, dynamic>>>{};
+
     for (final row in rows as List) {
       final map = row as Map<String, dynamic>;
       final name = map['product_name'] as String? ?? '';
+
       if (name.isEmpty) continue;
+
       byProduct.putIfAbsent(name, () => []).add(map);
     }
 
     final stats = <ProductPurchaseStat>[];
+
     byProduct.forEach((name, items) {
       items.sort((a, b) {
         final da = DateTime.parse(
-            (a['invoices'] as Map<String, dynamic>)['invoice_date'] as String);
+          (a['invoices'] as Map<String, dynamic>)['invoice_date'] as String,
+        );
         final db = DateTime.parse(
-            (b['invoices'] as Map<String, dynamic>)['invoice_date'] as String);
+          (b['invoices'] as Map<String, dynamic>)['invoice_date'] as String,
+        );
+
         return db.compareTo(da);
       });
+
       final latest = items.first;
-      final lastDate = DateTime.parse((latest['invoices']
-          as Map<String, dynamic>)['invoice_date'] as String);
-      stats.add(ProductPurchaseStat(
-        productName: name,
-        lastPrice: (latest['unit_price'] as num).toDouble(),
-        lastPurchaseDate: lastDate,
-        timesPurchased: items.length,
-      ));
+
+      final lastDate = DateTime.parse(
+        (latest['invoices'] as Map<String, dynamic>)['invoice_date'] as String,
+      );
+
+      stats.add(
+        ProductPurchaseStat(
+          productName: name,
+          lastPrice: (latest['unit_price'] as num).toDouble(),
+          lastPurchaseDate: lastDate,
+          timesPurchased: items.length,
+        ),
+      );
     });
 
     return stats;

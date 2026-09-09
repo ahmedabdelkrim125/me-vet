@@ -1,5 +1,6 @@
 // import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
 // import '../../domain/entities/customer_ledger.dart';
+// import '../../domain/entities/payment_method.dart';
 // import '../../domain/entities/sales_return.dart';
 // import '../../domain/repositories/customer_account_repository.dart';
 // import '../datasources/customer_account_remote_data_source.dart';
@@ -30,13 +31,30 @@
 //     required double amount,
 //     String? invoiceId,
 //     required CollectionSource source,
+//     required PaymentMethod paymentMethod,
 //     String? notes,
 //   }) async {
-//     await _remote.recordCustomerPayment(
+//     await _remote.recordCustomerPaymentV2(
 //       customerId: customerId,
 //       amount: amount,
 //       invoiceId: invoiceId,
 //       source: source.dbValue,
+//       paymentMethod: paymentMethod,
+//       notes: notes,
+//     );
+//   }
+
+//   @override
+//   Future<void> recordAccountPayment({
+//     required String customerId,
+//     required double amount,
+//     required PaymentMethod paymentMethod,
+//     String? notes,
+//   }) async {
+//     await _remote.recordCustomerAccountPayment(
+//       customerId: customerId,
+//       amount: amount,
+//       paymentMethod: paymentMethod,
 //       notes: notes,
 //     );
 //   }
@@ -56,6 +74,12 @@
 //       reason: reason,
 //       notes: notes,
 //     );
+//   }
+
+//   @override
+//   Future<Map<String, int>> getReturnedQuantities(
+//       {required String invoiceId}) async {
+//     return _remote.getReturnedQuantities(invoiceId: invoiceId);
 //   }
 // }
 import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
@@ -77,12 +101,25 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
     DateTime? from,
     DateTime? to,
   }) async {
-    final rows = await _remote.getCustomerLedger(
-      customerId: customerId,
-      from: from,
-      to: to,
+    final results = await Future.wait<dynamic>([
+      _remote.getCustomerLedger(
+        customerId: customerId,
+        from: from,
+        to: to,
+      ),
+      _remote.getCustomerCurrentBalance(
+        customerId: customerId,
+      ),
+    ]);
+
+    final rows = results[0] as List<dynamic>;
+    final currentBalance = results[1] as double?;
+
+    return CustomerLedgerModel.fromSupabaseRows(
+      customerId,
+      rows,
+      currentBalance: currentBalance,
     );
-    return CustomerLedgerModel.fromSupabaseRows(customerId, rows);
   }
 
   @override
@@ -137,8 +174,11 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
   }
 
   @override
-  Future<Map<String, int>> getReturnedQuantities(
-      {required String invoiceId}) async {
-    return _remote.getReturnedQuantities(invoiceId: invoiceId);
+  Future<Map<String, int>> getReturnedQuantities({
+    required String invoiceId,
+  }) async {
+    return _remote.getReturnedQuantities(
+      invoiceId: invoiceId,
+    );
   }
 }

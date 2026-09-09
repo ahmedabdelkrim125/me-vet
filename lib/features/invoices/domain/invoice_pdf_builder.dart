@@ -83,7 +83,7 @@ class InvoicePdfBuilder {
     }
 
     document.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(28),
@@ -101,26 +101,33 @@ class InvoicePdfBuilder {
             );
           },
         ),
+        header: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: _buildHeader(logoBytes, boldFont),
+        ),
+        footer: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: _buildFooter(boldFont),
+        ),
         build: (context) {
-          return pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                _buildHeader(logoBytes, boldFont),
-                pw.SizedBox(height: 18),
-                _buildTitle(data, boldFont),
-                pw.SizedBox(height: 22),
-                _buildMetaRow(data, boldFont),
-                pw.SizedBox(height: 18),
-                _buildItemsTable(data, boldFont, regularFont),
-                pw.SizedBox(height: 18),
-                _buildTotalsTable(data, boldFont),
-                pw.SizedBox(height: 26),
-                _buildFooter(boldFont),
-              ],
+          final chunks = paginateItems(data.items);
+          return [
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  _buildTitle(data, boldFont),
+                  pw.SizedBox(height: 22),
+                  _buildMetaRow(data, boldFont),
+                  pw.SizedBox(height: 18),
+                  ..._buildChunkWidgets(chunks, boldFont, regularFont),
+                  pw.SizedBox(height: 18),
+                  _buildTotalsTable(data, boldFont),
+                ],
+              ),
             ),
-          );
+          ];
         },
       ),
     );
@@ -216,15 +223,15 @@ class InvoicePdfBuilder {
   }
 
   static pw.Widget _buildItemsTable(
-    InvoicePdfData data,
+    List<InvoicePdfLineItem> items,
     pw.Font boldFont,
     pw.Font regularFont,
   ) {
     final headers = ['الإجمالي', 'السعر', 'العدد', 'الصنف / المنتج', 'م'];
 
     final rows = <List<String>>[];
-    for (var i = 0; i < data.items.length; i++) {
-      final item = data.items[i];
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
       rows.add([
         item.total.toStringAsFixed(0),
         item.price.toStringAsFixed(0),
@@ -233,10 +240,6 @@ class InvoicePdfBuilder {
         '${i + 1}',
       ]);
     }
-    while (rows.length < 8) {
-      rows.add(['', '', '', '', '${rows.length + 1}']);
-    }
-
     return pw.Table(
       border: pw.TableBorder.all(color: _border, width: 0.6),
       columnWidths: const {
@@ -253,7 +256,7 @@ class InvoicePdfBuilder {
               .map(
                 (h) => pw.Padding(
                   padding: const pw.EdgeInsets.symmetric(
-                    vertical: 8,
+                    vertical: 5,
                     horizontal: 4,
                   ),
                   child: pw.Text(
@@ -275,7 +278,7 @@ class InvoicePdfBuilder {
                 .map(
                   (cell) => pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(
-                      vertical: 8,
+                      vertical: 5,
                       horizontal: 4,
                     ),
                     child: pw.Text(
@@ -289,6 +292,30 @@ class InvoicePdfBuilder {
           ),
       ],
     );
+  }
+
+  static List<List<InvoicePdfLineItem>> paginateItems(
+      List<InvoicePdfLineItem> items,
+      [int size = 15]) {
+    final chunks = <List<InvoicePdfLineItem>>[];
+    for (var start = 0; start < items.length; start += size) {
+      final end = (start + size).clamp(0, items.length);
+      chunks.add(items.sublist(start, end));
+    }
+    return chunks.isEmpty ? [const []] : chunks;
+  }
+
+  static List<pw.Widget> _buildChunkWidgets(
+    List<List<InvoicePdfLineItem>> chunks,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    final widgets = <pw.Widget>[];
+    for (var index = 0; index < chunks.length; index++) {
+      if (index > 0) widgets.add(pw.NewPage());
+      widgets.add(_buildItemsTable(chunks[index], boldFont, regularFont));
+    }
+    return widgets;
   }
 
   static pw.Widget _buildTotalsTable(InvoicePdfData data, pw.Font boldFont) {

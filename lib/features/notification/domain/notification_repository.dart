@@ -4,19 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/app_notification_model.dart';
 import 'models/notification_type.dart';
 
-/// إشعارات حقيقية من جدول `notifications` في Supabase — بدل الداتا
-/// الوهمية اللي كانت متخزنة محليًا (SharedPreferences) قبل كده.
-///
-/// أغلب الإشعارات (زي حد الائتمان) بتتسجل من ناحية السيرفر نفسه
-/// (Postgres trigger)، مش من هنا. الكلاس ده مسؤوليته: يجيب الإشعارات
-/// بتاعة اليوزر الحالي، يعرضها، يتابعها لحظيًا (Realtime) عشان أي
-/// إشعار جديد يبان في الشاشة أول ما يتسجل من غير ما تحتاج تقفل
-/// وتفتح التطبيق، ويحدّث حالة القراءة/الحذف.
-///
-/// `push()` لسه موجودة (نفس الاسم والباراميترز بالظبط) عشان
-/// MockInventoryRepository يقدر يكمل يستخدمها زي ما هي لحد ما فيتشر
-/// المخزون يتهاجر هو كمان لـ Supabase — الفرق إنها دلوقتي بتكتب في
-/// Supabase فعليًا بدل التخزين المحلي.
 class NotificationRepository {
   NotificationRepository._internal();
 

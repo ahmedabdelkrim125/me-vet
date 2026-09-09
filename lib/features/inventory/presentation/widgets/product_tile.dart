@@ -170,7 +170,10 @@ class ProductTile extends StatelessWidget {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: hasImage
-                    ? Image.file(File(product.imagePath!), fit: BoxFit.cover)
+                    ? product.imagePath!.startsWith('http')
+                        ? Image.network(product.imagePath!, fit: BoxFit.cover)
+                        : Image.file(File(product.imagePath!),
+                            fit: BoxFit.cover)
                     : Icon(CupertinoIcons.bandage_fill,
                         color: context.colors.primary, size: 20.sp),
               ),

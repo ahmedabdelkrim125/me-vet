@@ -11,9 +11,11 @@ import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../../customer-visits/customers/data/invoices_repository.dart';
 import '../../../customer-visits/customers/domain/models/invoice_line_input.dart';
 import '../../../inventory/domain/mock_inventory_repository.dart';
+import '../../../inventory/data/products_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
 import '../../../inventory/domain/models/product_unit.dart';
 import '../../../invoices/domain/invoice_pdf_builder.dart';
+import '../../../invoices/domain/invoice_draft.dart';
 import '../../domain/models/quick_invoice_models.dart';
 import '../../../customer_account/domain/entities/payment_method.dart';
 import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
@@ -90,6 +92,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
   InvoiceCustomerModel? customer;
   final List<InvoiceLineItemModel> lineItems = [];
+  Map<String, CustomerProductPrice> _customerPrices = {};
+  int _currentPage = 1;
+  bool _loadingCustomerPrices = false;
   double discountPercent = 0;
   final notesController = TextEditingController();
   final paidNowController = TextEditingController(text: '0');
@@ -103,6 +108,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     customer = widget.initialCustomer;
     MockInventoryRepository.instance.init();
     CustomersRepository.instance.initialize();
+    if (customer != null) _loadCustomerPrices(customer!.customer.id);
   }
 
   @override
@@ -148,25 +154,63 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       setState(() {
         customer = picked;
         lineItems.clear();
+        _customerPrices = {};
+        _currentPage = 1;
         paidNowController.text = '0';
         _paymentMethod = null;
       });
+      await _loadCustomerPrices(picked.customer.id);
+    }
+  }
+
+  Future<void> _loadCustomerPrices(String customerId) async {
+    setState(() {
+      _loadingCustomerPrices = true;
+      _customerPrices = {};
+    });
+    try {
+      final prices = await InvoicesRepository.instance
+          .getCustomerProductPrices(customerId);
+      if (mounted && customer?.customer.id == customerId) {
+        setState(() => _customerPrices = prices);
+      }
+    } catch (_) {
+      // Base prices remain usable when remembered prices are unavailable.
+    } finally {
+      if (mounted) setState(() => _loadingCustomerPrices = false);
     }
   }
 
   Future<void> _openAddProducts() async {
-    await MockInventoryRepository.instance.init();
+    if (!mounted) return;
+    List<ProductModel> products;
+    try {
+      products = await ProductsRepository.instance.getProducts();
+    } catch (error) {
+      if (mounted) showAppError(context, error);
+      return;
+    }
     if (!mounted) return;
     final added = await showModalBottomSheet<List<InvoiceLineItemModel>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ProductPickerSheet(existing: lineItems),
+      builder: (_) => _ProductPickerSheet(
+        existing: lineItems,
+        products: products,
+        customerPrices: _customerPrices,
+      ),
     );
-    if (added != null)
-      setState(() => lineItems
-        ..clear()
-        ..addAll(added));
+    if (added != null) {
+      setState(() {
+        lineItems
+          ..clear()
+          ..addAll(added);
+        _currentPage = lineItems.isEmpty
+            ? 1
+            : _currentPage.clamp(1, (lineItems.length / 15).ceil());
+      });
+    }
   }
 
   void _openStatement() {
@@ -219,6 +263,12 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     }
 
     for (final item in lineItems) {
+      if (item.product.name.trim().isEmpty ||
+          item.quantity <= 0 ||
+          item.unitPrice < 0) {
+        _toast('راجع اسم الصنف والكمية وسعر البيع');
+        return;
+      }
       final stock = MockInventoryRepository.instance.stockOf(item.product.id);
       final available = stock?.quantity ?? 0;
       if (item.quantity > available) {
@@ -245,7 +295,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
             .map((item) => InvoiceLineInput(
                   productId: item.product.id,
                   productName: item.product.name,
-                  unitPrice: item.product.price,
+                  unitPrice: item.unitPrice,
                   quantity: item.quantity,
                 ))
             .toList(),
@@ -383,10 +433,22 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                       _SectionCard(
                         child: _ProductsSection(
                           items: lineItems,
+                          currentPage: _currentPage,
+                          loadingCustomerPrices: _loadingCustomerPrices,
+                          onPageChanged: (page) =>
+                              setState(() => _currentPage = page),
                           onAdd: _openAddProducts,
+                          onPriceChanged: (item, price) =>
+                              setState(() => item.unitPrice = price),
                           onQuantityChanged: (item, qty) => setState(() {
                             if (qty <= 0) {
                               lineItems.remove(item);
+                              _currentPage = _currentPage.clamp(
+                                1,
+                                lineItems.isEmpty
+                                    ? 1
+                                    : (lineItems.length / 15).ceil(),
+                              );
                             } else {
                               item.quantity = qty;
                             }
@@ -1289,7 +1351,11 @@ class _StatementSheet extends StatelessWidget {
 
 class _ProductsSection extends StatelessWidget {
   final List<InvoiceLineItemModel> items;
+  final int currentPage;
+  final bool loadingCustomerPrices;
+  final ValueChanged<int> onPageChanged;
   final VoidCallback onAdd;
+  final void Function(InvoiceLineItemModel, double) onPriceChanged;
   final void Function(InvoiceLineItemModel, int) onQuantityChanged;
   final void Function(InvoiceLineItemModel) onRemove;
   final double subtotal;
@@ -1300,7 +1366,11 @@ class _ProductsSection extends StatelessWidget {
 
   const _ProductsSection({
     required this.items,
+    required this.currentPage,
+    required this.loadingCustomerPrices,
+    required this.onPageChanged,
     required this.onAdd,
+    required this.onPriceChanged,
     required this.onQuantityChanged,
     required this.onRemove,
     required this.subtotal,
@@ -1346,17 +1416,24 @@ class _ProductsSection extends StatelessWidget {
             ),
           )
         else
-          ...items.map(
-            (item) => Padding(
-              padding: EdgeInsets.only(bottom: 8.h),
-              child: _LineItemTile(
-                item: item,
-                onQuantityChanged: (q) => onQuantityChanged(item, q),
-                onRemove: () => onRemove(item),
+          ...items.skip((currentPage - 1) * 15).take(15).map(
+                (item) => Padding(
+                  padding: EdgeInsets.only(bottom: 8.h),
+                  child: _LineItemTile(
+                    item: item,
+                    loadingCustomerPrices: loadingCustomerPrices,
+                    onPriceChanged: (price) => onPriceChanged(item, price),
+                    onQuantityChanged: (q) => onQuantityChanged(item, q),
+                    onRemove: () => onRemove(item),
+                  ),
+                ),
               ),
-            ),
-          ),
         if (items.isNotEmpty) ...[
+          _InvoicePagination(
+            itemCount: items.length,
+            currentPage: currentPage,
+            onPageChanged: onPageChanged,
+          ),
           SizedBox(height: 10.h),
           Divider(height: 1, color: colors.border),
           SizedBox(height: 10.h),
@@ -1436,6 +1513,64 @@ class _TotalsRow extends StatelessWidget {
   }
 }
 
+class _InvoicePagination extends StatelessWidget {
+  final int itemCount;
+  final int currentPage;
+  final ValueChanged<int> onPageChanged;
+
+  const _InvoicePagination({
+    required this.itemCount,
+    required this.currentPage,
+    required this.onPageChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final pageCount = (itemCount / 15).ceil();
+    final start = (currentPage - 1) * 15 + 1;
+    final end = (currentPage * 15).clamp(0, itemCount);
+    return Padding(
+      padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
+      child: Column(
+        children: [
+          Text(
+            'الأصناف $start - $end من $itemCount',
+            style: AppTextStyles.almaraiRegular14.copyWith(
+              color: colors.textMuted,
+              fontSize: 11.sp,
+            ),
+          ),
+          if (pageCount > 1)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: currentPage > 1
+                      ? () => onPageChanged(currentPage - 1)
+                      : null,
+                  child: const Text('‹ السابق'),
+                ),
+                for (var page = 1; page <= pageCount; page++)
+                  TextButton(
+                    onPressed:
+                        page == currentPage ? null : () => onPageChanged(page),
+                    child: Text('$page'),
+                  ),
+                TextButton(
+                  onPressed: currentPage < pageCount
+                      ? () => onPageChanged(currentPage + 1)
+                      : null,
+                  child: const Text('التالي ›'),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DiscountStepper extends StatelessWidget {
   final double value;
   final ValueChanged<double> onChanged;
@@ -1491,11 +1626,15 @@ class _StepButton extends StatelessWidget {
 
 class _LineItemTile extends StatelessWidget {
   final InvoiceLineItemModel item;
+  final bool loadingCustomerPrices;
+  final ValueChanged<double> onPriceChanged;
   final ValueChanged<int> onQuantityChanged;
   final VoidCallback onRemove;
 
   const _LineItemTile({
     required this.item,
+    required this.loadingCustomerPrices,
+    required this.onPriceChanged,
     required this.onQuantityChanged,
     required this.onRemove,
   });
@@ -1538,9 +1677,34 @@ class _LineItemTile extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  '${_money(item.product.price)} / ${item.product.unit}',
+                  item.previousCustomerPrice == null
+                      ? 'السعر الأساسي: ${_money(item.product.price)}'
+                      : 'السعر السابق للعميل: ${_money(item.previousCustomerPrice!)}',
                   style: AppTextStyles.almaraiRegular14
                       .copyWith(color: colors.textMuted, fontSize: 10.5.sp),
+                ),
+                SizedBox(height: 5.h),
+                SizedBox(
+                  height: 36.h,
+                  width: 120.w,
+                  child: TextFormField(
+                    initialValue: item.unitPrice.toStringAsFixed(2),
+                    enabled: !loadingCustomerPrices,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                    ],
+                    onChanged: (value) {
+                      final price = double.tryParse(value);
+                      if (price != null && price >= 0) onPriceChanged(price);
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'سعر البيع',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1576,7 +1740,13 @@ class _LineItemTile extends StatelessWidget {
 
 class _ProductPickerSheet extends StatefulWidget {
   final List<InvoiceLineItemModel> existing;
-  const _ProductPickerSheet({required this.existing});
+  final List<ProductModel> products;
+  final Map<String, CustomerProductPrice> customerPrices;
+  const _ProductPickerSheet({
+    required this.existing,
+    required this.products,
+    required this.customerPrices,
+  });
 
   @override
   State<_ProductPickerSheet> createState() => _ProductPickerSheetState();
@@ -1590,8 +1760,12 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   void initState() {
     super.initState();
     cart = widget.existing
-        .map((e) =>
-            InvoiceLineItemModel(product: e.product, quantity: e.quantity))
+        .map((e) => InvoiceLineItemModel(
+              product: e.product,
+              quantity: e.quantity,
+              unitPrice: e.unitPrice,
+              previousCustomerPrice: e.previousCustomerPrice,
+            ))
         .toList();
   }
 
@@ -1614,14 +1788,22 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     }
     setState(() {
       cart.removeWhere((c) => c.product.id == p.id);
-      if (qty > 0) cart.add(InvoiceLineItemModel(product: p, quantity: qty));
+      if (qty > 0) {
+        final previous = widget.customerPrices[p.id]?.lastPrice;
+        cart.add(InvoiceLineItemModel(
+          product: p,
+          quantity: qty,
+          unitPrice: previous ?? p.price,
+          previousCustomerPrice: previous,
+        ));
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final filtered = MockInventoryRepository.instance.products.value
+    final filtered = widget.products
         .map(_invoiceProductFromInventory)
         .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
         .toList();

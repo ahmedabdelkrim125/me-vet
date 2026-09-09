@@ -3,6 +3,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../domain/mock_inventory_repository.dart';
+import '../../data/products_repository.dart';
 import '../../domain/models/product_category.dart';
 import '../../domain/models/product_model.dart';
 import '../../domain/models/vehicle_stock_model.dart';
@@ -27,6 +28,9 @@ class _InventoryScreenState extends State<InventoryScreen>
   late final AnimationController _controller;
   String _query = '';
   ProductCategory? _category;
+  List<ProductModel> _products = const [];
+  bool _loading = true;
+  Object? _error;
 
   @override
   void initState() {
@@ -34,7 +38,25 @@ class _InventoryScreenState extends State<InventoryScreen>
     _controller = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700))
       ..forward();
-    MockInventoryRepository.instance.init();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final products = await ProductsRepository.instance.getProducts();
+      if (!mounted) return;
+      setState(() {
+        _products = products;
+        _loading = false;
+        _error = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error;
+      });
+    }
   }
 
   @override
@@ -54,93 +76,100 @@ class _InventoryScreenState extends State<InventoryScreen>
   @override
   Widget build(BuildContext context) {
     final repo = MockInventoryRepository.instance;
+    final Widget content;
+
+    if (_loading) {
+      content = const Center(child: CircularProgressIndicator());
+    } else if (_error != null) {
+      content = const Center(
+        child: Text('تعذر تحميل المنتجات'),
+      );
+    } else {
+      final products = _products;
+      content = ValueListenableBuilder<List<VehicleStockModel>>(
+        valueListenable: repo.vehicleStock,
+        builder: (context, stockList, __) {
+          return ValueListenableBuilder(
+            valueListenable: repo.alerts,
+            builder: (context, alerts, ___) {
+              final filtered = _filter(products);
+              final available =
+                  stockList.where((s) => s.quantity > s.minThreshold).length;
+              final low = stockList
+                  .where((s) => s.quantity > 0 && s.quantity <= s.minThreshold)
+                  .length;
+              final outOfStock = stockList.where((s) => s.quantity == 0).length;
+
+              return Stack(
+                children: [
+                  ListView(
+                    padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
+                    children: [
+                      InventoryStatRow(
+                        total: products.length,
+                        available: available,
+                        low: low,
+                        outOfStock: outOfStock,
+                      ),
+                      SizedBox(height: 14.h),
+                      LowStockAlertBanner(alerts: alerts),
+                      if (alerts.isNotEmpty) SizedBox(height: 14.h),
+                      InventorySearchBar(
+                          onChanged: (v) => setState(() => _query = v)),
+                      SizedBox(height: 12.h),
+                      InventoryCategoryFilter(
+                        selected: _category,
+                        onChanged: (c) => setState(() => _category = c),
+                      ),
+                      SizedBox(height: 14.h),
+                      for (int i = 0; i < filtered.length; i++)
+                        _AnimatedProductTile(
+                          index: i,
+                          total: filtered.length,
+                          controller: _controller,
+                          product: filtered[i],
+                          stock: repo.stockOf(filtered[i].id),
+                        ),
+                    ],
+                  ),
+                  Positioned(
+                    left: 16.w,
+                    right: 16.w,
+                    bottom: 16.h,
+                    child: Material(
+                      color: context.colors.primary,
+                      borderRadius: BorderRadius.circular(16.r),
+                      elevation: 6,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16.r),
+                        onTap: () async {
+                          await showAddProductSheet(context);
+                          if (mounted) _loadProducts();
+                        },
+                        child: Container(
+                          alignment: Alignment.center,
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          child: Text(
+                            'إضافة صنف جديد',
+                            style: AppTextStyles.cairoMedium16
+                                .copyWith(color: Colors.white, fontSize: 13.sp),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    }
 
     return Container(
       color: context.colors.background,
       child: SafeArea(
-        child: ValueListenableBuilder<List<ProductModel>>(
-          valueListenable: repo.products,
-          builder: (context, products, _) {
-            return ValueListenableBuilder<List<VehicleStockModel>>(
-              valueListenable: repo.vehicleStock,
-              builder: (context, stockList, __) {
-                return ValueListenableBuilder(
-                  valueListenable: repo.alerts,
-                  builder: (context, alerts, ___) {
-                    final filtered = _filter(products);
-                    final available = stockList
-                        .where((s) => s.quantity > s.minThreshold)
-                        .length;
-                    final low = stockList
-                        .where((s) =>
-                            s.quantity > 0 && s.quantity <= s.minThreshold)
-                        .length;
-                    final outOfStock =
-                        stockList.where((s) => s.quantity == 0).length;
-
-                    return Stack(
-                      children: [
-                        ListView(
-                          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
-                          children: [
-                            InventoryStatRow(
-                              total: products.length,
-                              available: available,
-                              low: low,
-                              outOfStock: outOfStock,
-                            ),
-                            SizedBox(height: 14.h),
-                            LowStockAlertBanner(alerts: alerts),
-                            if (alerts.isNotEmpty) SizedBox(height: 14.h),
-                            InventorySearchBar(
-                                onChanged: (v) => setState(() => _query = v)),
-                            SizedBox(height: 12.h),
-                            InventoryCategoryFilter(
-                              selected: _category,
-                              onChanged: (c) => setState(() => _category = c),
-                            ),
-                            SizedBox(height: 14.h),
-                            for (int i = 0; i < filtered.length; i++)
-                              _AnimatedProductTile(
-                                index: i,
-                                total: filtered.length,
-                                controller: _controller,
-                                product: filtered[i],
-                                stock: repo.stockOf(filtered[i].id),
-                              ),
-                          ],
-                        ),
-                        Positioned(
-                          left: 16.w,
-                          right: 16.w,
-                          bottom: 16.h,
-                          child: Material(
-                            color: context.colors.primary,
-                            borderRadius: BorderRadius.circular(16.r),
-                            elevation: 6,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16.r),
-                              onTap: () => showAddProductSheet(context),
-                              child: Container(
-                                alignment: Alignment.center,
-                                padding: EdgeInsets.symmetric(vertical: 14.h),
-                                child: Text(
-                                  'إضافة صنف جديد',
-                                  style: AppTextStyles.cairoMedium16.copyWith(
-                                      color: Colors.white, fontSize: 13.sp),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            );
-          },
-        ),
+        child: content,
       ),
     );
   }
@@ -184,7 +213,15 @@ class _AnimatedProductTile extends StatelessWidget {
         child: ProductTile(
           product: product,
           stock: stock,
-          onTap: () => showProductDetailSheet(context, product),
+          onTap: () async {
+            await showProductDetailSheet(context, product);
+            if (context.mounted) {
+              // Detail actions can edit or delete the remote product.
+              final state =
+                  context.findAncestorStateOfType<_InventoryScreenState>();
+              state?._loadProducts();
+            }
+          },
           onAddToVehicle: () {
             showAddToVehicleDialog(
               context,
