@@ -10,7 +10,8 @@ void main() {
     name: 'Vitamin X',
     category: ProductCategory.values.first,
     unit: ProductUnit.values.first,
-    basePrice: 200,
+    retailPrice: 200,
+    wholesalePrice: 200,
     minStockThreshold: 1,
     createdAt: DateTime(2024),
   );

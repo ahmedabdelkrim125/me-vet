@@ -1,11 +1,10 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/core/widgets/custom_alert_dialog.dart';
-import '../../domain/mock_inventory_repository.dart';
 import '../../data/products_repository.dart';
 import '../../domain/models/product_category.dart';
 import '../../domain/models/product_model.dart';
@@ -32,11 +31,11 @@ class ProductDetailSheet extends StatelessWidget {
     await showDialog(
       context: context,
       builder: (dialogContext) => CustomAlertDialog(
-        title: 'حذف الصنف',
+        title: 'ط·آ·ط¢آ­ط·آ·ط¢آ°ط·آ¸ط¸آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ¸ط¸آ¾',
         content:
-            'هل أنت متأكد من حذف "${product.name}"؟ لا يمكن التراجع عن هذا الإجراء.',
-        primaryButtonText: 'حذف',
-        secondaryButtonText: 'إلغاء',
+            'ط·آ¸أ¢â‚¬طŒط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ£ط·آ¸أ¢â‚¬آ ط·آ·ط¹آ¾ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¹آ¾ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ­ط·آ·ط¢آ°ط·آ¸ط¸آ¾ "${product.name}"ط·آ·ط¹ط› ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ±ط·آ·ط¢آ§ط·آ·ط¢آ¬ط·آ·ط¢آ¹ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ°ط·آ·ط¢آ§ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ·ط¢آ±ط·آ·ط¢آ§ط·آ·ط·إ’.',
+        primaryButtonText: 'ط·آ·ط¢آ­ط·آ·ط¢آ°ط·آ¸ط¸آ¾',
+        secondaryButtonText: 'ط·آ·ط¢آ¥ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ط·آ·ط¢آ§ط·آ·ط·إ’',
         primaryButtonColor: dialogContext.colors.statusNotReached,
         onPrimaryPressed: () async {
           await ProductsRepository.instance.deleteProduct(product.id);
@@ -49,7 +48,6 @@ class ProductDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stock = MockInventoryRepository.instance.stockOf(product.id);
     final hasImage = product.imagePath != null && product.imagePath!.isNotEmpty;
 
     return DraggableScrollableSheet(
@@ -117,55 +115,32 @@ class ProductDetailSheet extends StatelessWidget {
               SizedBox(height: 20.h),
               _DetailRow(
                   icon: Icons.sell_outlined,
-                  label: 'السعر الأساسي',
-                  value: '${product.basePrice.toStringAsFixed(0)} ج.م'),
+                  label: 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ³ط·آ¸ط¸آ¹',
+                  value: '${product.basePrice.toStringAsFixed(0)} ط·آ·ط¢آ¬.ط·آ¸أ¢â‚¬آ¦'),
               _DetailRow(
                   icon: Icons.straighten_rounded,
-                  label: 'وحدة القياس',
+                  label: 'ط·آ¸ط«â€ ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ·ط¢آ³',
                   value: product.unit.label),
               _DetailRow(
                   icon: Icons.warning_amber_rounded,
-                  label: 'الحد الأدنى العام',
+                  label:
+                      'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦',
                   value: '${product.minStockThreshold} ${product.unit.label}'),
               _DetailRow(
-                icon: Icons.local_shipping_outlined,
-                label: 'الكمية في العربية',
-                value: stock == null
-                    ? 'غير مضاف للعربية'
-                    : '${stock.quantity} ${product.unit.label}',
-              ),
-              if (stock != null)
-                _DetailRow(
-                    icon: Icons.rule_rounded,
-                    label: 'الحد الأدنى بالعربية',
-                    value: '${stock.minThreshold} ${product.unit.label}'),
-              _DetailRow(
                   icon: Icons.calendar_today_outlined,
-                  label: 'تاريخ الإضافة',
+                  label: 'ط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ® ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ©',
                   value: DateFormat('yyyy/MM/dd').format(product.createdAt)),
               _DetailRow(
                   icon: Icons.access_time_rounded,
-                  label: 'وقت الإضافة',
+                  label: 'ط·آ¸ط«â€ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ©',
                   value: DateFormat('hh:mm a').format(product.createdAt)),
               if (product.expiryDate != null)
                 _DetailRow(
                   icon: Icons.event_busy_outlined,
-                  label: 'تاريخ الصلاحية',
+                  label:
+                      'ط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ® ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آµط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ­ط·آ¸ط¸آ¹ط·آ·ط¢آ©',
                   value: DateFormat('yyyy/MM/dd').format(product.expiryDate!),
                 ),
-              Builder(
-                builder: (context) {
-                  final warehouse = MockInventoryRepository.instance
-                      .warehouseStockOf(product.id);
-                  return _DetailRow(
-                    icon: Icons.warehouse_outlined,
-                    label: 'الكمية بالمخزن الرئيسي',
-                    value: warehouse == null
-                        ? '0 ${product.unit.label}'
-                        : '${warehouse.quantity} ${product.unit.label}',
-                  );
-                },
-              ),
               SizedBox(height: 20.h),
               Row(
                 children: [
@@ -187,7 +162,7 @@ class ProductDetailSheet extends StatelessWidget {
                               Icon(Icons.edit_outlined,
                                   color: context.colors.primary, size: 16.sp),
                               SizedBox(width: 8.w),
-                              Text('تعديل',
+                              Text('ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ',
                                   style: AppTextStyles.cairoMedium16.copyWith(
                                       color: context.colors.primary,
                                       fontSize: 13.sp)),
@@ -214,7 +189,7 @@ class ProductDetailSheet extends StatelessWidget {
                                   color: context.colors.statusNotReached,
                                   size: 16.sp),
                               SizedBox(width: 8.w),
-                              Text('حذف',
+                              Text('ط·آ·ط¢آ­ط·آ·ط¢آ°ط·آ¸ط¸آ¾',
                                   style: AppTextStyles.cairoMedium16.copyWith(
                                       color: context.colors.statusNotReached,
                                       fontSize: 13.sp)),

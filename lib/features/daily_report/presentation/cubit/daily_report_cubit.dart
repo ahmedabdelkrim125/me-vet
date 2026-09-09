@@ -2,7 +2,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/mock_daily_report_repository.dart';
 import '../../domain/models/report_period_type.dart';
 import 'daily_report_state.dart';
-
 class DailyReportCubit extends Cubit<DailyReportState> {
   DailyReportCubit({MockDailyReportRepository? repository})
       : _repository = repository ?? MockDailyReportRepository.instance,

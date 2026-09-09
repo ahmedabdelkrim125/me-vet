@@ -4,7 +4,6 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../inventory/domain/models/stock_movement_model.dart';
-import '../../../inventory/domain/models/stock_movement_type.dart';
 
 Future<void> showStockMovementLogSheet(
     BuildContext context, List<StockMovementModel> movements) {
@@ -90,7 +89,7 @@ class _MovementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLoad = movement.type == StockMovementType.loadedToVehicle;
+    final isLoad = movement.type.toLowerCase().contains('load');
     final color = isLoad ? context.colors.primary : context.colors.statBlue;
     final icon =
         isLoad ? Icons.local_shipping_outlined : Icons.warehouse_outlined;
@@ -117,12 +116,12 @@ class _MovementRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(movement.productName,
+                Text(movement.productId,
                     style: AppTextStyles.cairoMedium16
                         .copyWith(color: context.colors.text, fontSize: 12.sp)),
                 SizedBox(height: 2.h),
                 Text(
-                  '${movement.type.label} — ${DateFormat('yyyy/MM/dd hh:mm a').format(movement.createdAt)}',
+                  '${movement.type} — ${DateFormat('yyyy/MM/dd hh:mm a').format(movement.createdAt)}',
                   style: AppTextStyles.almaraiRegular14.copyWith(
                       color: context.colors.textMuted, fontSize: 10.sp),
                 ),
