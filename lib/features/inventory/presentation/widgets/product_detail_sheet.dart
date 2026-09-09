@@ -31,11 +31,11 @@ class ProductDetailSheet extends StatelessWidget {
     await showDialog(
       context: context,
       builder: (dialogContext) => CustomAlertDialog(
-        title: 'ط·آ·ط¢آ­ط·آ·ط¢آ°ط·آ¸ط¸آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ¸ط¸آ¾',
+        title: 'حذف المنتج',
         content:
-            'ط·آ¸أ¢â‚¬طŒط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ£ط·آ¸أ¢â‚¬آ ط·آ·ط¹آ¾ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¹آ¾ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ­ط·آ·ط¢آ°ط·آ¸ط¸آ¾ "${product.name}"ط·آ·ط¹ط› ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ±ط·آ·ط¢آ§ط·آ·ط¢آ¬ط·آ·ط¢آ¹ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ°ط·آ·ط¢آ§ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ·ط¢آ±ط·آ·ط¢آ§ط·آ·ط·إ’.',
-        primaryButtonText: 'ط·آ·ط¢آ­ط·آ·ط¢آ°ط·آ¸ط¸آ¾',
-        secondaryButtonText: 'ط·آ·ط¢آ¥ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ط·آ·ط¢آ§ط·آ·ط·إ’',
+            'هل أنت متأكد من حذف "${product.name}"؟ لا يمكن التراجع عن هذا الإجراء.',
+        primaryButtonText: 'حذف',
+        secondaryButtonText: 'إلغاء',
         primaryButtonColor: dialogContext.colors.statusNotReached,
         onPrimaryPressed: () async {
           await ProductsRepository.instance.deleteProduct(product.id);
@@ -115,30 +115,34 @@ class ProductDetailSheet extends StatelessWidget {
               SizedBox(height: 20.h),
               _DetailRow(
                   icon: Icons.sell_outlined,
-                  label: 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ³ط·آ¸ط¸آ¹',
-                  value: '${product.basePrice.toStringAsFixed(0)} ط·آ·ط¢آ¬.ط·آ¸أ¢â‚¬آ¦'),
+                  label: 'سعر التجزئة',
+                  value: '${product.retailPrice.toStringAsFixed(0)} ج.م'),
+              _DetailRow(
+                  icon: Icons.sell_outlined,
+                  label: 'سعر الجملة',
+                  value: '${product.wholesalePrice.toStringAsFixed(0)} ج.م'),
               _DetailRow(
                   icon: Icons.straighten_rounded,
-                  label: 'ط·آ¸ط«â€ ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ·ط¢آ³',
+                  label: 'وحدة القياس',
                   value: product.unit.label),
               _DetailRow(
                   icon: Icons.warning_amber_rounded,
                   label:
-                      'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦',
+                      'الحد الأدنى للمخزون',
                   value: '${product.minStockThreshold} ${product.unit.label}'),
               _DetailRow(
                   icon: Icons.calendar_today_outlined,
-                  label: 'ط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ® ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ©',
+                  label: 'تاريخ الإضافة',
                   value: DateFormat('yyyy/MM/dd').format(product.createdAt)),
               _DetailRow(
                   icon: Icons.access_time_rounded,
-                  label: 'ط·آ¸ط«â€ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ©',
+                  label: 'وقت الإضافة',
                   value: DateFormat('hh:mm a').format(product.createdAt)),
               if (product.expiryDate != null)
                 _DetailRow(
                   icon: Icons.event_busy_outlined,
                   label:
-                      'ط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ® ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آµط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ­ط·آ¸ط¸آ¹ط·آ·ط¢آ©',
+                      'تاريخ الصلاحية',
                   value: DateFormat('yyyy/MM/dd').format(product.expiryDate!),
                 ),
               SizedBox(height: 20.h),
@@ -162,7 +166,7 @@ class ProductDetailSheet extends StatelessWidget {
                               Icon(Icons.edit_outlined,
                                   color: context.colors.primary, size: 16.sp),
                               SizedBox(width: 8.w),
-                              Text('ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ',
+                              Text('تعديل',
                                   style: AppTextStyles.cairoMedium16.copyWith(
                                       color: context.colors.primary,
                                       fontSize: 13.sp)),
@@ -189,7 +193,7 @@ class ProductDetailSheet extends StatelessWidget {
                                   color: context.colors.statusNotReached,
                                   size: 16.sp),
                               SizedBox(width: 8.w),
-                              Text('ط·آ·ط¢آ­ط·آ·ط¢آ°ط·آ¸ط¸آ¾',
+                              Text('حذف',
                                   style: AppTextStyles.cairoMedium16.copyWith(
                                       color: context.colors.statusNotReached,
                                       fontSize: 13.sp)),

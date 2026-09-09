@@ -99,7 +99,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                     SizedBox(height: 16.h),
                     Center(
                       child: Text(
-                        'ظ„ط§ طھظˆط¬ط¯ ط¹ط±ط¨ظٹط§طھ ظ…ط±طھط¨ط·ط© ط¨ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨',
+                        'لا توجد عربيات مرتبطة بهذا الحساب',
                         style: AppTextStyles.cairoMedium16.copyWith(
                           color: context.colors.textMuted,
                           fontSize: 14.sp,
@@ -169,7 +169,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                                     (vehicle) => DropdownMenuItem<String>(
                                       value: vehicle.id,
                                       child: Text(
-                                        '${vehicle.plateNumber} â€” ${vehicle.driverName}',
+                                        '${vehicle.plateNumber} — ${vehicle.driverName}',
                                         overflow: TextOverflow.ellipsis,
                                         style: AppTextStyles.cairoMedium16
                                             .copyWith(
@@ -244,8 +244,8 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                       child: Center(
                         child: Text(
                           state.vehicleStock.isEmpty
-                              ? 'ظ„ط³ظ‡ ظ…ظپظٹط´ ط£طµظ†ط§ظپ ظ…ط­ظ…ظ„ط© ظپظٹ ط§ظ„ط¹ط±ط¨ظٹط©'
-                              : 'ظ„ط§ طھظˆط¬ط¯ ط£طµظ†ط§ظپ ظ…ط·ط§ط¨ظ‚ط© ظ„ظ„ط¨ط­ط«',
+                              ? 'لسه مفيش أصناف محملة في العربية'
+                              : 'لا توجد أصناف مطابقة للبحث',
                           style: AppTextStyles.cairoMedium16.copyWith(
                             color: context.colors.textMuted,
                             fontSize: 13.sp,
@@ -358,4 +358,3 @@ class _AnimatedVehicleTile extends StatelessWidget {
     );
   }
 }
-
