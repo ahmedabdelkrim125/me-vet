@@ -3,6 +3,7 @@ import 'package:mivet_app/core/errors/app_exception.dart';
 import 'package:mivet_app/features/inventory/domain/models/stock_movement_model.dart';
 import 'package:mivet_app/features/inventory/domain/models/vehicle_stock_model.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/deduct_vehicle_stock.dart';
+import 'package:mivet_app/features/inventory/domain/usecases/create_vehicle_for_current_rep.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/get_stock_movements.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/get_vehicle_stock.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/get_vehicles.dart';
@@ -18,6 +19,7 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
   final LoadVehicleStock _loadVehicleStock;
   final DeductVehicleStock _deductVehicleStock;
   final ReturnVehicleStock _returnVehicleStock;
+  final CreateVehicleForCurrentRep _createVehicleForCurrentRep;
 
   VehicleStockCubit({
     required GetVehicles getVehicles,
@@ -26,12 +28,14 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     required LoadVehicleStock loadVehicleStock,
     required DeductVehicleStock deductVehicleStock,
     required ReturnVehicleStock returnVehicleStock,
+    required CreateVehicleForCurrentRep createVehicleForCurrentRep,
   })  : _getVehicles = getVehicles,
         _getVehicleStock = getVehicleStock,
         _getStockMovements = getStockMovements,
         _loadVehicleStock = loadVehicleStock,
         _deductVehicleStock = deductVehicleStock,
         _returnVehicleStock = returnVehicleStock,
+        _createVehicleForCurrentRep = createVehicleForCurrentRep,
         super(const VehicleStockState());
 
   Future<void> loadVehicles() async {
@@ -99,6 +103,49 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     ));
 
     await loadSelectedVehicleData();
+  }
+
+  Future<void> createVehicle({
+    required String plateNumber,
+    required String driverName,
+  }) async {
+    final plate = plateNumber.trim();
+    final driver = driverName.trim();
+    if (plate.isEmpty || driver.isEmpty) {
+      emit(state.copyWith(
+        status: VehicleStockStatus.error,
+        errorMessage: 'أدخل رقم العربية واسم السائق',
+      ));
+      return;
+    }
+
+    emit(state.copyWith(
+      status: VehicleStockStatus.loadingAction,
+      clearError: true,
+      clearSuccess: true,
+    ));
+    try {
+      final vehicle = await _createVehicleForCurrentRep(
+        plateNumber: plate,
+        driverName: driver,
+      );
+      if (isClosed) return;
+      emit(state.copyWith(
+        status: VehicleStockStatus.loaded,
+        vehicles: [vehicle],
+        selectedVehicleId: vehicle.id,
+        vehicleStock: const [],
+        movements: const [],
+        successMessage: 'تم إنشاء العربية بنجاح',
+      ));
+      await loadSelectedVehicleData();
+    } catch (error) {
+      if (isClosed) return;
+      emit(state.copyWith(
+        status: VehicleStockStatus.error,
+        errorMessage: mapErrorToAppException(error).message,
+      ));
+    }
   }
 
   Future<void> loadSelectedVehicleData() async {
@@ -174,6 +221,7 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
         status: VehicleStockStatus.error,
         errorMessage: mapErrorToAppException(e).message,
       ));
+      rethrow;
     }
   }
 

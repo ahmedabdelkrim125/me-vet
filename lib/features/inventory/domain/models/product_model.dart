@@ -1,14 +1,13 @@
-import 'product_category.dart';
-import 'product_unit.dart';
-
 const Object _unset = Object();
 
 class ProductModel {
   final String id;
   final String name;
   final String? imagePath;
-  final ProductCategory category;
-  final ProductUnit unit;
+
+  /// Database codes referencing product_categories.code and product_units.code.
+  final String category;
+  final String unit;
   final double retailPrice;
   final double wholesalePrice;
   final int minStockThreshold;
@@ -35,8 +34,8 @@ class ProductModel {
       id: map['id'] as String,
       name: map['name'] as String,
       imagePath: map['image_path'] as String?,
-      category: _categoryFromValue(map['category'] as String),
-      unit: _unitFromValue(map['unit'] as String),
+      category: map['category'] as String,
+      unit: map['unit'] as String,
       retailPrice: (map['retail_price'] as num).toDouble(),
       wholesalePrice: (map['wholesale_price'] as num).toDouble(),
       minStockThreshold: (map['min_stock_threshold'] as num).toInt(),
@@ -44,24 +43,6 @@ class ProductModel {
           ? null
           : DateTime.parse(map['expiry_date'] as String),
       createdAt: DateTime.parse(map['created_at'] as String),
-    );
-  }
-
-  static ProductCategory _categoryFromValue(String value) {
-    if (value == 'large_animal') {
-      return ProductCategory.largeAnimal;
-    }
-
-    return ProductCategory.values.firstWhere(
-      (item) => item.name == value,
-      orElse: () => ProductCategory.other,
-    );
-  }
-
-  static ProductUnit _unitFromValue(String value) {
-    return ProductUnit.values.firstWhere(
-      (item) => item.name == value,
-      orElse: () => ProductUnit.piece,
     );
   }
 
@@ -73,8 +54,8 @@ class ProductModel {
   ProductModel copyWith({
     String? name,
     Object? imagePath = _unset,
-    ProductCategory? category,
-    ProductUnit? unit,
+    String? category,
+    String? unit,
     double? retailPrice,
     double? wholesalePrice,
     int? minStockThreshold,

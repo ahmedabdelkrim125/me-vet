@@ -19,6 +19,18 @@ class VehicleStockRepositoryImpl implements VehicleStockRepository {
   }
 
   @override
+  Future<DeliveryVehicleModel> createVehicleForCurrentRep({
+    required String plateNumber,
+    required String driverName,
+  }) async {
+    final row = await remoteDataSource.createVehicleForCurrentRep(
+      plateNumber: plateNumber,
+      driverName: driverName,
+    );
+    return DeliveryVehicleModel.fromMap(row);
+  }
+
+  @override
   Future<List<VehicleStockModel>> getVehicleStock(
     String vehicleId,
   ) async {

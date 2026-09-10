@@ -16,6 +16,21 @@ class VehicleStockRemoteDataSource {
         .toList();
   }
 
+  Future<Map<String, dynamic>> createVehicleForCurrentRep({
+    required String plateNumber,
+    required String driverName,
+  }) async {
+    final row = await _supabase.rpc(
+      'create_vehicle_for_current_rep',
+      params: {
+        'p_plate_number': plateNumber,
+        'p_driver_name': driverName,
+      },
+    );
+    final result = row is List ? row.single : row;
+    return Map<String, dynamic>.from(result as Map);
+  }
+
   Future<List<Map<String, dynamic>>> getVehicleStock(
     String vehicleId,
   ) async {

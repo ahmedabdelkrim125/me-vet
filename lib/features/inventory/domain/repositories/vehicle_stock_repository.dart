@@ -5,6 +5,11 @@ import '../models/vehicle_stock_model.dart';
 abstract class VehicleStockRepository {
   Future<List<DeliveryVehicleModel>> getVehicles();
 
+  Future<DeliveryVehicleModel> createVehicleForCurrentRep({
+    required String plateNumber,
+    required String driverName,
+  });
+
   Future<List<VehicleStockModel>> getVehicleStock(
     String vehicleId,
   );

@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -12,14 +12,14 @@ import '../../../customer-visits/customers/data/invoices_repository.dart';
 import '../../../customer-visits/customers/domain/models/invoice_line_input.dart';
 import '../../../inventory/data/products_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
-import '../../../inventory/domain/models/product_unit.dart';
 import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../../../invoices/domain/invoice_draft.dart';
 import '../../domain/models/quick_invoice_models.dart';
 import '../../../customer_account/domain/entities/payment_method.dart';
 import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
 
-const _currentRepName = 'ط·آ·ط¢آ£ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ·ط¢آ¯';
+const _currentRepName =
+    'ط·آ·ط¢آ£ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ·ط¢آ¯';
 
 List<InvoiceCustomerModel> _customersFromRepository() {
   return CustomersRepository.instance.customers
@@ -32,7 +32,7 @@ InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
     id: product.id,
     name: product.name,
     price: product.basePrice,
-    unit: product.unit.label,
+    unit: product.unit,
   );
 }
 
@@ -651,7 +651,8 @@ class _CustomerEmptyState extends StatelessWidget {
       children: [
         const _SectionTitle(
             icon: Icons.storefront_outlined,
-            title: 'ط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ'),
+            title:
+                'ط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ'),
         SizedBox(height: 12.h),
         Material(
           color: colors.background,
@@ -787,7 +788,8 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
         .toList();
 
     return _BottomSheetShell(
-      title: 'ط·آ·ط¢آ§ط·آ·ط¢آ®ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ',
+      title:
+          'ط·آ·ط¢آ§ط·آ·ط¢آ®ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ',
       icon: Icons.storefront_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -914,7 +916,8 @@ class _InvoiceMetaSection extends StatelessWidget {
           children: [
             Expanded(
               child: _TappableField(
-                label: 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ®',
+                label:
+                    'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ®',
                 value: _date(date),
                 icon: Icons.calendar_today_outlined,
                 onTap: onPickDate,
@@ -923,7 +926,8 @@ class _InvoiceMetaSection extends StatelessWidget {
             SizedBox(width: 12.w),
             Expanded(
               child: _StaticField(
-                label: 'ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©',
+                label:
+                    'ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©',
                 value: invoiceNumber,
                 icon: Icons.tag_rounded,
               ),
@@ -944,7 +948,8 @@ class _InvoiceMetaSection extends StatelessWidget {
                 label: 'ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹',
                 icon: Icons.payments_outlined,
                 selected: saleType == 'ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹',
-                onTap: () => onSaleTypeChanged('ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹'),
+                onTap: () =>
+                    onSaleTypeChanged('ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹'),
               ),
             ),
             SizedBox(width: 10.w),
@@ -1114,7 +1119,8 @@ class _FinancialSummaryRow extends StatelessWidget {
       children: [
         Expanded(
           child: _FinancialCard(
-            title: 'ط·آ·ط¢آ­ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¦ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ',
+            title:
+                'ط·آ·ط¢آ­ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¦ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ',
             value: _money(invoice.customer.creditLimit),
             icon: Icons.verified_user_outlined,
             color: colors.statBlue,
@@ -1123,7 +1129,8 @@ class _FinancialSummaryRow extends StatelessWidget {
         SizedBox(width: 10.w),
         Expanded(
           child: _FinancialCard(
-            title: 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹',
+            title:
+                'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹',
             value: _money(invoice.customer.currentBalance),
             icon: Icons.account_balance_wallet_outlined,
             color: nearLimit ? colors.statusNotReached : colors.statOrange,
@@ -1241,7 +1248,8 @@ class _StatementSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return _BottomSheetShell(
-      title: 'ط·آ¸ط¦â€™ط·آ·ط¢آ´ط·آ¸ط¸آ¾ ط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ${invoice.customer.name}',
+      title:
+          'ط·آ¸ط¦â€™ط·آ·ط¢آ´ط·آ¸ط¸آ¾ ط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ${invoice.customer.name}',
       icon: Icons.receipt_long_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1274,7 +1282,8 @@ class _StatementSheet extends StatelessWidget {
                       padding:
                           EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: (e.status == 'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ط·آ·ط¢آ©'
+                        color: (e.status ==
+                                    'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ط·آ·ط¢آ©'
                                 ? colors.primary
                                 : colors.statOrange)
                             .withOpacity(0.12),
@@ -1283,7 +1292,8 @@ class _StatementSheet extends StatelessWidget {
                       child: Text(
                         e.status,
                         style: AppTextStyles.almaraiRegular14.copyWith(
-                          color: e.status == 'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ط·آ·ط¢آ©'
+                          color: e.status ==
+                                  'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ط·آ·ط¢آ©'
                               ? colors.primary
                               : colors.statOrange,
                           fontSize: 10.sp,
@@ -1343,7 +1353,8 @@ class _ProductsSection extends StatelessWidget {
       children: [
         _SectionTitle(
           icon: Icons.inventory_2_outlined,
-          title: 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ¸ط¸آ¾ (${items.length})',
+          title:
+              'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ¸ط¸آ¾ (${items.length})',
           trailing: TextButton.icon(
             onPressed: onAdd,
             icon: Icon(Icons.add_circle_outline_rounded,
@@ -1411,7 +1422,8 @@ class _ProductsSection extends StatelessWidget {
           ),
           SizedBox(height: 8.h),
           _TotalsRow(
-              label: 'ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ®ط·آ·ط¢آµط·آ¸أ¢â‚¬آ¦',
+              label:
+                  'ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ®ط·آ·ط¢آµط·آ¸أ¢â‚¬آ¦',
               value: '- ${_money(discountAmount)}',
               muted: true),
           SizedBox(height: 10.h),
@@ -1507,7 +1519,8 @@ class _InvoicePagination extends StatelessWidget {
                   onPressed: currentPage > 1
                       ? () => onPageChanged(currentPage - 1)
                       : null,
-                  child: const Text('ط£آ¢أ¢â€ڑآ¬ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘'),
+                  child: const Text(
+                      'ط£آ¢أ¢â€ڑآ¬ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘'),
                 ),
                 for (var page = 1; page <= pageCount; page++)
                   TextButton(
@@ -1519,7 +1532,8 @@ class _InvoicePagination extends StatelessWidget {
                   onPressed: currentPage < pageCount
                       ? () => onPageChanged(currentPage + 1)
                       : null,
-                  child: const Text('ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط£آ¢أ¢â€ڑآ¬ط·â€؛'),
+                  child: const Text(
+                      'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط£آ¢أ¢â€ڑآ¬ط·â€؛'),
                 ),
               ],
             ),
@@ -1658,7 +1672,8 @@ class _LineItemTile extends StatelessWidget {
                       if (price != null && price >= 0) onPriceChanged(price);
                     },
                     decoration: const InputDecoration(
-                      labelText: 'ط·آ·ط¢آ³ط·آ·ط¢آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ¹',
+                      labelText:
+                          'ط·آ·ط¢آ³ط·آ·ط¢آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ¹',
                       isDense: true,
                       border: OutlineInputBorder(),
                     ),
@@ -1756,7 +1771,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
         .toList();
 
     return _BottomSheetShell(
-      title: 'ط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ© ط·آ·ط¢آ£ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ¸ط¸آ¾',
+      title:
+          'ط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ© ط·آ·ط¢آ£ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ¸ط¸آ¾',
       icon: Icons.inventory_2_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1765,7 +1781,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
             onChanged: (v) => setState(() => query = v),
             style: TextStyle(color: colors.text),
             decoration: InputDecoration(
-              hintText: 'ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ·ط¢آ­ط·آ·ط¢آ« ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ ط·آ·ط¹آ¾ط·آ·ط¢آ¬...',
+              hintText:
+                  'ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ·ط¢آ­ط·آ·ط¢آ« ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ ط·آ·ط¹آ¾ط·آ·ط¢آ¬...',
               hintStyle: TextStyle(color: colors.textMuted),
               prefixIcon: Icon(Icons.search_rounded,
                   size: 20.sp, color: colors.textMuted),
@@ -1808,7 +1825,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                             Text(p.name,
                                 style: AppTextStyles.cairoMedium16.copyWith(
                                     color: colors.text, fontSize: 12.5.sp)),
-                            SizedBox(height: 2.h),                            Text(
+                            SizedBox(height: 2.h),
+                            Text(
                               ' / ',
                               style: AppTextStyles.almaraiRegular14.copyWith(
                                 color: colors.textMuted,
@@ -1828,7 +1846,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                             child: Padding(
                               padding: EdgeInsets.symmetric(
                                   horizontal: 12.w, vertical: 8.h),
-                              child: Text('ط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ©',
+                              child: Text(
+                                  'ط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ©',
                                   style: AppTextStyles.cairoMedium16.copyWith(
                                       color: Colors.white, fontSize: 11.sp)),
                             ),
@@ -1918,7 +1937,8 @@ class _AccountSummarySection extends StatelessWidget {
       children: [
         const _SectionTitle(
           icon: Icons.account_balance_wallet_outlined,
-          title: 'ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ®ط·آ·ط¢آµ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨',
+          title:
+              'ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ®ط·آ·ط¢آµ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨',
         ),
         SizedBox(height: 12.h),
         _TotalsRow(
@@ -1927,7 +1947,8 @@ class _AccountSummarySection extends StatelessWidget {
             value: _money(invoiceTotal)),
         SizedBox(height: 8.h),
         _TotalsRow(
-            label: 'ط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘',
+            label:
+                'ط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘',
             value: _money(previousBalance)),
         SizedBox(height: 10.h),
         Divider(height: 1, color: colors.border),
@@ -1939,7 +1960,8 @@ class _AccountSummarySection extends StatelessWidget {
         SizedBox(height: 14.h),
         Row(
           children: [
-            Text('ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¢ط·آ¸أ¢â‚¬آ ',
+            Text(
+                'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¢ط·آ¸أ¢â‚¬آ ',
                 style: AppTextStyles.almaraiRegular14
                     .copyWith(color: colors.textMuted, fontSize: 12.sp)),
             if (isCash) ...[
@@ -1989,7 +2011,8 @@ class _AccountSummarySection extends StatelessWidget {
                       paidController.text = invoiceTotal.toStringAsFixed(2);
                       onPaidChanged(paidController.text);
                     },
-                    child: Text('ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ¨ط·آ·ط¢آ¦ط·آ·ط¢آ© ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©',
+                    child: Text(
+                        'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ¨ط·آ·ط¢آ¦ط·آ·ط¢آ© ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©',
                         style: AppTextStyles.cairoMedium16
                             .copyWith(color: colors.primary, fontSize: 11.sp)),
                   )

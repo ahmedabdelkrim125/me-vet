@@ -38,13 +38,14 @@ class MevetApp extends StatelessWidget {
             builder: (context, child) {
               if (child == null) return const SizedBox.shrink();
 
-              final app = ResponsiveInit(
+              final devicePreviewApp = DevicePreview.appBuilder(context, child);
+
+              return ResponsiveInit(
                 child: Directionality(
                   textDirection: TextDirection.rtl,
-                  child: child,
+                  child: devicePreviewApp,
                 ),
               );
-              return DevicePreview.appBuilder(context, app);
             },
           );
         },

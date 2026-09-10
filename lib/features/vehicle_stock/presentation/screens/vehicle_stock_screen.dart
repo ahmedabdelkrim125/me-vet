@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/di/service_locator.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
@@ -8,10 +9,18 @@ import 'package:mivet_app/features/inventory/domain/models/vehicle_stock_model.d
 import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_cubit.dart';
 import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_state.dart';
 import 'package:mivet_app/features/inventory/presentation/widgets/add_to_vehicle_dialog.dart';
+import 'package:mivet_app/features/inventory/presentation/widgets/add_product_sheet.dart';
 import 'package:mivet_app/features/inventory/presentation/widgets/inventory_search_bar.dart';
 import 'package:mivet_app/features/inventory/presentation/widgets/inventory_stat_row.dart';
+import 'package:mivet_app/features/inventory/data/products_repository.dart';
+import 'package:mivet_app/features/inventory/domain/models/product_catalog_item.dart';
+import 'package:mivet_app/features/inventory/domain/models/product_model.dart';
+import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
 import '../widgets/vehicle_stock_tile.dart';
 import '../widgets/stock_movement_log_sheet.dart';
+import '../widgets/vehicle_setup_form.dart';
+import '../widgets/category_filter_tab.dart';
+import '../widgets/existing_product_picker_sheet.dart';
 
 class VehicleStockScreen extends StatelessWidget {
   const VehicleStockScreen({super.key});
@@ -36,6 +45,8 @@ class _VehicleStockViewState extends State<_VehicleStockView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   String _query = '';
+  List<ProductCatalogItem> _categories = const [];
+  String? _categoryCode;
 
   @override
   void initState() {
@@ -44,6 +55,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
       vsync: this,
       duration: const Duration(milliseconds: 650),
     )..forward();
+    _loadCategories();
   }
 
   @override
@@ -53,7 +65,18 @@ class _VehicleStockViewState extends State<_VehicleStockView>
   }
 
   Future<void> _refresh() {
-    return context.read<VehicleStockCubit>().refresh();
+    return Future.wait([
+      context.read<VehicleStockCubit>().refresh(),
+      _loadCategories(),
+    ]);
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await ProductsRepository.instance.getCategories();
+      if (mounted) setState(() => _categories = categories);
+    } catch (_) {
+    }
   }
 
   @override
@@ -84,29 +107,9 @@ class _VehicleStockViewState extends State<_VehicleStockView>
             }
 
             if (state.vehicles.isEmpty) {
-              return RefreshIndicator(
-                onRefresh: _refresh,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.all(20.w),
-                  children: [
-                    SizedBox(height: 120.h),
-                    Icon(
-                      Icons.local_shipping_outlined,
-                      size: 52.sp,
-                      color: context.colors.textMuted,
-                    ),
-                    SizedBox(height: 16.h),
-                    Center(
-                      child: Text(
-                        'لا توجد عربيات مرتبطة بهذا الحساب',
-                        style: AppTextStyles.cairoMedium16.copyWith(
-                          color: context.colors.textMuted,
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                    ),
-                  ],
+              return VehicleSetupForm(
+                representativeName: context.select<AuthCubit, String>(
+                  (cubit) => cubit.state.user?.name ?? 'المندوب الحالي',
                 ),
               );
             }
@@ -119,8 +122,10 @@ class _VehicleStockViewState extends State<_VehicleStockView>
             final filtered = state.vehicleStock.where((entry) {
               final product = entry.product;
               if (product == null) return false;
-              return _query.isEmpty ||
+              final matchesQuery = _query.isEmpty ||
                   product.name.toLowerCase().contains(_query.toLowerCase());
+              return matchesQuery &&
+                  (_categoryCode == null || product.category == _categoryCode);
             }).toList();
 
             final total = state.vehicleStock.length;
@@ -229,6 +234,61 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                     outOfStock: outOfStock,
                   ),
                   SizedBox(height: 14.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'التصنيفات',
+                          style: AppTextStyles.cairoMedium16.copyWith(
+                            color: context.colors.text,
+                            fontSize: 13.sp,
+                          ),
+                        ),
+                      ),
+                      FilledButton.icon(
+                        onPressed: () => _openProductFlow(
+                          context,
+                          selectedVehicle.id,
+                        ),
+                        icon: const Icon(Icons.add),
+                        label: const Text('إضافة صنف'),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  SizedBox(
+                    height: 38.h,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        CategoryFilterTab(
+                          label: 'الكل',
+                          selected: _categoryCode == null,
+                          onTap: () => setState(() => _categoryCode = null),
+                        ),
+                        for (final category in _categories)
+                          Padding(
+                            padding: EdgeInsets.only(left: 8.w),
+                            child: CategoryFilterTab(
+                              label: category.name,
+                              selected: _categoryCode == category.code,
+                              onTap: () => setState(
+                                () => _categoryCode = category.code,
+                              ),
+                            ),
+                          ),
+                        Padding(
+                          padding: EdgeInsets.only(left: 8.w),
+                          child: CategoryFilterTab(
+                            label: '+',
+                            selected: false,
+                            onTap: _createCategory,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 14.h),
                   InventorySearchBar(
                     onChanged: (value) {
                       setState(() => _query = value);
@@ -274,6 +334,121 @@ class _VehicleStockViewState extends State<_VehicleStockView>
       ),
     );
   }
+
+  Future<void> _createCategory() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('إنشاء تصنيف'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textAlign: TextAlign.right,
+          decoration: const InputDecoration(labelText: 'اسم التصنيف'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, controller.text),
+            child: const Text('إنشاء'),
+          ),
+        ],
+      ),
+    );
+    
+    Future.delayed(const Duration(milliseconds: 300), () => controller.dispose());
+    
+    if (name == null || name.trim().isEmpty) return;
+    try {
+      final category = await ProductsRepository.instance.createCategory(name);
+      if (mounted) {
+        setState(() {
+          _categories = [..._categories, category];
+          _categoryCode = category.code;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _openProductFlow(BuildContext context, String vehicleId) async {
+    final choice = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.search_rounded),
+              title: const Text('اختيار صنف موجود'),
+              onTap: () => Navigator.pop(sheetContext, true),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_box_outlined),
+              title: const Text('إنشاء صنف جديد'),
+              onTap: () => Navigator.pop(sheetContext, false),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || choice == null) return;
+    if (choice) {
+      final product = await showModalBottomSheet<ProductModel>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => ExistingProductPickerSheet(
+          loadProducts: ProductsRepository.instance.getProducts,
+        ),
+      );
+      if (product != null && context.mounted) {
+        await _loadProduct(context, vehicleId, product);
+      }
+      return;
+    }
+    await showAddProductSheet(
+      context,
+      initialVehicleQuantity: 1,
+      onCreated: (product, quantity) =>
+          context.read<VehicleStockCubit>().loadStock(
+                vehicleId: vehicleId,
+                productId: product.id,
+                quantity: quantity,
+                minThreshold: product.minStockThreshold,
+              ),
+    );
+  }
+
+  Future<void> _loadProduct(
+    BuildContext context,
+    String vehicleId,
+    ProductModel product,
+  ) =>
+      showAddToVehicleDialog(
+        context,
+        product: product,
+        onConfirm: (quantity, minThreshold) async {
+          try {
+            await context.read<VehicleStockCubit>().loadStock(
+                  vehicleId: vehicleId,
+                  productId: product.id,
+                  quantity: quantity,
+                  minThreshold: minThreshold,
+                );
+            return null;
+          } catch (error) {
+            return error.toString();
+          }
+        },
+      );
 
   Future<void> _loadMore(
     BuildContext context,

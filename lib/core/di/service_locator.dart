@@ -18,6 +18,7 @@ import '../../features/inventory/data/datasources/vehicle_stock_remote_data_sour
 import '../../features/inventory/domain/repositories/vehicle_stock_repository.dart';
 import '../../features/inventory/domain/repositories/vehicle_stock_repository_impl.dart';
 import '../../features/inventory/domain/usecases/deduct_vehicle_stock.dart';
+import '../../features/inventory/domain/usecases/create_vehicle_for_current_rep.dart';
 import '../../features/inventory/domain/usecases/get_stock_movements.dart';
 import '../../features/inventory/domain/usecases/get_vehicle_stock.dart';
 import '../../features/inventory/domain/usecases/get_vehicles.dart';
@@ -87,6 +88,10 @@ void setupServiceLocator() {
     () => GetVehicles(sl()),
   );
 
+  sl.registerFactory<CreateVehicleForCurrentRep>(
+    () => CreateVehicleForCurrentRep(sl()),
+  );
+
   sl.registerFactory<GetVehicleStock>(
     () => GetVehicleStock(sl()),
   );
@@ -115,6 +120,7 @@ void setupServiceLocator() {
       loadVehicleStock: sl(),
       deductVehicleStock: sl(),
       returnVehicleStock: sl(),
+      createVehicleForCurrentRep: sl(),
     ),
   );
 }
