@@ -18,8 +18,7 @@ import '../../domain/models/quick_invoice_models.dart';
 import '../../../customer_account/domain/entities/payment_method.dart';
 import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
 
-const _currentRepName =
-    'ط·آ·ط¢آ£ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ·ط¢آ¯';
+const _currentRepName = 'أحمد عبدالكريم';
 
 List<InvoiceCustomerModel> _customersFromRepository() {
   return CustomersRepository.instance.customers
@@ -51,9 +50,10 @@ String _money(double value) {
     buffer.write(digits[i]);
   }
   var out = buffer.toString();
-  if (decimals > 0.005)
+  if (decimals > 0.005) {
     out += '.${(decimals * 100).round().toString().padLeft(2, '0')}';
-  return '${negative ? '-' : ''}$out ط·آ·ط¢آ¬.ط·آ¸أ¢â‚¬آ¦';
+  }
+  return '${negative ? '-' : ''}$out ج.م';
 }
 
 String _date(DateTime d) =>
@@ -73,7 +73,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   late final String invoiceNumber;
   DateTime now = DateTime.now();
   late DateTime invoiceDate = DateTime(now.year, now.month, now.day);
-  String saleType = 'ط·آ·ط¢آ¢ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬â€چ';
+  String saleType = 'آجل';
 
   InvoiceCustomerModel? customer;
   final List<InvoiceLineItemModel> lineItems = [];
@@ -211,43 +211,35 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
   Future<void> _issueInvoice() async {
     if (customer == null) {
-      _toast(
-          'ط·آ·ط¢آ§ط·آ·ط¢آ®ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ£ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§');
+      _toast('الرجاء اختيار العميل أولاً');
       return;
     }
     if (lineItems.isEmpty) {
-      _toast(
-          'ط·آ·ط¢آ£ط·آ·ط¢آ¶ط·آ¸ط¸آ¾ ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ¸ط¸آ¾ط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§ ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©');
+      _toast('أضف منتجات للفاتورة');
       return;
     }
     final total = grandTotal;
-    final isDeferredSale = saleType != 'ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹';
+    final isDeferredSale = saleType != 'نقدي';
     if (isDeferredSale && total > customer!.availableCredit) {
-      _toast(
-          'ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¢ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ·ط¹آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ¸ط«â€ ط·آ·ط¢آ² ط·آ·ط¢آ­ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¦ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ­');
+      _toast('العميل تجاوز الحد الائتماني المسموح به');
       return;
     }
 
     final paid = paidNow;
     if (paid < 0) {
-      _toast(
-          'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ²ط·آ¸أ¢â‚¬آ¦ ط·آ¸ط¸آ¹ط·آ¸ط¦â€™ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬آ¦ ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¨');
+      _toast('المبلغ المدفوع غير صحيح');
       return;
     }
     if (!isDeferredSale && (paid - total).abs() > 0.01) {
-      _toast(
-        'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¥â€™ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ²ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¢ط·آ¸أ¢â‚¬آ  ط·آ¸ط¸آ¹ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ¸ط«â€ ط·آ¸ط¸آ¹ ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© (${_money(total)}) ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¸ط·آ·ط¢آ¨ط·آ·ط¢آ·',
-      );
+      _toast('المبلغ المدفوع في حالة الدفع النقدي يجب أن يطابق الإجمالي');
       return;
     }
     if (isDeferredSale && paid > totalDue + 0.01) {
-      _toast(
-          'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ·ط¢آ¨ط·آ·ط¢آ± ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬ع‘ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ');
+      _toast('المبلغ المدفوع يتجاوز الرصيد المستحق');
       return;
     }
     if (paid > 0 && _paymentMethod == null) {
-      _toast(
-          'ط·آ·ط¢آ§ط·آ·ط¢آ®ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ·ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ© ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¢آ¹ ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¢ط·آ¸أ¢â‚¬آ ');
+      _toast('اختر طريقة الدفع');
       return;
     }
 
@@ -255,8 +247,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       if (item.product.name.trim().isEmpty ||
           item.quantity <= 0 ||
           item.unitPrice < 0) {
-        _toast(
-            'ط·آ·ط¢آ±ط·آ·ط¢آ§ط·آ·ط¢آ¬ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ·ط¢آ³ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ¸ط¸آ¾ ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¦â€™ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ¸ط«â€ ط·آ·ط¢آ³ط·آ·ط¢آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ¹');
+        _toast('يرجى التحقق من كمية وسعر جميع المنتجات');
         return;
       }
     }
@@ -306,7 +297,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     Navigator.pop(context);
     showAppSuccess(
       context,
-      'ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ¥ط·آ·ط¢آµط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© $invoiceNumber ط·آ·ط¢آ¨ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ${_money(total)} ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¹آ¾ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ${_money(remainingBalance)}',
+      'تم إصدار الفاتورة بنجاح: $invoiceNumber',
     );
   }
 
@@ -318,13 +309,11 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
   bool _canBuildPdf() {
     if (customer == null) {
-      _toast(
-          'ط·آ·ط¢آ§ط·آ·ط¢آ®ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ£ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§');
+      _toast('الرجاء اختيار العميل');
       return false;
     }
     if (lineItems.isEmpty) {
-      _toast(
-          'ط·آ·ط¢آ£ط·آ·ط¢آ¶ط·آ¸ط¸آ¾ ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ¸ط¸آ¾ط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§ ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©');
+      _toast('أضف منتجات للفاتورة');
       return false;
     }
     return true;
@@ -530,7 +519,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ¬ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ¯ط·آ·ط¢آ©',
+                  'إنشاء فاتورة جديدة',
                   style:
                       AppTextStyles.cairoBold18.copyWith(color: Colors.white),
                 ),
@@ -574,7 +563,7 @@ class _RepChip extends StatelessWidget {
         Icon(Icons.badge_outlined, size: 15.sp, color: colors.textMuted),
         SizedBox(width: 6.w),
         Text(
-          'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¯ط·آ¸ط«â€ ط·آ·ط¢آ¨: $name',
+          'المندوب الحالي: $name',
           style: AppTextStyles.almaraiRegular14.copyWith(
             color: colors.textMuted,
             fontSize: 12.sp,
@@ -651,8 +640,7 @@ class _CustomerEmptyState extends StatelessWidget {
       children: [
         const _SectionTitle(
             icon: Icons.storefront_outlined,
-            title:
-                'ط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ'),
+            title: 'بيانات العميل'),
         SizedBox(height: 12.h),
         Material(
           color: colors.background,
@@ -684,7 +672,7 @@ class _CustomerEmptyState extends StatelessWidget {
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
-                      'ط·آ·ط¢آ§ط·آ·ط¢آ®ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ¯ط·آ·ط·إ’ ط·آ·ط¢آ¥ط·آ·ط¢آµط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©',
+                      'اختر العميل للإصدار الفاتورة',
                       style: AppTextStyles.cairoMedium16.copyWith(
                         color: colors.text,
                         fontSize: 13.sp,
@@ -727,7 +715,7 @@ class _CustomerInfo extends StatelessWidget {
             TextButton(
               onPressed: onChange,
               child: Text(
-                'ط·آ·ط¹آ¾ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ¸ط¸آ¹ط·آ·ط¢آ±',
+                'تغيير',
                 style: AppTextStyles.cairoMedium16.copyWith(
                   color: colors.primary,
                   fontSize: 12.sp,
@@ -788,8 +776,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
         .toList();
 
     return _BottomSheetShell(
-      title:
-          'ط·آ·ط¢آ§ط·آ·ط¢آ®ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ',
+      title: 'اختر العميل',
       icon: Icons.storefront_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -798,8 +785,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
             onChanged: (v) => setState(() => query = v),
             style: TextStyle(color: colors.text),
             decoration: InputDecoration(
-              hintText:
-                  'ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ·ط¢آ­ط·آ·ط¢آ« ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¢آ³ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ...',
+              hintText: 'ابحث باسم العميل...',
               hintStyle: TextStyle(color: colors.textMuted),
               prefixIcon: Icon(Icons.search_rounded,
                   size: 20.sp, color: colors.textMuted),
@@ -874,7 +860,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
               padding: EdgeInsets.symmetric(vertical: 24.h),
               child: Center(
                 child: Text(
-                  'ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ·ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ ',
+                  'لا يوجد عملاء مطابقين للبحث',
                   style: AppTextStyles.almaraiRegular14
                       .copyWith(color: colors.textMuted),
                 ),
@@ -909,15 +895,13 @@ class _InvoiceMetaSection extends StatelessWidget {
       children: [
         const _SectionTitle(
             icon: Icons.receipt_long_outlined,
-            title:
-                'ط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©'),
+            title: 'بيانات الفاتورة'),
         SizedBox(height: 12.h),
         Row(
           children: [
             Expanded(
               child: _TappableField(
-                label:
-                    'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ®',
+                label: 'التاريخ',
                 value: _date(date),
                 icon: Icons.calendar_today_outlined,
                 onTap: onPickDate,
@@ -926,8 +910,7 @@ class _InvoiceMetaSection extends StatelessWidget {
             SizedBox(width: 12.w),
             Expanded(
               child: _StaticField(
-                label:
-                    'ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©',
+                label: 'رقم الفاتورة',
                 value: invoiceNumber,
                 icon: Icons.tag_rounded,
               ),
@@ -936,7 +919,7 @@ class _InvoiceMetaSection extends StatelessWidget {
         ),
         SizedBox(height: 12.h),
         Text(
-          'ط·آ¸أ¢â‚¬آ ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ¹',
+          'نوع البيع',
           style: AppTextStyles.almaraiRegular14
               .copyWith(color: colors.textMuted, fontSize: 12.sp),
         ),
@@ -945,20 +928,20 @@ class _InvoiceMetaSection extends StatelessWidget {
           children: [
             Expanded(
               child: _SaleTypeOption(
-                label: 'ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹',
+                label: 'نقدي',
                 icon: Icons.payments_outlined,
-                selected: saleType == 'ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹',
+                selected: saleType == 'نقدي',
                 onTap: () =>
-                    onSaleTypeChanged('ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹'),
+                    onSaleTypeChanged('نقدي'),
               ),
             ),
             SizedBox(width: 10.w),
             Expanded(
               child: _SaleTypeOption(
-                label: 'ط·آ·ط¢آ¢ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬â€چ',
+                label: 'آجل',
                 icon: Icons.schedule_outlined,
-                selected: saleType == 'ط·آ·ط¢آ¢ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬â€چ',
-                onTap: () => onSaleTypeChanged('ط·آ·ط¢آ¢ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬â€چ'),
+                selected: saleType == 'آجل',
+                onTap: () => onSaleTypeChanged('آجل'),
               ),
             ),
           ],
@@ -1119,8 +1102,7 @@ class _FinancialSummaryRow extends StatelessWidget {
       children: [
         Expanded(
           child: _FinancialCard(
-            title:
-                'ط·آ·ط¢آ­ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¦ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ',
+            title: 'الحد الائتماني',
             value: _money(invoice.customer.creditLimit),
             icon: Icons.verified_user_outlined,
             color: colors.statBlue,
@@ -1129,8 +1111,7 @@ class _FinancialSummaryRow extends StatelessWidget {
         SizedBox(width: 10.w),
         Expanded(
           child: _FinancialCard(
-            title:
-                'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹',
+            title: 'الرصيد الحالي',
             value: _money(invoice.customer.currentBalance),
             icon: Icons.account_balance_wallet_outlined,
             color: nearLimit ? colors.statusNotReached : colors.statOrange,
@@ -1139,7 +1120,7 @@ class _FinancialSummaryRow extends StatelessWidget {
         SizedBox(width: 10.w),
         Expanded(
           child: _FinancialCard(
-            title: 'ط·آ·ط¢آ¢ط·آ·ط¢آ®ط·آ·ط¢آ± ط·آ·ط¢آ³ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ¯',
+            title: 'تاريخ آخر سداد',
             value: _date(
                 invoice.customer.lastCollectionDate ?? DateTime(2024, 6, 6)),
             icon: Icons.event_available_outlined,
@@ -1223,7 +1204,7 @@ class _StatementTile extends StatelessWidget {
               SizedBox(width: 10.w),
               Expanded(
                 child: Text(
-                  'ط·آ¸ط¦â€™ط·آ·ط¢آ´ط·آ¸ط¸آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ط·آ·ط¢آ¢ط·آ·ط¢آ®ط·آ·ط¢آ± 6 ط·آ·ط¢آ´ط·آ¸أ¢â‚¬طŒط·آ¸ط«â€ ط·آ·ط¢آ±',
+                  'كشف الحساب',
                   style: AppTextStyles.cairoMedium16
                       .copyWith(color: colors.text, fontSize: 13.sp),
                 ),
@@ -1248,8 +1229,7 @@ class _StatementSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return _BottomSheetShell(
-      title:
-          'ط·آ¸ط¦â€™ط·آ·ط¢آ´ط·آ¸ط¸آ¾ ط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ${invoice.customer.name}',
+      title: 'كشف حساب: ${invoice.customer.name}',
       icon: Icons.receipt_long_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1282,8 +1262,7 @@ class _StatementSheet extends StatelessWidget {
                       padding:
                           EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: (e.status ==
-                                    'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ط·آ·ط¢آ©'
+                        color: (e.status == 'مدفوعة'
                                 ? colors.primary
                                 : colors.statOrange)
                             .withOpacity(0.12),
@@ -1292,8 +1271,7 @@ class _StatementSheet extends StatelessWidget {
                       child: Text(
                         e.status,
                         style: AppTextStyles.almaraiRegular14.copyWith(
-                          color: e.status ==
-                                  'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ط·آ·ط¢آ©'
+                          color: e.status == 'مدفوعة'
                               ? colors.primary
                               : colors.statOrange,
                           fontSize: 10.sp,
@@ -1353,14 +1331,13 @@ class _ProductsSection extends StatelessWidget {
       children: [
         _SectionTitle(
           icon: Icons.inventory_2_outlined,
-          title:
-              'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ¸ط¸آ¾ (${items.length})',
+          title: 'الأصناف (${items.length})',
           trailing: TextButton.icon(
             onPressed: onAdd,
             icon: Icon(Icons.add_circle_outline_rounded,
                 size: 16.sp, color: colors.primary),
             label: Text(
-              'ط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ© ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ¸ط¸آ¾',
+              'إضافة منتج',
               style: AppTextStyles.cairoMedium16
                   .copyWith(color: colors.primary, fontSize: 12.sp),
             ),
@@ -1376,7 +1353,7 @@ class _ProductsSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Text(
-              'ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ ط·آ·ط¹آ¾ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ© ط·آ·ط¢آ£ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ¸ط¸آ¾ ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¯',
+              'لا يوجد منتجات مضافة للفاتورة حتى الآن',
               style: AppTextStyles.almaraiRegular14
                   .copyWith(color: colors.textMuted, fontSize: 12.sp),
             ),
@@ -1404,14 +1381,13 @@ class _ProductsSection extends StatelessWidget {
           Divider(height: 1, color: colors.border),
           SizedBox(height: 10.h),
           _TotalsRow(
-              label:
-                  'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ±ط·آ·ط¢آ¹ط·آ¸ط¸آ¹',
+              label: 'الإجمالي قبل الخصم',
               value: _money(subtotal)),
           SizedBox(height: 8.h),
           Row(
             children: [
               Text(
-                'ط·آ·ط¢آ®ط·آ·ط¢آµط·آ¸أ¢â‚¬آ¦ %',
+                'خصم %',
                 style: AppTextStyles.almaraiRegular14
                     .copyWith(color: colors.textMuted, fontSize: 12.sp),
               ),
@@ -1422,8 +1398,7 @@ class _ProductsSection extends StatelessWidget {
           ),
           SizedBox(height: 8.h),
           _TotalsRow(
-              label:
-                  'ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ®ط·آ·ط¢آµط·آ¸أ¢â‚¬آ¦',
+              label: 'قيمة الخصم',
               value: '- ${_money(discountAmount)}',
               muted: true),
           SizedBox(height: 10.h),
@@ -1436,7 +1411,7 @@ class _ProductsSection extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  'ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©',
+                  'إجمالي الفاتورة',
                   style: AppTextStyles.cairoMedium16
                       .copyWith(color: colors.text, fontSize: 13.sp),
                 ),
@@ -1505,7 +1480,7 @@ class _InvoicePagination extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ¸ط¸آ¾ $start - $end ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  $itemCount',
+            'الأصناف $start - $end من $itemCount',
             style: AppTextStyles.almaraiRegular14.copyWith(
               color: colors.textMuted,
               fontSize: 11.sp,
@@ -1519,8 +1494,7 @@ class _InvoicePagination extends StatelessWidget {
                   onPressed: currentPage > 1
                       ? () => onPageChanged(currentPage - 1)
                       : null,
-                  child: const Text(
-                      'ط£آ¢أ¢â€ڑآ¬ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘'),
+                  child: const Text('السابق'),
                 ),
                 for (var page = 1; page <= pageCount; page++)
                   TextButton(
@@ -1532,8 +1506,7 @@ class _InvoicePagination extends StatelessWidget {
                   onPressed: currentPage < pageCount
                       ? () => onPageChanged(currentPage + 1)
                       : null,
-                  child: const Text(
-                      'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط£آ¢أ¢â€ڑآ¬ط·â€؛'),
+                  child: const Text('التالي'),
                 ),
               ],
             ),
@@ -1650,8 +1623,8 @@ class _LineItemTile extends StatelessWidget {
                 SizedBox(height: 2.h),
                 Text(
                   item.previousCustomerPrice == null
-                      ? 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ³ط·آ¸ط¸آ¹: ${_money(item.product.price)}'
-                      : 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ: ${_money(item.previousCustomerPrice!)}',
+                      ? 'سعر الأساسي: ${_money(item.product.price)}'
+                      : 'السعر السابق للعميل: ${_money(item.previousCustomerPrice!)}',
                   style: AppTextStyles.almaraiRegular14
                       .copyWith(color: colors.textMuted, fontSize: 10.5.sp),
                 ),
@@ -1672,8 +1645,7 @@ class _LineItemTile extends StatelessWidget {
                       if (price != null && price >= 0) onPriceChanged(price);
                     },
                     decoration: const InputDecoration(
-                      labelText:
-                          'ط·آ·ط¢آ³ط·آ·ط¢آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ¹',
+                      labelText: 'سعر البيع',
                       isDense: true,
                       border: OutlineInputBorder(),
                     ),
@@ -1771,8 +1743,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
         .toList();
 
     return _BottomSheetShell(
-      title:
-          'ط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ© ط·آ·ط¢آ£ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ¸ط¸آ¾',
+      title: 'إضافة أصناف للفاتورة',
       icon: Icons.inventory_2_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1781,8 +1752,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
             onChanged: (v) => setState(() => query = v),
             style: TextStyle(color: colors.text),
             decoration: InputDecoration(
-              hintText:
-                  'ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ·ط¢آ­ط·آ·ط¢آ« ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ ط·آ·ط¹آ¾ط·آ·ط¢آ¬...',
+              hintText: 'ابحث عن منتج...',
               hintStyle: TextStyle(color: colors.textMuted),
               prefixIcon: Icon(Icons.search_rounded,
                   size: 20.sp, color: colors.textMuted),
@@ -1846,8 +1816,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                             child: Padding(
                               padding: EdgeInsets.symmetric(
                                   horizontal: 12.w, vertical: 8.h),
-                              child: Text(
-                                  'ط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ©',
+                              child: Text('إضافة',
                                   style: AppTextStyles.cairoMedium16.copyWith(
                                       color: Colors.white, fontSize: 11.sp)),
                             ),
@@ -1889,7 +1858,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                     borderRadius: BorderRadius.circular(12.r)),
               ),
               child: Text(
-                'ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ${cart.length} ط·آ·ط¢آµط·آ¸أ¢â‚¬آ ط·آ¸ط¸آ¾',
+                'تم (${cart.length} أصناف)',
                 style: AppTextStyles.cairoMedium16
                     .copyWith(color: Colors.white, fontSize: 13.sp),
               ),
@@ -1924,12 +1893,12 @@ class _AccountSummarySection extends StatelessWidget {
     final totalDue = previousBalance + invoiceTotal;
     final isSettled = remaining <= 0;
     final paid = double.tryParse(paidController.text) ?? 0;
-    final isCash = saleType == 'ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹';
+    final isCash = saleType == 'نقدي';
 
     final String? warning = isCash && (paid - invoiceTotal).abs() > 0.01
-        ? 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¥â€™ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¾ط·آ·ط¢آ±ط·آ¸ط«â€ ط·آ·ط¢آ¶ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ¸ط¸آ¹ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ¸ط«â€ ط·آ¸ط¸آ¹ ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© (${_money(invoiceTotal)}) ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¸ط·آ·ط¢آ¨ط·آ·ط¢آ·'
+        ? 'المبلغ المدفوع في حالة الدفع النقدي يجب أن يطابق إجمالي الفاتورة (${_money(invoiceTotal)}) تماماً'
         : !isCash && paid > totalDue + 0.01
-            ? 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ·ط¢آ¨ط·آ·ط¢آ± ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬ع‘ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ'
+            ? 'المبلغ المدفوع يتجاوز إجمالي المستحق على العميل'
             : null;
 
     return Column(
@@ -1937,37 +1906,31 @@ class _AccountSummarySection extends StatelessWidget {
       children: [
         const _SectionTitle(
           icon: Icons.account_balance_wallet_outlined,
-          title:
-              'ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ®ط·آ·ط¢آµ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨',
+          title: 'ملخص الحساب',
         ),
         SizedBox(height: 12.h),
         _TotalsRow(
-            label:
-                'ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ©',
+            label: 'قيمة الفاتورة الحالية',
             value: _money(invoiceTotal)),
         SizedBox(height: 8.h),
         _TotalsRow(
-            label:
-                'ط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘',
+            label: 'حساب سابق',
             value: _money(previousBalance)),
         SizedBox(height: 10.h),
         Divider(height: 1, color: colors.border),
         SizedBox(height: 10.h),
         _TotalsRow(
-            label:
-                'ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬ع‘ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ',
+            label: 'إجمالي المستحق على العميل',
             value: _money(totalDue)),
         SizedBox(height: 14.h),
         Row(
           children: [
-            Text(
-                'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¢ط·آ¸أ¢â‚¬آ ',
+            Text('المدفوع الآن',
                 style: AppTextStyles.almaraiRegular14
                     .copyWith(color: colors.textMuted, fontSize: 12.sp)),
             if (isCash) ...[
               SizedBox(width: 8.w),
-              Text(
-                  '(ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ²ط·آ¸أ¢â‚¬آ¦ ط·آ¸ط¸آ¹ط·آ·ط¹آ¾ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹)',
+              Text('(نقدي - ملزم بتسديد كامل الفاتورة)',
                   style: AppTextStyles.almaraiRegular14
                       .copyWith(color: colors.statOrange, fontSize: 10.sp)),
             ],
@@ -2011,8 +1974,7 @@ class _AccountSummarySection extends StatelessWidget {
                       paidController.text = invoiceTotal.toStringAsFixed(2);
                       onPaidChanged(paidController.text);
                     },
-                    child: Text(
-                        'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ¨ط·آ·ط¢آ¦ط·آ·ط¢آ© ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©',
+                    child: Text('تعبئة كاملة',
                         style: AppTextStyles.cairoMedium16
                             .copyWith(color: colors.primary, fontSize: 11.sp)),
                   )
@@ -2047,8 +2009,7 @@ class _AccountSummarySection extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Text(
-                  'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¹آ¾ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ',
+              Text('المتبقي على العميل',
                   style: AppTextStyles.cairoMedium16
                       .copyWith(color: colors.text, fontSize: 13.sp)),
               const Spacer(),
@@ -2079,16 +2040,14 @@ class _NotesField extends StatelessWidget {
       children: [
         const _SectionTitle(
             icon: Icons.edit_note_rounded,
-            title:
-                'ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ­ط·آ·ط¢آ¸ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¯ط·آ¸ط«â€ ط·آ·ط¢آ¨'),
+            title: 'ملاحظات إضافية'),
         SizedBox(height: 10.h),
         TextField(
           controller: controller,
           maxLines: 3,
           style: TextStyle(color: colors.text),
           decoration: InputDecoration(
-            hintText:
-                'ط¸â€¹ط¹ط›أ¢â‚¬إ“أ¢â‚¬إ’ ط·آ·ط¢آ§ط·آ¸ط¦â€™ط·آ·ط¹آ¾ط·آ·ط¢آ¨ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ­ط·آ·ط¢آ¸ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط¦â€™ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ²ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ£ط·آ¸ط«â€  ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©...',
+            hintText: 'اكتب ملاحظاتك على الزيارة أو الفاتورة...',
             hintStyle: AppTextStyles.almaraiRegular14
                 .copyWith(color: colors.textMuted),
             filled: true,
@@ -2118,8 +2077,7 @@ class _PurchaseAnalysisSection extends StatelessWidget {
         children: [
           const _SectionTitle(
               icon: Icons.insights_rounded,
-              title:
-                  'ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ´ط·آ·ط¹آ¾ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ'),
+              title: 'تحليل المشتريات للعميل'),
           SizedBox(height: 12.h),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2127,8 +2085,7 @@ class _PurchaseAnalysisSection extends StatelessWidget {
               if (customer.topPurchasedProducts.isNotEmpty)
                 Expanded(
                   child: _InsightBadge(
-                    title:
-                        'ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ·ط¢آ«ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ ط·آ·ط¹آ¾ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ´ط·آ·ط¢آ±ط·آ·ط¢آ§ط·آ·ط·إ’ط·آ¸أ¢â‚¬آ¹',
+                    title: 'أكثر المنتجات شراءً',
                     items: customer.topPurchasedProducts,
                     color: colors.primary,
                     icon: Icons.trending_up_rounded,
@@ -2140,8 +2097,7 @@ class _PurchaseAnalysisSection extends StatelessWidget {
               if (customer.notPurchasedRecently.isNotEmpty)
                 Expanded(
                   child: _InsightBadge(
-                    title:
-                        'ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ ط·آ¸ط¸آ¹ط·آ·ط¢آ´ط·آ·ط¹آ¾ط·آ·ط¢آ±ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ§ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ° ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ±ط·آ·ط¢آ©',
+                    title: 'لم يشتريها منذ فترة',
                     items: customer.notPurchasedRecently,
                     color: colors.statOrange,
                     icon: Icons.history_rounded,
@@ -2270,9 +2226,7 @@ class _FooterActions extends StatelessWidget {
                   : Icon(Icons.save_alt_rounded,
                       color: Colors.white, size: 20.sp),
               label: Text(
-                isIssuing
-                    ? 'ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸...'
-                    : 'ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ ط·آ¸ط«â€ ط·آ·ط¢آ¥ط·آ·ط¢آµط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ©',
+                isIssuing ? 'جاري الإصدار...' : 'حفظ وإصدار الفاتورة',
                 style: AppTextStyles.cairoMedium16
                     .copyWith(color: Colors.white, fontSize: 13.sp),
               ),

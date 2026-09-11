@@ -11,8 +11,6 @@ import '../../domain/models/product_catalog.dart';
 import '../../domain/models/product_model.dart';
 import 'add_product_sheet.dart';
 
-/// Returns true if the product was edited or deleted, so the caller can
-/// refresh whatever list it is showing.
 Future<bool> showProductDetailSheet(
   BuildContext context,
   ProductModel product, {

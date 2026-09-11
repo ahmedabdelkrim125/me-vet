@@ -52,9 +52,10 @@ class VehicleStockRemoteDataSource {
   Future<List<Map<String, dynamic>>> getStockMovements({
     String? vehicleId,
   }) async {
+    // FIXED: Include product name in relational query
     var query = _supabase.from('stock_movements').select(
           'id, product_id, vehicle_id, type, quantity, created_by, '
-          'created_at, reference_id, note',
+          'created_at, reference_id, note, products(name)',
         );
 
     if (vehicleId != null) {
