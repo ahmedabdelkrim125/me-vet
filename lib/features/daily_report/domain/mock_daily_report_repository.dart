@@ -14,7 +14,7 @@ class MockDailyReportRepository {
   Future<dynamic> buildReport({
     required ReportPeriodType period,
   }) async {
-    return _MockReport();
+    return const _MockReport();
   }
 
   Future<List<ReportChartPointModel>> buildChartHistory({

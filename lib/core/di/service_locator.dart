@@ -14,6 +14,7 @@ import '../../features/customer_account/domain/usecases/record_customer_account_
 import '../../features/customer_account/domain/usecases/get_invoice_returned_quantities.dart';
 import '../../features/customer_account/presentation/cubit/customer_account_cubit.dart';
 
+import '../../features/inventory/data/products_repository.dart';
 import '../../features/inventory/data/datasources/vehicle_stock_remote_data_source.dart';
 import '../../features/inventory/domain/repositories/vehicle_stock_repository.dart';
 import '../../features/inventory/domain/repositories/vehicle_stock_repository_impl.dart';
@@ -72,6 +73,10 @@ void setupServiceLocator() {
       createSalesReturn: sl(),
       getInvoiceReturnedQuantities: sl(),
     ),
+  );
+
+  sl.registerLazySingleton<ProductsRepository>(
+    () => ProductsRepository.instance,
   );
 
   sl.registerLazySingleton<VehicleStockRemoteDataSource>(

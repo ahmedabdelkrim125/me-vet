@@ -1,52 +1,105 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/core/widgets/custom_alert_dialog.dart';
 import '../../data/products_repository.dart';
+import '../../domain/models/product_catalog.dart';
 import '../../domain/models/product_model.dart';
 import 'add_product_sheet.dart';
 
-Future<void> showProductDetailSheet(
-    BuildContext context, ProductModel product) {
-  return showModalBottomSheet(
+/// Returns true if the product was edited or deleted, so the caller can
+/// refresh whatever list it is showing.
+Future<bool> showProductDetailSheet(
+  BuildContext context,
+  ProductModel product, {
+  ProductCatalog catalog = ProductCatalog.empty,
+}) async {
+  final changed = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => ProductDetailSheet(product: product),
+    builder: (context) => ProductDetailSheet(
+      product: product,
+      catalog: catalog,
+    ),
   );
+  return changed ?? false;
 }
 
-class ProductDetailSheet extends StatelessWidget {
+class ProductDetailSheet extends StatefulWidget {
   final ProductModel product;
+  final ProductCatalog catalog;
 
-  const ProductDetailSheet({super.key, required this.product});
+  const ProductDetailSheet({
+    super.key,
+    required this.product,
+    this.catalog = ProductCatalog.empty,
+  });
 
-  Future<void> _confirmDelete(BuildContext context) async {
-    Navigator.of(context).pop();
+  @override
+  State<ProductDetailSheet> createState() => _ProductDetailSheetState();
+}
+
+class _ProductDetailSheetState extends State<ProductDetailSheet> {
+  late ProductModel _product;
+  bool _deleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _product = widget.product;
+  }
+
+  Future<void> _editProduct() async {
+    final updated = await showAddProductSheet(context, productToEdit: _product);
+    if (!mounted || updated == null) return;
+    Navigator.of(context).pop(true);
+  }
+
+  Future<void> _confirmDelete() async {
     await showDialog(
       context: context,
       builder: (dialogContext) => CustomAlertDialog(
         title: 'حذف المنتج',
         content:
-            'هل أنت متأكد من حذف "${product.name}"؟ لا يمكن التراجع عن هذا الإجراء.',
+            'هل أنت متأكد من حذف "${_product.name}"؟ لا يمكن التراجع عن هذا الإجراء.',
         primaryButtonText: 'حذف',
         secondaryButtonText: 'إلغاء',
         primaryButtonColor: dialogContext.colors.statusNotReached,
-        onPrimaryPressed: () async {
-          await ProductsRepository.instance.deleteProduct(product.id);
-          if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-        },
+        onPrimaryPressed: () => _performDelete(dialogContext),
         onSecondaryPressed: () => Navigator.of(dialogContext).pop(),
       ),
     );
   }
 
+  Future<void> _performDelete(BuildContext dialogContext) async {
+    if (_deleting) return;
+    setState(() => _deleting = true);
+    try {
+      await ProductsRepository.instance.deleteProduct(_product.id);
+      if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+      if (!mounted) return;
+      showAppSuccess(context, 'تم حذف الصنف بنجاح');
+      Navigator.of(context).pop(true);
+    } catch (error) {
+      if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+      if (mounted) {
+        setState(() => _deleting = false);
+        showAppError(context, error);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final product = _product;
     final hasImage = product.imagePath != null && product.imagePath!.isNotEmpty;
+    final categoryName = widget.catalog.categoryName(product.category);
+    final unitName = widget.catalog.unitName(product.unit);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -101,7 +154,7 @@ class ProductDetailSheet extends StatelessWidget {
                             style: AppTextStyles.cairoBold18.copyWith(
                                 color: context.colors.text, fontSize: 16.sp)),
                         SizedBox(height: 4.h),
-                        Text(product.category,
+                        Text(categoryName,
                             style: AppTextStyles.almaraiRegular14.copyWith(
                                 color: context.colors.textMuted,
                                 fontSize: 11.sp)),
@@ -122,11 +175,11 @@ class ProductDetailSheet extends StatelessWidget {
               _DetailRow(
                   icon: Icons.straighten_rounded,
                   label: 'وحدة القياس',
-                  value: product.unit),
+                  value: unitName),
               _DetailRow(
                   icon: Icons.warning_amber_rounded,
                   label: 'الحد الأدنى للمخزون',
-                  value: '${product.minStockThreshold} ${product.unit}'),
+                  value: '${product.minStockThreshold} $unitName'),
               _DetailRow(
                   icon: Icons.calendar_today_outlined,
                   label: 'تاريخ الإضافة',
@@ -150,10 +203,7 @@ class ProductDetailSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14.r),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14.r),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          showAddProductSheet(context, productToEdit: product);
-                        },
+                        onTap: _deleting ? null : _editProduct,
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 14.h),
                           child: Row(
@@ -179,15 +229,24 @@ class ProductDetailSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14.r),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14.r),
-                        onTap: () => _confirmDelete(context),
+                        onTap: _deleting ? null : _confirmDelete,
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 14.h),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.delete_outline_rounded,
-                                  color: context.colors.statusNotReached,
-                                  size: 16.sp),
+                              _deleting
+                                  ? SizedBox(
+                                      width: 16.sp,
+                                      height: 16.sp,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: context.colors.statusNotReached,
+                                      ),
+                                    )
+                                  : Icon(Icons.delete_outline_rounded,
+                                      color: context.colors.statusNotReached,
+                                      size: 16.sp),
                               SizedBox(width: 8.w),
                               Text('حذف',
                                   style: AppTextStyles.cairoMedium16.copyWith(

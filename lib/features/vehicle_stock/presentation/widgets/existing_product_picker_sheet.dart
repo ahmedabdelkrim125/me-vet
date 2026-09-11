@@ -3,10 +3,17 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/features/inventory/domain/models/product_model.dart';
 
+import '../../../inventory/domain/models/product_catalog.dart';
+
 class ExistingProductPickerSheet extends StatefulWidget {
   final Future<List<ProductModel>> Function() loadProducts;
+  final ProductCatalog catalog;
 
-  const ExistingProductPickerSheet({super.key, required this.loadProducts});
+  const ExistingProductPickerSheet({
+    super.key,
+    required this.loadProducts,
+    this.catalog = ProductCatalog.empty,
+  });
 
   @override
   State<ExistingProductPickerSheet> createState() =>
@@ -83,8 +90,10 @@ class _ExistingProductPickerSheetState
                         final product = filtered[index];
                         return ListTile(
                           title: Text(product.name),
-                          subtitle:
-                              Text('${product.category} — ${product.unit}'),
+                          subtitle: Text(
+                            '${widget.catalog.categoryName(product.category)} — '
+                            '${widget.catalog.unitName(product.unit)}',
+                          ),
                           onTap: () => Navigator.pop(context, product),
                         );
                       },

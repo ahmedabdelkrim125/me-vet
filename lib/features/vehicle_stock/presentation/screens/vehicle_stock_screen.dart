@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/di/service_locator.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -12,10 +12,11 @@ import 'package:mivet_app/features/inventory/presentation/widgets/add_to_vehicle
 import 'package:mivet_app/features/inventory/presentation/widgets/add_product_sheet.dart';
 import 'package:mivet_app/features/inventory/presentation/widgets/inventory_search_bar.dart';
 import 'package:mivet_app/features/inventory/presentation/widgets/inventory_stat_row.dart';
+import 'package:mivet_app/features/inventory/presentation/widgets/product_detail_sheet.dart';
 import 'package:mivet_app/features/inventory/data/products_repository.dart';
-import 'package:mivet_app/features/inventory/domain/models/product_catalog_item.dart';
 import 'package:mivet_app/features/inventory/domain/models/product_model.dart';
 import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
+import '../../../inventory/domain/models/product_catalog.dart';
 import '../widgets/vehicle_stock_tile.dart';
 import '../widgets/stock_movement_log_sheet.dart';
 import '../widgets/vehicle_setup_form.dart';
@@ -45,7 +46,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   String _query = '';
-  List<ProductCatalogItem> _categories = const [];
+  ProductCatalog _catalog = ProductCatalog.empty;
   String? _categoryCode;
 
   @override
@@ -55,7 +56,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
       vsync: this,
       duration: const Duration(milliseconds: 650),
     )..forward();
-    _loadCategories();
+    _loadCatalog();
   }
 
   @override
@@ -67,15 +68,33 @@ class _VehicleStockViewState extends State<_VehicleStockView>
   Future<void> _refresh() {
     return Future.wait([
       context.read<VehicleStockCubit>().refresh(),
-      _loadCategories(),
+      _loadCatalog(),
     ]);
   }
 
-  Future<void> _loadCategories() async {
+  Future<void> _loadCatalog() async {
     try {
-      final categories = await ProductsRepository.instance.getCategories();
-      if (mounted) setState(() => _categories = categories);
-    } catch (_) {
+      final results = await Future.wait([
+        ProductsRepository.instance.getCategories(),
+        ProductsRepository.instance.getUnits(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _catalog = ProductCatalog(categories: results[0], units: results[1]);
+      });
+    } catch (error) {
+      if (mounted) showAppError(context, error);
+    }
+  }
+
+  Future<void> _openProductDetail(ProductModel product) async {
+    final changed = await showProductDetailSheet(
+      context,
+      product,
+      catalog: _catalog,
+    );
+    if (changed && mounted) {
+      await context.read<VehicleStockCubit>().refresh();
     }
   }
 
@@ -266,7 +285,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                           selected: _categoryCode == null,
                           onTap: () => setState(() => _categoryCode = null),
                         ),
-                        for (final category in _categories)
+                        for (final category in _catalog.categories)
                           Padding(
                             padding: EdgeInsets.only(left: 8.w),
                             child: CategoryFilterTab(
@@ -320,6 +339,11 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                         total: filtered.length,
                         controller: _controller,
                         stock: filtered[i],
+                        categoryName: _catalog
+                            .categoryName(filtered[i].product!.category),
+                        unitName:
+                            _catalog.unitName(filtered[i].product!.unit),
+                        onTap: () => _openProductDetail(filtered[i].product!),
                         onLoadMore: () => _loadMore(
                           context,
                           selectedVehicle.id,
@@ -359,24 +383,22 @@ class _VehicleStockViewState extends State<_VehicleStockView>
         ],
       ),
     );
-    
+
     Future.delayed(const Duration(milliseconds: 300), () => controller.dispose());
-    
+
     if (name == null || name.trim().isEmpty) return;
     try {
       final category = await ProductsRepository.instance.createCategory(name);
       if (mounted) {
         setState(() {
-          _categories = [..._categories, category];
+          _catalog = _catalog.copyWith(
+            categories: [..._catalog.categories, category],
+          );
           _categoryCode = category.code;
         });
       }
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
-        );
-      }
+      if (mounted) showAppError(context, error);
     }
   }
 
@@ -407,6 +429,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
         isScrollControlled: true,
         builder: (_) => ExistingProductPickerSheet(
           loadProducts: ProductsRepository.instance.getProducts,
+          catalog: _catalog,
         ),
       );
       if (product != null && context.mounted) {
@@ -483,6 +506,9 @@ class _AnimatedVehicleTile extends StatelessWidget {
   final int total;
   final AnimationController controller;
   final VehicleStockModel stock;
+  final String categoryName;
+  final String unitName;
+  final VoidCallback onTap;
   final VoidCallback onLoadMore;
 
   const _AnimatedVehicleTile({
@@ -490,6 +516,9 @@ class _AnimatedVehicleTile extends StatelessWidget {
     required this.total,
     required this.controller,
     required this.stock,
+    required this.categoryName,
+    required this.unitName,
+    required this.onTap,
     required this.onLoadMore,
   });
 
@@ -527,6 +556,9 @@ class _AnimatedVehicleTile extends StatelessWidget {
         child: VehicleStockTile(
           product: product,
           stock: stock,
+          categoryName: categoryName,
+          unitName: unitName,
+          onTap: onTap,
           onLoadMore: onLoadMore,
         ),
       ),

@@ -1,6 +1,4 @@
 
-/// TODO(auto-status): المفروض ده يبقى محسوب أوتوماتيك من سلوك العميل
-
 enum CustomerStatus { active, needsFollowUp, stopped }
 
 extension CustomerStatusX on CustomerStatus {
@@ -15,7 +13,6 @@ extension CustomerStatusX on CustomerStatus {
     }
   }
 
-  /// القيمة المطابقة لـ enum `customer_status` في Supabase (snake_case).
   String get dbValue {
     switch (this) {
       case CustomerStatus.active:
