@@ -242,8 +242,7 @@ class VehicleStockTile extends StatelessWidget {
                         Text(
                           '$categoryName — $unitName',
                           style: AppTextStyles.almaraiRegular14.copyWith(
-                              color: context.colors.textMuted,
-                              fontSize: 10.sp),
+                              color: context.colors.textMuted, fontSize: 10.sp),
                         ),
                       ],
                     ),
@@ -256,8 +255,7 @@ class VehicleStockTile extends StatelessWidget {
                               .copyWith(color: statusColor, fontSize: 16.sp)),
                       Text('الحد ${stock.minThreshold}',
                           style: AppTextStyles.almaraiRegular14.copyWith(
-                              color: context.colors.textMuted,
-                              fontSize: 9.sp)),
+                              color: context.colors.textMuted, fontSize: 9.sp)),
                     ],
                   ),
                   SizedBox(width: 10.w),

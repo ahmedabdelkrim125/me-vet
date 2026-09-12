@@ -7,6 +7,8 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/di/service_locator.dart';
+import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_cubit.dart';
 import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../../customer-visits/customers/data/invoices_repository.dart';
 import '../../../customer-visits/customers/domain/models/invoice_line_input.dart';
@@ -277,6 +279,10 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       );
 
       await CustomersRepository.instance.refresh();
+
+      try {
+        await sl<VehicleStockCubit>().refresh();
+      } catch (_) {}
     } catch (e) {
       if (mounted) {
         setState(() => _isIssuing = false);
@@ -639,8 +645,7 @@ class _CustomerEmptyState extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(
-            icon: Icons.storefront_outlined,
-            title: 'بيانات العميل'),
+            icon: Icons.storefront_outlined, title: 'بيانات العميل'),
         SizedBox(height: 12.h),
         Material(
           color: colors.background,
@@ -894,8 +899,7 @@ class _InvoiceMetaSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(
-            icon: Icons.receipt_long_outlined,
-            title: 'بيانات الفاتورة'),
+            icon: Icons.receipt_long_outlined, title: 'بيانات الفاتورة'),
         SizedBox(height: 12.h),
         Row(
           children: [
@@ -931,8 +935,7 @@ class _InvoiceMetaSection extends StatelessWidget {
                 label: 'نقدي',
                 icon: Icons.payments_outlined,
                 selected: saleType == 'نقدي',
-                onTap: () =>
-                    onSaleTypeChanged('نقدي'),
+                onTap: () => onSaleTypeChanged('نقدي'),
               ),
             ),
             SizedBox(width: 10.w),
@@ -1380,9 +1383,7 @@ class _ProductsSection extends StatelessWidget {
           SizedBox(height: 10.h),
           Divider(height: 1, color: colors.border),
           SizedBox(height: 10.h),
-          _TotalsRow(
-              label: 'الإجمالي قبل الخصم',
-              value: _money(subtotal)),
+          _TotalsRow(label: 'الإجمالي قبل الخصم', value: _money(subtotal)),
           SizedBox(height: 8.h),
           Row(
             children: [
@@ -1909,19 +1910,13 @@ class _AccountSummarySection extends StatelessWidget {
           title: 'ملخص الحساب',
         ),
         SizedBox(height: 12.h),
-        _TotalsRow(
-            label: 'قيمة الفاتورة الحالية',
-            value: _money(invoiceTotal)),
+        _TotalsRow(label: 'قيمة الفاتورة الحالية', value: _money(invoiceTotal)),
         SizedBox(height: 8.h),
-        _TotalsRow(
-            label: 'حساب سابق',
-            value: _money(previousBalance)),
+        _TotalsRow(label: 'حساب سابق', value: _money(previousBalance)),
         SizedBox(height: 10.h),
         Divider(height: 1, color: colors.border),
         SizedBox(height: 10.h),
-        _TotalsRow(
-            label: 'إجمالي المستحق على العميل',
-            value: _money(totalDue)),
+        _TotalsRow(label: 'إجمالي المستحق على العميل', value: _money(totalDue)),
         SizedBox(height: 14.h),
         Row(
           children: [
@@ -2039,8 +2034,7 @@ class _NotesField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(
-            icon: Icons.edit_note_rounded,
-            title: 'ملاحظات إضافية'),
+            icon: Icons.edit_note_rounded, title: 'ملاحظات إضافية'),
         SizedBox(height: 10.h),
         TextField(
           controller: controller,
@@ -2076,8 +2070,7 @@ class _PurchaseAnalysisSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const _SectionTitle(
-              icon: Icons.insights_rounded,
-              title: 'تحليل المشتريات للعميل'),
+              icon: Icons.insights_rounded, title: 'تحليل المشتريات للعميل'),
           SizedBox(height: 12.h),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,

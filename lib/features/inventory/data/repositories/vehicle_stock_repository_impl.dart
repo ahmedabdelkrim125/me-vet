@@ -36,7 +36,8 @@ class VehicleStockRepositoryImpl implements VehicleStockRepository {
   }
 
   @override
-  Future<List<StockMovementModel>> getStockMovements({String? vehicleId}) async {
+  Future<List<StockMovementModel>> getStockMovements(
+      {String? vehicleId}) async {
     final rows = await remoteDataSource.getStockMovements(vehicleId: vehicleId);
     return rows.map(StockMovementModel.fromMap).toList();
   }

@@ -1,7 +1,7 @@
 class StockMovementModel {
   final String id;
   final String productId;
-  final String? productName; // Added to hold domain mapping
+  final String? productName;
   final String? vehicleId;
   final String type;
   final int quantity;
@@ -23,16 +23,28 @@ class StockMovementModel {
     this.note,
   });
 
+  String get displayProductName =>
+      (productName != null && productName!.trim().isNotEmpty)
+          ? productName!
+          : 'صنف غير معروف';
+
+  bool get isOutgoing =>
+      type == 'sold_from_vehicle' || type == 'deducted_from_vehicle';
+
+  int get signedQuantity => isOutgoing ? -quantity : quantity;
+
   String get arabicTypeLabel {
     switch (type) {
       case 'loaded_to_vehicle':
         return 'إضافة إلى مخزن السيارة';
+      case 'sold_from_vehicle':
+        return 'بيع من مخزن السيارة';
       case 'deducted_from_vehicle':
-        return 'خصم من مخزن السيارة (فاتورة)';
+        return 'بيع من مخزن السيارة';
       case 'returned_to_vehicle':
         return 'مرتجع إلى مخزن السيارة';
       default:
-        return 'حركة مخزون: $type';
+        return 'حركة مخزون';
     }
   }
 
@@ -41,7 +53,7 @@ class StockMovementModel {
     if (map['products'] != null && map['products'] is Map) {
       pName = map['products']['name'] as String?;
     }
-    
+
     return StockMovementModel(
       id: map['id'] as String,
       productId: map['product_id'] as String,

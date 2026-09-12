@@ -1,4 +1,3 @@
-
 enum CustomerStatus { active, needsFollowUp, stopped }
 
 extension CustomerStatusX on CustomerStatus {

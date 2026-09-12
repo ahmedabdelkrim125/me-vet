@@ -115,9 +115,10 @@ class _AddProductSheetState extends State<_AddProductSheet> {
                     child: const Text('إنشاء'))
               ],
             ));
-            
-    Future.delayed(const Duration(milliseconds: 300), () => controller.dispose());
-    
+
+    Future.delayed(
+        const Duration(milliseconds: 300), () => controller.dispose());
+
     if (name == null || name.trim().isEmpty) return;
     try {
       final item = isCategory
