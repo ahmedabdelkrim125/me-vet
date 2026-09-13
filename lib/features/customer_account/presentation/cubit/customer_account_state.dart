@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:mivet_app/core/errors/app_exception.dart';
 import '../../domain/entities/customer_ledger.dart';
+import '../../domain/entities/collection_receipt.dart';
 
 enum CustomerAccountActionStatus {
   idle,
@@ -24,6 +25,9 @@ class CustomerAccountState extends Equatable {
 
   final Map<String, int>? returnedQuantities;
 
+  final CollectionReceipt? receipt;
+  final AppException? receiptError;
+
   const CustomerAccountState({
     required this.customerId,
     required this.customerName,
@@ -35,6 +39,8 @@ class CustomerAccountState extends Equatable {
     this.ledgerError,
     this.actionSuccessMessage,
     this.returnedQuantities,
+    this.receipt,
+    this.receiptError,
   });
 
   double get balance => ledger?.currentBalance ?? fallbackBalance ?? 0;
@@ -50,6 +56,10 @@ class CustomerAccountState extends Equatable {
     bool clearActionSuccess = false,
     bool clearLedgerError = false,
     Map<String, int>? returnedQuantities,
+    CollectionReceipt? receipt,
+    AppException? receiptError,
+    bool clearReceipt = false,
+    bool clearReceiptError = false,
   }) {
     return CustomerAccountState(
       customerId: customerId,
@@ -64,6 +74,9 @@ class CustomerAccountState extends Equatable {
           ? null
           : (actionSuccessMessage ?? this.actionSuccessMessage),
       returnedQuantities: returnedQuantities ?? this.returnedQuantities,
+      receipt: clearReceipt ? null : (receipt ?? this.receipt),
+      receiptError:
+          clearReceiptError ? null : (receiptError ?? this.receiptError),
     );
   }
 
@@ -79,5 +92,7 @@ class CustomerAccountState extends Equatable {
         ledgerError,
         actionSuccessMessage,
         returnedQuantities,
+        receipt,
+        receiptError,
       ];
 }

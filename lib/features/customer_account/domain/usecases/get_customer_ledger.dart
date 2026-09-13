@@ -1,5 +1,5 @@
+import '../../data/repositories/customer_account_repository.dart';
 import '../entities/customer_ledger.dart';
-import '../repositories/customer_account_repository.dart';
 
 class GetCustomerLedger {
   const GetCustomerLedger(this._repository);

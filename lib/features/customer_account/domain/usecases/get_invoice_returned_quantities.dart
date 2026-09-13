@@ -1,4 +1,4 @@
-import '../repositories/customer_account_repository.dart';
+import '../../data/repositories/customer_account_repository.dart';
 
 class GetInvoiceReturnedQuantities {
   const GetInvoiceReturnedQuantities(this._repository);

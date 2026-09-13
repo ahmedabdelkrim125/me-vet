@@ -1,19 +1,18 @@
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/customer_account/data/repositories/customer_account_repository.dart';
 import '../../features/home/data/home_repository.dart';
 import '../../features/home/presentation/cubit/home_cubit.dart';
 
 import '../../features/customer_account/data/datasources/customer_account_remote_data_source.dart';
 import '../../features/customer_account/data/repositories/customer_account_repository_impl.dart';
-import '../../features/customer_account/domain/repositories/customer_account_repository.dart';
 import '../../features/customer_account/domain/usecases/create_sales_return.dart';
 import '../../features/customer_account/domain/usecases/get_customer_ledger.dart';
 import '../../features/customer_account/domain/usecases/record_customer_payment.dart';
 import '../../features/customer_account/domain/usecases/record_customer_account_payment.dart';
 import '../../features/customer_account/domain/usecases/get_invoice_returned_quantities.dart';
 import '../../features/customer_account/presentation/cubit/customer_account_cubit.dart';
-
 import '../../features/inventory/data/products_repository.dart';
 import '../../features/inventory/data/datasources/vehicle_stock_remote_data_source.dart';
 import '../../features/inventory/domain/repositories/vehicle_stock_repository.dart';
