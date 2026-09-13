@@ -1,6 +1,4 @@
-import 'package:mivet_app/features/inventory/domain/models/product_category.dart';
 import 'package:mivet_app/features/inventory/domain/models/product_model.dart';
-import 'package:mivet_app/features/inventory/domain/models/product_unit.dart';
 import 'package:mivet_app/features/invoices/domain/invoice_draft.dart';
 import 'package:test/test.dart';
 
@@ -8,9 +6,10 @@ void main() {
   final product = ProductModel(
     id: 'product-1',
     name: 'Vitamin X',
-    category: ProductCategory.values.first,
-    unit: ProductUnit.values.first,
-    basePrice: 200,
+    category: 'poultry',
+    unit: 'piece',
+    retailPrice: 200,
+    wholesalePrice: 200,
     minStockThreshold: 1,
     createdAt: DateTime(2024),
   );

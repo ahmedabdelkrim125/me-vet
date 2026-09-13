@@ -4,7 +4,6 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../inventory/domain/models/stock_movement_model.dart';
-import '../../../inventory/domain/models/stock_movement_type.dart';
 
 Future<void> showStockMovementLogSheet(
     BuildContext context, List<StockMovementModel> movements) {
@@ -90,10 +89,23 @@ class _MovementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLoad = movement.type == StockMovementType.loadedToVehicle;
-    final color = isLoad ? context.colors.primary : context.colors.statBlue;
-    final icon =
-        isLoad ? Icons.local_shipping_outlined : Icons.warehouse_outlined;
+    final isReturn = movement.type == 'returned_to_vehicle';
+    final isOutgoing = movement.isOutgoing;
+
+    final Color color = isOutgoing
+        ? context.colors.statusNotReached
+        : isReturn
+            ? context.colors.statBlue
+            : context.colors.primary;
+
+    final IconData icon = isOutgoing
+        ? Icons.remove_shopping_cart_outlined
+        : isReturn
+            ? Icons.keyboard_return_outlined
+            : Icons.local_shipping_outlined;
+
+    final signed = movement.signedQuantity;
+    final quantityLabel = signed > 0 ? '+$signed' : '$signed';
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
@@ -117,19 +129,19 @@ class _MovementRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(movement.productName,
+                Text(movement.displayProductName,
                     style: AppTextStyles.cairoMedium16
                         .copyWith(color: context.colors.text, fontSize: 12.sp)),
                 SizedBox(height: 2.h),
                 Text(
-                  '${movement.type.label} — ${DateFormat('yyyy/MM/dd hh:mm a').format(movement.createdAt)}',
+                  '${movement.arabicTypeLabel} — ${DateFormat('yyyy/MM/dd hh:mm a').format(movement.createdAt)}',
                   style: AppTextStyles.almaraiRegular14.copyWith(
                       color: context.colors.textMuted, fontSize: 10.sp),
                 ),
               ],
             ),
           ),
-          Text('+${movement.quantity}',
+          Text(quantityLabel,
               style: AppTextStyles.cairoBold18
                   .copyWith(color: color, fontSize: 13.sp)),
         ],

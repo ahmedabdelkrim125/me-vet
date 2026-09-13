@@ -1,15 +1,17 @@
 import 'package:mivet_app/core/errors/app_exception.dart';
 
+import '../../data/repositories/customer_account_repository.dart';
+import '../entities/collection_receipt.dart';
 import '../entities/payment_method.dart';
-import '../repositories/customer_account_repository.dart';
 
 class RecordCustomerAccountPayment {
   const RecordCustomerAccountPayment(this._repository);
 
   final CustomerAccountRepository _repository;
 
-  Future<void> call({
+  Future<CollectionReceipt> call({
     required String customerId,
+    required String customerName,
     required double amount,
     required PaymentMethod paymentMethod,
     String? notes,
@@ -19,6 +21,7 @@ class RecordCustomerAccountPayment {
     }
     return _repository.recordAccountPayment(
       customerId: customerId,
+      customerName: customerName,
       amount: amount,
       paymentMethod: paymentMethod,
       notes: notes,

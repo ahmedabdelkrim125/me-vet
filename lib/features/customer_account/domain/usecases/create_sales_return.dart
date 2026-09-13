@@ -1,7 +1,7 @@
 import 'package:mivet_app/core/errors/app_exception.dart';
 
+import '../../data/repositories/customer_account_repository.dart';
 import '../entities/sales_return.dart';
-import '../repositories/customer_account_repository.dart';
 
 class CreateSalesReturn {
   const CreateSalesReturn(this._repository);

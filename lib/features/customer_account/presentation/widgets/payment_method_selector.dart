@@ -61,17 +61,6 @@ class _PaymentMethodOption extends StatelessWidget {
     required this.onTap,
   });
 
-  String get _label {
-    switch (method) {
-      case PaymentMethod.cash:
-        return 'نقدي';
-      case PaymentMethod.vodafoneCash:
-        return 'فودافون كاش';
-      case PaymentMethod.instaPay:
-        return 'إنستا باي';
-    }
-  }
-
   Widget _icon() {
     switch (method) {
       case PaymentMethod.cash:
@@ -104,7 +93,7 @@ class _PaymentMethodOption extends StatelessWidget {
             SizedBox(width: 32, height: 32, child: _icon()),
             SizedBox(height: 3.h),
             Text(
-              _label,
+              method.displayLabel,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.almaraiRegular14

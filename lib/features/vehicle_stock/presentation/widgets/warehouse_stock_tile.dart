@@ -4,9 +4,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../inventory/domain/models/main_warehouse_stock_model.dart';
-import '../../../inventory/domain/models/product_category.dart';
 import '../../../inventory/domain/models/product_model.dart';
-import '../../../inventory/domain/models/product_unit.dart';
 
 class WarehouseStockTile extends StatelessWidget {
   final ProductModel product;
@@ -74,7 +72,7 @@ class WarehouseStockTile extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  '${product.category.label} — ${product.unit.label}',
+                  '${product.category} — ${product.unit}',
                   style: AppTextStyles.almaraiRegular14.copyWith(
                       color: context.colors.textMuted, fontSize: 10.sp),
                 ),

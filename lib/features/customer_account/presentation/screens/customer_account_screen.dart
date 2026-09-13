@@ -11,6 +11,7 @@ import 'package:mivet_app/features/home/presentation/widgets/quick_invoice_dialo
 import '../../presentation/cubit/customer_account_cubit.dart';
 import '../../presentation/cubit/customer_account_state.dart';
 import '../widgets/account_summary_card.dart';
+import '../widgets/collection_receipt_preview.dart';
 import '../widgets/payment_dialog.dart';
 import '../widgets/transaction_list.dart';
 import 'sales_return_screen.dart';
@@ -174,7 +175,7 @@ class _ActionsBar extends StatelessWidget {
       children: [
         Expanded(
           child: OutlinedButton(
-            onPressed: () => showPaymentDialog(context),
+            onPressed: () => _collect(context, cubit),
             child: const Text('تحصيل'),
           ),
         ),
@@ -206,6 +207,24 @@ class _ActionsBar extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _collect(
+    BuildContext context,
+    CustomerAccountCubit cubit,
+  ) async {
+    await showPaymentDialog(context);
+    if (!context.mounted) return;
+
+    final state = cubit.state;
+
+    if (state.receipt != null) {
+      await showCollectionReceiptPreview(context, state.receipt!);
+      cubit.acknowledgeReceipt();
+    } else if (state.receiptError != null) {
+      if (context.mounted) showAppError(context, state.receiptError!);
+      cubit.acknowledgeReceipt();
+    }
   }
 
   Future<void> _openNewInvoice(BuildContext context) async {

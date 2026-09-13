@@ -7,24 +7,20 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:printing/printing.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/di/service_locator.dart';
+import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_cubit.dart';
 import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../../customer-visits/customers/data/invoices_repository.dart';
 import '../../../customer-visits/customers/domain/models/invoice_line_input.dart';
-import '../../../inventory/domain/mock_inventory_repository.dart';
 import '../../../inventory/data/products_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
-import '../../../inventory/domain/models/product_unit.dart';
 import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../../../invoices/domain/invoice_draft.dart';
 import '../../domain/models/quick_invoice_models.dart';
 import '../../../customer_account/domain/entities/payment_method.dart';
 import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
 
-/// ---------------------------------------------------------------------
-/// Repository-backed data sources
-/// ---------------------------------------------------------------------
-
-const _currentRepName = 'أحمد محمود';
+const _currentRepName = 'أحمد عبدالكريم';
 
 List<InvoiceCustomerModel> _customersFromRepository() {
   return CustomersRepository.instance.customers
@@ -37,17 +33,13 @@ InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
     id: product.id,
     name: product.name,
     price: product.basePrice,
-    unit: product.unit.label,
+    unit: product.unit,
   );
 }
 
 List<PastInvoiceSummaryModel> _statementFor(InvoiceCustomerModel invoice) {
   return const [];
 }
-
-/// ---------------------------------------------------------------------
-/// Formatting helpers
-/// ---------------------------------------------------------------------
 
 String _money(double value) {
   final negative = value < 0;
@@ -60,21 +52,16 @@ String _money(double value) {
     buffer.write(digits[i]);
   }
   var out = buffer.toString();
-  if (decimals > 0.005)
+  if (decimals > 0.005) {
     out += '.${(decimals * 100).round().toString().padLeft(2, '0')}';
+  }
   return '${negative ? '-' : ''}$out ج.م';
 }
 
 String _date(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-/// ---------------------------------------------------------------------
-/// Main dialog
-/// ---------------------------------------------------------------------
-
 class QuickInvoiceDialog extends StatefulWidget {
-  /// If a customer is already known (e.g. opened from a customer profile),
-  /// pass it here to skip the picker step.
   final InvoiceCustomerModel? initialCustomer;
   final ValueChanged<IssuedInvoiceInfo>? onIssued;
 
@@ -106,7 +93,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     super.initState();
     invoiceNumber = 'INV-${invoiceDate.year}-${100 + Random().nextInt(900)}';
     customer = widget.initialCustomer;
-    MockInventoryRepository.instance.init();
     CustomersRepository.instance.initialize();
     if (customer != null) _loadCustomerPrices(customer!.customer.id);
   }
@@ -175,7 +161,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
         setState(() => _customerPrices = prices);
       }
     } catch (_) {
-      // Base prices remain usable when remembered prices are unavailable.
     } finally {
       if (mounted) setState(() => _loadingCustomerPrices = false);
     }
@@ -228,37 +213,35 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
   Future<void> _issueInvoice() async {
     if (customer == null) {
-      _toast('اختر العميل أولًا');
+      _toast('الرجاء اختيار العميل أولاً');
       return;
     }
     if (lineItems.isEmpty) {
-      _toast('أضف صنفًا واحدًا على الأقل للفاتورة');
+      _toast('أضف منتجات للفاتورة');
       return;
     }
     final total = grandTotal;
     final isDeferredSale = saleType != 'نقدي';
     if (isDeferredSale && total > customer!.availableCredit) {
-      _toast('قيمة الفاتورة الآجلة تتجاوز حد الائتمان المتاح');
+      _toast('العميل تجاوز الحد الائتماني المسموح به');
       return;
     }
 
     final paid = paidNow;
     if (paid < 0) {
-      _toast('المبلغ المدفوع لازم يكون رقم موجب');
+      _toast('المبلغ المدفوع غير صحيح');
       return;
     }
     if (!isDeferredSale && (paid - total).abs() > 0.01) {
-      _toast(
-        'الفاتورة نقدي، لازم المدفوع الآن يساوي إجمالي الفاتورة (${_money(total)}) بالظبط',
-      );
+      _toast('المبلغ المدفوع في حالة الدفع النقدي يجب أن يطابق الإجمالي');
       return;
     }
     if (isDeferredSale && paid > totalDue + 0.01) {
-      _toast('المبلغ المدفوع أكبر من إجمالي المستحق على العميل');
+      _toast('المبلغ المدفوع يتجاوز الرصيد المستحق');
       return;
     }
     if (paid > 0 && _paymentMethod == null) {
-      _toast('اختر طريقة دفع للمبلغ المدفوع الآن');
+      _toast('اختر طريقة الدفع');
       return;
     }
 
@@ -266,15 +249,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       if (item.product.name.trim().isEmpty ||
           item.quantity <= 0 ||
           item.unitPrice < 0) {
-        _toast('راجع اسم الصنف والكمية وسعر البيع');
-        return;
-      }
-      final stock = MockInventoryRepository.instance.stockOf(item.product.id);
-      final available = stock?.quantity ?? 0;
-      if (item.quantity > available) {
-        _toast(
-          'الكمية المطلوبة من "${item.product.name}" أكبر من المتاح في العربية (متاح $available ${item.product.unit})',
-        );
+        _toast('يرجى التحقق من كمية وسعر جميع المنتجات');
         return;
       }
     }
@@ -282,11 +257,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     setState(() => _isIssuing = true);
 
     try {
-      for (final item in lineItems) {
-        await MockInventoryRepository.instance
-            .consumeFromVehicle(item.product.id, item.quantity);
-      }
-
       final customerId = customer!.customer.id;
 
       await InvoicesRepository.instance.issueInvoice(
@@ -309,6 +279,10 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       );
 
       await CustomersRepository.instance.refresh();
+
+      try {
+        await sl<VehicleStockCubit>().refresh();
+      } catch (_) {}
     } catch (e) {
       if (mounted) {
         setState(() => _isIssuing = false);
@@ -329,7 +303,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     Navigator.pop(context);
     showAppSuccess(
       context,
-      'تم إصدار الفاتورة $invoiceNumber بإجمالي ${_money(total)} — المتبقي على العميل ${_money(remainingBalance)}',
+      'تم إصدار الفاتورة بنجاح: $invoiceNumber',
     );
   }
 
@@ -341,11 +315,11 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
   bool _canBuildPdf() {
     if (customer == null) {
-      _toast('اختر العميل أولًا');
+      _toast('الرجاء اختيار العميل');
       return false;
     }
     if (lineItems.isEmpty) {
-      _toast('أضف صنفًا واحدًا على الأقل للفاتورة');
+      _toast('أضف منتجات للفاتورة');
       return false;
     }
     return true;
@@ -515,10 +489,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   }
 }
 
-/// ---------------------------------------------------------------------
-/// Header
-/// ---------------------------------------------------------------------
-
 class _Header extends StatelessWidget {
   final String invoiceNumber;
   const _Header({required this.invoiceNumber});
@@ -555,7 +525,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'فاتورة جديدة',
+                  'إنشاء فاتورة جديدة',
                   style:
                       AppTextStyles.cairoBold18.copyWith(color: Colors.white),
                 ),
@@ -599,7 +569,7 @@ class _RepChip extends StatelessWidget {
         Icon(Icons.badge_outlined, size: 15.sp, color: colors.textMuted),
         SizedBox(width: 6.w),
         Text(
-          'المندوب: $name',
+          'المندوب الحالي: $name',
           style: AppTextStyles.almaraiRegular14.copyWith(
             color: colors.textMuted,
             fontSize: 12.sp,
@@ -609,10 +579,6 @@ class _RepChip extends StatelessWidget {
     );
   }
 }
-
-/// ---------------------------------------------------------------------
-/// Shared section wrapper
-/// ---------------------------------------------------------------------
 
 class _SectionCard extends StatelessWidget {
   final Widget child;
@@ -668,10 +634,6 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------
-/// Customer section: empty state, picker sheet, selected info
-/// ---------------------------------------------------------------------
-
 class _CustomerEmptyState extends StatelessWidget {
   final VoidCallback onPick;
   const _CustomerEmptyState({required this.onPick});
@@ -715,7 +677,7 @@ class _CustomerEmptyState extends StatelessWidget {
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
-                      'اختر العميل لبدء إصدار الفاتورة',
+                      'اختر العميل للإصدار الفاتورة',
                       style: AppTextStyles.cairoMedium16.copyWith(
                         color: colors.text,
                         fontSize: 13.sp,
@@ -903,7 +865,7 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
               padding: EdgeInsets.symmetric(vertical: 24.h),
               child: Center(
                 child: Text(
-                  'لا يوجد عملاء مطابقين',
+                  'لا يوجد عملاء مطابقين للبحث',
                   style: AppTextStyles.almaraiRegular14
                       .copyWith(color: colors.textMuted),
                 ),
@@ -914,10 +876,6 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
     );
   }
 }
-
-/// ---------------------------------------------------------------------
-/// Invoice meta: date, invoice number, sale type toggle
-/// ---------------------------------------------------------------------
 
 class _InvoiceMetaSection extends StatelessWidget {
   final DateTime date;
@@ -1134,10 +1092,6 @@ class _SaleTypeOption extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------
-/// Financial summary (from the selected customer — admin controlled)
-/// ---------------------------------------------------------------------
-
 class _FinancialSummaryRow extends StatelessWidget {
   final InvoiceCustomerModel invoice;
   const _FinancialSummaryRow({required this.invoice});
@@ -1151,7 +1105,7 @@ class _FinancialSummaryRow extends StatelessWidget {
       children: [
         Expanded(
           child: _FinancialCard(
-            title: 'حد الائتمان',
+            title: 'الحد الائتماني',
             value: _money(invoice.customer.creditLimit),
             icon: Icons.verified_user_outlined,
             color: colors.statBlue,
@@ -1169,7 +1123,7 @@ class _FinancialSummaryRow extends StatelessWidget {
         SizedBox(width: 10.w),
         Expanded(
           child: _FinancialCard(
-            title: 'آخر سداد',
+            title: 'تاريخ آخر سداد',
             value: _date(
                 invoice.customer.lastCollectionDate ?? DateTime(2024, 6, 6)),
             icon: Icons.event_available_outlined,
@@ -1227,10 +1181,6 @@ class _FinancialCard extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------
-/// Statement — كشف حساب آخر 6 شهور
-/// ---------------------------------------------------------------------
-
 class _StatementTile extends StatelessWidget {
   final VoidCallback onTap;
   const _StatementTile({required this.onTap});
@@ -1257,7 +1207,7 @@ class _StatementTile extends StatelessWidget {
               SizedBox(width: 10.w),
               Expanded(
                 child: Text(
-                  'كشف الحساب — آخر 6 شهور',
+                  'كشف الحساب',
                   style: AppTextStyles.cairoMedium16
                       .copyWith(color: colors.text, fontSize: 13.sp),
                 ),
@@ -1282,7 +1232,7 @@ class _StatementSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return _BottomSheetShell(
-      title: 'كشف حساب — ${invoice.customer.name}',
+      title: 'كشف حساب: ${invoice.customer.name}',
       icon: Icons.receipt_long_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1345,10 +1295,6 @@ class _StatementSheet extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------
-/// Products section
-/// ---------------------------------------------------------------------
-
 class _ProductsSection extends StatelessWidget {
   final List<InvoiceLineItemModel> items;
   final int currentPage;
@@ -1394,7 +1340,7 @@ class _ProductsSection extends StatelessWidget {
             icon: Icon(Icons.add_circle_outline_rounded,
                 size: 16.sp, color: colors.primary),
             label: Text(
-              'إضافة صنف',
+              'إضافة منتج',
               style: AppTextStyles.cairoMedium16
                   .copyWith(color: colors.primary, fontSize: 12.sp),
             ),
@@ -1410,7 +1356,7 @@ class _ProductsSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Text(
-              'لم تتم إضافة أصناف بعد',
+              'لا يوجد منتجات مضافة للفاتورة حتى الآن',
               style: AppTextStyles.almaraiRegular14
                   .copyWith(color: colors.textMuted, fontSize: 12.sp),
             ),
@@ -1437,7 +1383,7 @@ class _ProductsSection extends StatelessWidget {
           SizedBox(height: 10.h),
           Divider(height: 1, color: colors.border),
           SizedBox(height: 10.h),
-          _TotalsRow(label: 'الإجمالي الفرعي', value: _money(subtotal)),
+          _TotalsRow(label: 'الإجمالي قبل الخصم', value: _money(subtotal)),
           SizedBox(height: 8.h),
           Row(
             children: [
@@ -1549,7 +1495,7 @@ class _InvoicePagination extends StatelessWidget {
                   onPressed: currentPage > 1
                       ? () => onPageChanged(currentPage - 1)
                       : null,
-                  child: const Text('‹ السابق'),
+                  child: const Text('السابق'),
                 ),
                 for (var page = 1; page <= pageCount; page++)
                   TextButton(
@@ -1561,7 +1507,7 @@ class _InvoicePagination extends StatelessWidget {
                   onPressed: currentPage < pageCount
                       ? () => onPageChanged(currentPage + 1)
                       : null,
-                  child: const Text('التالي ›'),
+                  child: const Text('التالي'),
                 ),
               ],
             ),
@@ -1678,7 +1624,7 @@ class _LineItemTile extends StatelessWidget {
                 SizedBox(height: 2.h),
                 Text(
                   item.previousCustomerPrice == null
-                      ? 'السعر الأساسي: ${_money(item.product.price)}'
+                      ? 'سعر الأساسي: ${_money(item.product.price)}'
                       : 'السعر السابق للعميل: ${_money(item.previousCustomerPrice!)}',
                   style: AppTextStyles.almaraiRegular14
                       .copyWith(color: colors.textMuted, fontSize: 10.5.sp),
@@ -1774,18 +1720,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     return match.isEmpty ? 0 : match.first.quantity;
   }
 
-  int _availableFor(InvoiceProductModel p) {
-    return MockInventoryRepository.instance.stockOf(p.id)?.quantity ?? 0;
-  }
-
   void _setQuantity(InvoiceProductModel p, int qty) {
-    final available = _availableFor(p);
-    if (qty > available) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('الكمية المتاحة في العربية $available فقط')),
-      );
-      return;
-    }
     setState(() {
       cart.removeWhere((c) => c.product.id == p.id);
       if (qty > 0) {
@@ -1809,7 +1744,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
         .toList();
 
     return _BottomSheetShell(
-      title: 'إضافة أصناف',
+      title: 'إضافة أصناف للفاتورة',
       icon: Icons.inventory_2_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1835,8 +1770,6 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
           SizedBox(height: 12.h),
           ...filtered.map((p) {
             final qty = _quantityFor(p);
-            final available = _availableFor(p);
-            final isOut = available == 0;
             return Padding(
               padding: EdgeInsets.only(bottom: 10.h),
               child: Container(
@@ -1853,7 +1786,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                   ),
                 ),
                 child: Opacity(
-                  opacity: isOut ? 0.5 : 1,
+                  opacity: 1,
                   child: Row(
                     children: [
                       Expanded(
@@ -1865,13 +1798,9 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                                     color: colors.text, fontSize: 12.5.sp)),
                             SizedBox(height: 2.h),
                             Text(
-                              isOut
-                                  ? '${_money(p.price)} / ${p.unit} · غير متوفر بالعربية'
-                                  : '${_money(p.price)} / ${p.unit} · المتاح: $available',
+                              ' / ',
                               style: AppTextStyles.almaraiRegular14.copyWith(
-                                color: isOut
-                                    ? colors.statusNotReached
-                                    : colors.textMuted,
+                                color: colors.textMuted,
                                 fontSize: 10.5.sp,
                               ),
                             ),
@@ -1884,7 +1813,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                           borderRadius: BorderRadius.circular(10.r),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(10.r),
-                            onTap: isOut ? null : () => _setQuantity(p, 1),
+                            onTap: () => _setQuantity(p, 1),
                             child: Padding(
                               padding: EdgeInsets.symmetric(
                                   horizontal: 12.w, vertical: 8.h),
@@ -1930,7 +1859,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                     borderRadius: BorderRadius.circular(12.r)),
               ),
               child: Text(
-                'تم — ${cart.length} صنف',
+                'تم (${cart.length} أصناف)',
                 style: AppTextStyles.cairoMedium16
                     .copyWith(color: Colors.white, fontSize: 13.sp),
               ),
@@ -1941,10 +1870,6 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     );
   }
 }
-
-/// ---------------------------------------------------------------------
-/// Account summary (previous balance + invoice total + paid now)
-/// ---------------------------------------------------------------------
 
 class _AccountSummarySection extends StatelessWidget {
   final double previousBalance;
@@ -1971,12 +1896,10 @@ class _AccountSummarySection extends StatelessWidget {
     final paid = double.tryParse(paidController.text) ?? 0;
     final isCash = saleType == 'نقدي';
 
-    // نفس منطق الـ validation اللي بيمنع الحفظ في _issueInvoice، هنا
-    // بس لعرض تحذير فوري تحت الحقل قبل ما المستخدم يحاول يحفظ أصلًا.
     final String? warning = isCash && (paid - invoiceTotal).abs() > 0.01
-        ? 'الفاتورة نقدي، المفروض المدفوع يساوي قيمة الفاتورة (${_money(invoiceTotal)}) بالظبط'
+        ? 'المبلغ المدفوع في حالة الدفع النقدي يجب أن يطابق إجمالي الفاتورة (${_money(invoiceTotal)}) تماماً'
         : !isCash && paid > totalDue + 0.01
-            ? 'المبلغ المدفوع أكبر من إجمالي المستحق على العميل'
+            ? 'المبلغ المدفوع يتجاوز إجمالي المستحق على العميل'
             : null;
 
     return Column(
@@ -2002,7 +1925,7 @@ class _AccountSummarySection extends StatelessWidget {
                     .copyWith(color: colors.textMuted, fontSize: 12.sp)),
             if (isCash) ...[
               SizedBox(width: 8.w),
-              Text('(نقدي — لازم يتساوى بالإجمالي)',
+              Text('(نقدي - ملزم بتسديد كامل الفاتورة)',
                   style: AppTextStyles.almaraiRegular14
                       .copyWith(color: colors.statOrange, fontSize: 10.sp)),
             ],
@@ -2100,10 +2023,6 @@ class _AccountSummarySection extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------
-/// Notes
-/// ---------------------------------------------------------------------
-
 class _NotesField extends StatelessWidget {
   final TextEditingController controller;
   const _NotesField({required this.controller});
@@ -2115,14 +2034,14 @@ class _NotesField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(
-            icon: Icons.edit_note_rounded, title: 'ملاحظات المندوب'),
+            icon: Icons.edit_note_rounded, title: 'ملاحظات إضافية'),
         SizedBox(height: 10.h),
         TextField(
           controller: controller,
           maxLines: 3,
           style: TextStyle(color: colors.text),
           decoration: InputDecoration(
-            hintText: '📝 اكتب ملاحظاتك على الزيارة أو الفاتورة...',
+            hintText: 'اكتب ملاحظاتك على الزيارة أو الفاتورة...',
             hintStyle: AppTextStyles.almaraiRegular14
                 .copyWith(color: colors.textMuted),
             filled: true,
@@ -2139,10 +2058,6 @@ class _NotesField extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------
-/// Purchase analysis — always the last section before the footer
-/// ---------------------------------------------------------------------
-
 class _PurchaseAnalysisSection extends StatelessWidget {
   final InvoiceCustomerModel customer;
   const _PurchaseAnalysisSection({required this.customer});
@@ -2155,7 +2070,7 @@ class _PurchaseAnalysisSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const _SectionTitle(
-              icon: Icons.insights_rounded, title: 'تحليل مشتريات العميل'),
+              icon: Icons.insights_rounded, title: 'تحليل المشتريات للعميل'),
           SizedBox(height: 12.h),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2175,7 +2090,7 @@ class _PurchaseAnalysisSection extends StatelessWidget {
               if (customer.notPurchasedRecently.isNotEmpty)
                 Expanded(
                   child: _InsightBadge(
-                    title: 'لم يشترها منذ فترة',
+                    title: 'لم يشتريها منذ فترة',
                     items: customer.notPurchasedRecently,
                     color: colors.statOrange,
                     icon: Icons.history_rounded,
@@ -2258,10 +2173,6 @@ class _InsightBadge extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------
-/// Footer actions
-/// ---------------------------------------------------------------------
-
 class _FooterActions extends StatelessWidget {
   final bool canIssue;
   final bool isIssuing;
@@ -2308,7 +2219,7 @@ class _FooterActions extends StatelessWidget {
                   : Icon(Icons.save_alt_rounded,
                       color: Colors.white, size: 20.sp),
               label: Text(
-                isIssuing ? 'جاري الحفظ...' : 'حفظ وإصدار الفاتورة',
+                isIssuing ? 'جاري الإصدار...' : 'حفظ وإصدار الفاتورة',
                 style: AppTextStyles.cairoMedium16
                     .copyWith(color: Colors.white, fontSize: 13.sp),
               ),
@@ -2370,10 +2281,6 @@ class _OutlinedIconButton extends StatelessWidget {
     );
   }
 }
-
-/// ---------------------------------------------------------------------
-/// Shared bottom-sheet shell used by both picker sheets
-/// ---------------------------------------------------------------------
 
 class _BottomSheetShell extends StatelessWidget {
   final String title;

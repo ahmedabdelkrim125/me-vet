@@ -17,6 +17,19 @@ extension PaymentMethodBackendValue on PaymentMethod {
   }
 }
 
+extension PaymentMethodDisplayLabel on PaymentMethod {
+  String get displayLabel {
+    switch (this) {
+      case PaymentMethod.cash:
+        return 'نقدي';
+      case PaymentMethod.vodafoneCash:
+        return 'فودافون كاش';
+      case PaymentMethod.instaPay:
+        return 'إنستا باي';
+    }
+  }
+}
+
 PaymentMethod? paymentMethodFromBackend(String? value) {
   switch (value) {
     case 'cash':

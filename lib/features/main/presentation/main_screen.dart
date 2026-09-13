@@ -4,7 +4,6 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../customer-visits/customers/screens/customers_screen.dart';
 import '../../daily_report/presentation/screens/daily_report_screen.dart';
 import '../../home/presentation/home_screen.dart';
-import '../../inventory/presentation/screens/inventory_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../vehicle_stock/presentation/screens/vehicle_stock_screen.dart';
 import 'widgets/app_bottom_nav_bar.dart';
@@ -36,12 +35,10 @@ class _MainScreenState extends State<MainScreen> {
       case 1:
         return const CustomersScreen();
       case 2:
-        return const InventoryScreen();
-      case 3:
         return const VehicleStockScreen();
-      case 4:
+      case 3:
         return const DailyReportScreen();
-      case 5:
+      case 4:
         return const SettingsScreen();
       default:
         return TabPlaceholder(item: appNavItems[index]);

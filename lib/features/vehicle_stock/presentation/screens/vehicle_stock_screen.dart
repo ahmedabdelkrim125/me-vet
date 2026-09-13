@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mivet_app/core/di/service_locator.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../inventory/domain/mock_inventory_repository.dart';
-import '../../../inventory/domain/models/main_warehouse_stock_model.dart';
-import '../../../inventory/domain/models/product_model.dart';
-import '../../../inventory/domain/models/stock_alert_model.dart';
-import '../../../inventory/domain/models/stock_movement_model.dart';
-import '../../../inventory/domain/models/vehicle_stock_model.dart';
-import '../../../inventory/presentation/widgets/add_to_vehicle_dialog.dart';
-import '../../../inventory/presentation/widgets/inventory_search_bar.dart';
-import '../../../inventory/presentation/widgets/inventory_stat_row.dart';
-import '../../../inventory/presentation/widgets/low_stock_alert_banner.dart';
-import '../widgets/add_to_warehouse_dialog.dart';
-import '../widgets/request_reload_sheet.dart';
-import '../widgets/stock_movement_log_sheet.dart';
-import '../widgets/vehicle_stock_sub_view_switcher.dart';
+import 'package:mivet_app/features/inventory/domain/models/vehicle_stock_model.dart';
+import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_cubit.dart';
+import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_state.dart';
+import 'package:mivet_app/features/inventory/presentation/widgets/add_to_vehicle_dialog.dart';
+import 'package:mivet_app/features/inventory/presentation/widgets/add_product_sheet.dart';
+import 'package:mivet_app/features/inventory/presentation/widgets/inventory_search_bar.dart';
+import 'package:mivet_app/features/inventory/presentation/widgets/inventory_stat_row.dart';
+import 'package:mivet_app/features/inventory/presentation/widgets/product_detail_sheet.dart';
+import 'package:mivet_app/features/inventory/data/products_repository.dart';
+import 'package:mivet_app/features/inventory/domain/models/product_model.dart';
+import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
+import '../../../inventory/domain/models/product_catalog.dart';
 import '../widgets/vehicle_stock_tile.dart';
-import '../widgets/warehouse_stock_tile.dart';
+import '../widgets/stock_movement_log_sheet.dart';
+import '../widgets/vehicle_setup_form.dart';
+import '../widgets/category_filter_tab.dart';
+import '../widgets/existing_product_picker_sheet.dart';
 
 class VehicleStockScreen extends StatefulWidget {
   const VehicleStockScreen({super.key});
@@ -26,20 +30,47 @@ class VehicleStockScreen extends StatefulWidget {
   State<VehicleStockScreen> createState() => _VehicleStockScreenState();
 }
 
-class _VehicleStockScreenState extends State<VehicleStockScreen>
+class _VehicleStockScreenState extends State<VehicleStockScreen> {
+  late final VehicleStockCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = sl<VehicleStockCubit>();
+    _cubit.loadVehicles();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider.value(
+      value: _cubit,
+      child: const _VehicleStockView(),
+    );
+  }
+}
+
+class _VehicleStockView extends StatefulWidget {
+  const _VehicleStockView();
+
+  @override
+  State<_VehicleStockView> createState() => _VehicleStockViewState();
+}
+
+class _VehicleStockViewState extends State<_VehicleStockView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  int _subViewIndex = 0;
-  bool _movingForward = true;
   String _query = '';
+  ProductCatalog _catalog = ProductCatalog.empty;
+  String? _categoryCode;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700))
-      ..forward();
-    MockInventoryRepository.instance.init();
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    )..forward();
+    _loadCatalog();
   }
 
   @override
@@ -48,53 +79,292 @@ class _VehicleStockScreenState extends State<VehicleStockScreen>
     super.dispose();
   }
 
-  void _onSubViewChanged(int index) {
-    if (index == _subViewIndex) return;
-    setState(() {
-      _movingForward = index > _subViewIndex;
-      _subViewIndex = index;
-      _controller
-        ..reset()
-        ..forward();
-    });
+  Future<void> _refresh() {
+    return Future.wait([
+      context.read<VehicleStockCubit>().refresh(),
+      _loadCatalog(),
+    ]);
+  }
+
+  Future<void> _loadCatalog() async {
+    try {
+      final results = await Future.wait([
+        ProductsRepository.instance.getCategories(),
+        ProductsRepository.instance.getUnits(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _catalog = ProductCatalog(categories: results[0], units: results[1]);
+      });
+    } catch (error) {
+      if (mounted) showAppError(context, error);
+    }
+  }
+
+  Future<void> _openProductDetail(ProductModel product) async {
+    final changed = await showProductDetailSheet(
+      context,
+      product,
+      catalog: _catalog,
+    );
+    if (changed && mounted) {
+      await context.read<VehicleStockCubit>().refresh();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final repo = MockInventoryRepository.instance;
-
     return Container(
       color: context.colors.background,
       child: SafeArea(
-        child: ValueListenableBuilder<List<ProductModel>>(
-          valueListenable: repo.products,
-          builder: (context, products, _) {
-            return ValueListenableBuilder<List<VehicleStockModel>>(
-              valueListenable: repo.vehicleStock,
-              builder: (context, vehicleStock, __) {
-                return ValueListenableBuilder<List<MainWarehouseStockModel>>(
-                  valueListenable: repo.mainWarehouseStock,
-                  builder: (context, warehouseStock, ___) {
-                    return ValueListenableBuilder<List<StockAlertModel>>(
-                      valueListenable: repo.alerts,
-                      builder: (context, alerts, ____) {
-                        return ValueListenableBuilder<List<StockMovementModel>>(
-                          valueListenable: repo.movements,
-                          builder: (context, movements, _____) {
-                            return _buildBody(
-                              context,
-                              vehicleStock: vehicleStock,
-                              warehouseStock: warehouseStock,
-                              alerts: alerts,
-                              movements: movements,
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                );
-              },
+        child: BlocConsumer<VehicleStockCubit, VehicleStockState>(
+          listener: (context, state) {
+            if (state.successMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.successMessage!)),
+              );
+              context.read<VehicleStockCubit>().clearMessages();
+            }
+
+            if (state.errorMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.errorMessage!)),
+              );
+              context.read<VehicleStockCubit>().clearMessages();
+            }
+          },
+          builder: (context, state) {
+            if (state.status == VehicleStockStatus.initial ||
+                state.status == VehicleStockStatus.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state.vehicles.isEmpty) {
+              return VehicleSetupForm(
+                representativeName: context.select<AuthCubit, String>(
+                  (cubit) => cubit.state.user?.name ?? 'المندوب الحالي',
+                ),
+              );
+            }
+
+            final selectedVehicle = state.selectedVehicle;
+            if (selectedVehicle == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final filtered = state.vehicleStock.where((entry) {
+              final product = entry.product;
+              if (product == null) return false;
+              final matchesQuery = _query.isEmpty ||
+                  product.name.toLowerCase().contains(_query.toLowerCase());
+              return matchesQuery &&
+                  (_categoryCode == null || product.category == _categoryCode);
+            }).toList();
+
+            final total = state.vehicleStock.length;
+            final available = state.vehicleStock
+                .where((item) => item.quantity > item.minThreshold)
+                .length;
+            final low = state.vehicleStock
+                .where((item) =>
+                    item.quantity > 0 && item.quantity <= item.minThreshold)
+                .length;
+            final outOfStock =
+                state.vehicleStock.where((item) => item.quantity == 0).length;
+
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 14.w,
+                            vertical: 12.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.colors.surface,
+                            borderRadius: BorderRadius.circular(14.r),
+                            border: Border.all(
+                              color: context.colors.border,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedVehicle.id,
+                              isExpanded: true,
+                              icon: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: context.colors.textMuted,
+                              ),
+                              dropdownColor: context.colors.surface,
+                              items: state.vehicles
+                                  .map(
+                                    (vehicle) => DropdownMenuItem<String>(
+                                      value: vehicle.id,
+                                      child: Text(
+                                        '${vehicle.plateNumber} — ${vehicle.driverName}',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTextStyles.cairoMedium16
+                                            .copyWith(
+                                          color: context.colors.text,
+                                          fontSize: 13.sp,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (vehicleId) {
+                                if (vehicleId != null) {
+                                  context
+                                      .read<VehicleStockCubit>()
+                                      .selectVehicle(vehicleId);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Material(
+                        color: context.colors.surface,
+                        borderRadius: BorderRadius.circular(14.r),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14.r),
+                          onTap: () => showStockMovementLogSheet(
+                            context,
+                            state.movements,
+                          ),
+                          child: Container(
+                            width: 52.h,
+                            height: 52.h,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: context.colors.border,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.history_rounded,
+                              color: context.colors.primary,
+                              size: 20.sp,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 14.h),
+                  InventoryStatRow(
+                    total: total,
+                    available: available,
+                    low: low,
+                    outOfStock: outOfStock,
+                  ),
+                  SizedBox(height: 14.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'التصنيفات',
+                          style: AppTextStyles.cairoMedium16.copyWith(
+                            color: context.colors.text,
+                            fontSize: 13.sp,
+                          ),
+                        ),
+                      ),
+                      FilledButton.icon(
+                        onPressed: () => _openProductFlow(
+                          context,
+                          selectedVehicle.id,
+                        ),
+                        icon: const Icon(Icons.add),
+                        label: const Text('إضافة صنف'),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  SizedBox(
+                    height: 38.h,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        CategoryFilterTab(
+                          label: 'الكل',
+                          selected: _categoryCode == null,
+                          onTap: () => setState(() => _categoryCode = null),
+                        ),
+                        for (final category in _catalog.categories)
+                          Padding(
+                            padding: EdgeInsets.only(left: 8.w),
+                            child: CategoryFilterTab(
+                              label: category.name,
+                              selected: _categoryCode == category.code,
+                              onTap: () => setState(
+                                () => _categoryCode = category.code,
+                              ),
+                            ),
+                          ),
+                        Padding(
+                          padding: EdgeInsets.only(left: 8.w),
+                          child: CategoryFilterTab(
+                            label: '+',
+                            selected: false,
+                            onTap: _createCategory,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 14.h),
+                  InventorySearchBar(
+                    onChanged: (value) {
+                      setState(() => _query = value);
+                    },
+                  ),
+                  SizedBox(height: 14.h),
+                  if (state.status == VehicleStockStatus.loadingStock)
+                    const LinearProgressIndicator(),
+                  SizedBox(height: 8.h),
+                  if (filtered.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 60.h),
+                      child: Center(
+                        child: Text(
+                          state.vehicleStock.isEmpty
+                              ? 'لسه مفيش أصناف محملة في العربية'
+                              : 'لا توجد أصناف مطابقة للبحث',
+                          style: AppTextStyles.cairoMedium16.copyWith(
+                            color: context.colors.textMuted,
+                            fontSize: 13.sp,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    for (int i = 0; i < filtered.length; i++)
+                      _AnimatedVehicleTile(
+                        index: i,
+                        total: filtered.length,
+                        controller: _controller,
+                        stock: filtered[i],
+                        categoryName: _catalog
+                            .categoryName(filtered[i].product!.category),
+                        unitName: _catalog.unitName(filtered[i].product!.unit),
+                        onTap: () => _openProductDetail(filtered[i].product!),
+                        onLoadMore: () => _loadMore(
+                          context,
+                          selectedVehicle.id,
+                          filtered[i],
+                        ),
+                      ),
+                ],
+              ),
             );
           },
         ),
@@ -102,288 +372,210 @@ class _VehicleStockScreenState extends State<VehicleStockScreen>
     );
   }
 
-  Widget _buildBody(
-    BuildContext context, {
-    required List<VehicleStockModel> vehicleStock,
-    required List<MainWarehouseStockModel> warehouseStock,
-    required List<StockAlertModel> alerts,
-    required List<StockMovementModel> movements,
-  }) {
-    final isWarehouseView = _subViewIndex == 0;
-    final repo = MockInventoryRepository.instance;
+  Future<void> _createCategory() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('إنشاء تصنيف'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textAlign: TextAlign.right,
+          decoration: const InputDecoration(labelText: 'اسم التصنيف'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, controller.text),
+            child: const Text('إنشاء'),
+          ),
+        ],
+      ),
+    );
 
-    final warehouseEntries = warehouseStock.where((s) {
-      final product = repo.productById(s.productId);
-      if (product == null) return false;
-      return _query.isEmpty || product.name.contains(_query);
-    }).toList();
+    Future.delayed(
+        const Duration(milliseconds: 300), () => controller.dispose());
 
-    final vehicleEntries = vehicleStock.where((s) {
-      final product = repo.productById(s.productId);
-      if (product == null) return false;
-      return _query.isEmpty || product.name.contains(_query);
-    }).toList();
+    if (name == null || name.trim().isEmpty) return;
+    try {
+      final category = await ProductsRepository.instance.createCategory(name);
+      if (mounted) {
+        setState(() {
+          _catalog = _catalog.copyWith(
+            categories: [..._catalog.categories, category],
+          );
+          _categoryCode = category.code;
+        });
+      }
+    } catch (error) {
+      if (mounted) showAppError(context, error);
+    }
+  }
 
-    final totalItems =
-        isWarehouseView ? warehouseStock.length : vehicleStock.length;
-    final available = isWarehouseView
-        ? warehouseStock.where((s) {
-            final product = repo.productById(s.productId);
-            return product != null && s.quantity > product.minStockThreshold;
-          }).length
-        : vehicleStock.where((s) => s.quantity > s.minThreshold).length;
-    final low = isWarehouseView
-        ? warehouseStock.where((s) {
-            final product = repo.productById(s.productId);
-            return product != null &&
-                s.quantity > 0 &&
-                s.quantity <= product.minStockThreshold;
-          }).length
-        : vehicleStock
-            .where((s) => s.quantity > 0 && s.quantity <= s.minThreshold)
-            .length;
-    final outOfStock = isWarehouseView
-        ? warehouseStock.where((s) => s.quantity == 0).length
-        : vehicleStock.where((s) => s.quantity == 0).length;
-
-    return Stack(
-      children: [
-        ListView(
-          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
+  Future<void> _openProductFlow(BuildContext context, String vehicleId) async {
+    final choice = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: VehicleStockSubViewSwitcher(
-                    selectedIndex: _subViewIndex,
-                    onChanged: _onSubViewChanged,
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Material(
-                  color: context.colors.surface,
-                  borderRadius: BorderRadius.circular(14.r),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14.r),
-                    onTap: () => showStockMovementLogSheet(context, movements),
-                    child: Container(
-                      width: 52.h,
-                      height: 52.h,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14.r),
-                        border: Border.all(color: context.colors.border),
-                      ),
-                      child: Icon(Icons.history_rounded,
-                          color: context.colors.primary, size: 20.sp),
-                    ),
-                  ),
-                ),
-              ],
+            ListTile(
+              leading: const Icon(Icons.search_rounded),
+              title: const Text('اختيار صنف موجود'),
+              onTap: () => Navigator.pop(sheetContext, true),
             ),
-            SizedBox(height: 14.h),
-            InventoryStatRow(
-                total: totalItems,
-                available: available,
-                low: low,
-                outOfStock: outOfStock),
-            SizedBox(height: 14.h),
-            LowStockAlertBanner(alerts: alerts),
-            if (alerts.isNotEmpty) SizedBox(height: 14.h),
-            InventorySearchBar(onChanged: (v) => setState(() => _query = v)),
-            SizedBox(height: 14.h),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 320),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                final offsetX = _movingForward ? 0.06 : -0.06;
-                final slide =
-                    Tween<Offset>(begin: Offset(offsetX, 0), end: Offset.zero)
-                        .animate(
-                  CurvedAnimation(
-                      parent: animation, curve: Curves.easeOutCubic),
-                );
-                return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(position: slide, child: child));
-              },
-              child: isWarehouseView
-                  ? _WarehouseList(
-                      key: const ValueKey('warehouse'),
-                      entries: warehouseEntries,
-                      controller: _controller,
-                    )
-                  : _VehicleList(
-                      key: const ValueKey('vehicle'),
-                      entries: vehicleEntries,
-                      controller: _controller,
-                    ),
+            ListTile(
+              leading: const Icon(Icons.add_box_outlined),
+              title: const Text('إنشاء صنف جديد'),
+              onTap: () => Navigator.pop(sheetContext, false),
             ),
           ],
         ),
-        Positioned(
-          left: 16.w,
-          right: 16.w,
-          bottom: 16.h,
-          child: Material(
-            color: context.colors.primary,
-            borderRadius: BorderRadius.circular(16.r),
-            elevation: 6,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16.r),
-              onTap: () =>
-                  showRequestReloadSheet(context, alerts: List.from(alerts)),
-              child: Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(vertical: 14.h),
-                child: Text(
-                  'طلب إعادة تحميل العربية',
-                  style: AppTextStyles.cairoMedium16
-                      .copyWith(color: Colors.white, fontSize: 13.sp),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
-  }
-}
-
-class _WarehouseList extends StatelessWidget {
-  final List<MainWarehouseStockModel> entries;
-  final AnimationController controller;
-
-  const _WarehouseList(
-      {super.key, required this.entries, required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    if (entries.isEmpty) {
-      return Padding(
-        padding: EdgeInsets.only(top: 60.h),
-        child: Center(
-          child: Text(
-            'المخزن الرئيسي فاضي دلوقتي',
-            style: AppTextStyles.cairoMedium16
-                .copyWith(color: context.colors.textMuted, fontSize: 13.sp),
-          ),
+    if (!context.mounted || choice == null) return;
+    if (choice) {
+      final product = await showModalBottomSheet<ProductModel>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => ExistingProductPickerSheet(
+          loadProducts: ProductsRepository.instance.getProducts,
+          catalog: _catalog,
         ),
       );
+      if (product != null && context.mounted) {
+        await _loadProduct(context, vehicleId, product);
+      }
+      return;
     }
-
-    return Column(
-      children: [
-        for (int i = 0; i < entries.length; i++)
-          _AnimatedTile(
-            index: i,
-            total: entries.length,
-            controller: controller,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 12.h),
-              child: WarehouseStockTile(
-                product: MockInventoryRepository.instance
-                    .productById(entries[i].productId)!,
-                stock: entries[i],
-                onAdd: () => showAddToWarehouseDialog(
-                  context,
-                  product: MockInventoryRepository.instance
-                      .productById(entries[i].productId)!,
-                ),
+    await showAddProductSheet(
+      context,
+      initialVehicleQuantity: 1,
+      onCreated: (product, quantity) =>
+          context.read<VehicleStockCubit>().loadStock(
+                vehicleId: vehicleId,
+                productId: product.id,
+                quantity: quantity,
+                minThreshold: product.minStockThreshold,
               ),
-            ),
-          ),
-      ],
     );
   }
-}
 
-class _VehicleList extends StatelessWidget {
-  final List<VehicleStockModel> entries;
-  final AnimationController controller;
-
-  const _VehicleList(
-      {super.key, required this.entries, required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    if (entries.isEmpty) {
-      return Padding(
-        padding: EdgeInsets.only(top: 60.h),
-        child: Center(
-          child: Text(
-            'لسه مفيش أصناف محملة في العربية',
-            style: AppTextStyles.cairoMedium16
-                .copyWith(color: context.colors.textMuted, fontSize: 13.sp),
-          ),
-        ),
+  Future<void> _loadProduct(
+    BuildContext context,
+    String vehicleId,
+    ProductModel product,
+  ) =>
+      showAddToVehicleDialog(
+        context,
+        product: product,
+        onConfirm: (quantity, minThreshold) async {
+          try {
+            await context.read<VehicleStockCubit>().loadStock(
+                  vehicleId: vehicleId,
+                  productId: product.id,
+                  quantity: quantity,
+                  minThreshold: minThreshold,
+                );
+            return null;
+          } catch (error) {
+            return error.toString();
+          }
+        },
       );
-    }
 
-    return Column(
-      children: [
-        for (int i = 0; i < entries.length; i++)
-          _AnimatedTile(
-            index: i,
-            total: entries.length,
-            controller: controller,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 12.h),
-              child: VehicleStockTile(
-                product: MockInventoryRepository.instance
-                    .productById(entries[i].productId)!,
-                stock: entries[i],
-                onLoadMore: () => showAddToVehicleDialog(
-                  context,
-                  product: MockInventoryRepository.instance
-                      .productById(entries[i].productId)!,
-                  onConfirm: (quantity, threshold) =>
-                      MockInventoryRepository.instance.loadToVehicle(
-                    productId: entries[i].productId,
-                    quantity: quantity,
-                    minThreshold: threshold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
+  Future<void> _loadMore(
+    BuildContext context,
+    String vehicleId,
+    VehicleStockModel stock,
+  ) async {
+    final product = stock.product;
+    if (product == null) return;
+
+    await showAddToVehicleDialog(
+      context,
+      product: product,
+      onConfirm: (quantity, minThreshold) async {
+        try {
+          await context.read<VehicleStockCubit>().loadStock(
+                vehicleId: vehicleId,
+                productId: product.id,
+                quantity: quantity,
+                minThreshold: minThreshold,
+              );
+          return null;
+        } catch (e) {
+          return e.toString();
+        }
+      },
     );
   }
 }
 
-class _AnimatedTile extends StatelessWidget {
+class _AnimatedVehicleTile extends StatelessWidget {
   final int index;
   final int total;
   final AnimationController controller;
-  final Widget child;
+  final VehicleStockModel stock;
+  final String categoryName;
+  final String unitName;
+  final VoidCallback onTap;
+  final VoidCallback onLoadMore;
 
-  const _AnimatedTile(
-      {required this.index,
-      required this.total,
-      required this.controller,
-      required this.child});
+  const _AnimatedVehicleTile({
+    required this.index,
+    required this.total,
+    required this.controller,
+    required this.stock,
+    required this.categoryName,
+    required this.unitName,
+    required this.onTap,
+    required this.onLoadMore,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final product = stock.product;
+    if (product == null) return const SizedBox.shrink();
+
     final safeTotal = total == 0 ? 1 : total;
     final start = (index / safeTotal) * 0.5;
     final end = (start + 0.5).clamp(0.0, 1.0);
+
     final animation = CurvedAnimation(
-        parent: controller,
-        curve: Interval(start, end, curve: Curves.easeOutCubic));
+      parent: controller,
+      curve: Interval(
+        start,
+        end,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
     return AnimatedBuilder(
       animation: animation,
-      builder: (context, _) {
+      builder: (context, child) {
         return Opacity(
           opacity: animation.value.clamp(0.0, 1.0),
           child: Transform.translate(
-              offset: Offset(0, 16 * (1 - animation.value)), child: child),
+            offset: Offset(0, 16 * (1 - animation.value)),
+            child: child,
+          ),
         );
       },
-      child: child,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: 12.h),
+        child: VehicleStockTile(
+          product: product,
+          stock: stock,
+          categoryName: categoryName,
+          unitName: unitName,
+          onTap: onTap,
+          onLoadMore: onLoadMore,
+        ),
+      ),
     );
   }
 }
