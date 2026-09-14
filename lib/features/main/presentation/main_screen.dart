@@ -14,15 +14,23 @@ import 'widgets/nav_items.dart';
 import 'widgets/tab_placeholder.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int? initialIndex;
+
+  const MainScreen({super.key, this.initialIndex});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   bool _sideNavExpanded = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex ?? 0;
+  }
 
   void _onTabChange(int index) {
     setState(() => _selectedIndex = index);

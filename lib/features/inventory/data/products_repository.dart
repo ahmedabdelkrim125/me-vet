@@ -15,7 +15,7 @@ class ProductsRepository {
   static const productImageBucket = 'product-images';
   static const _productFields =
       'id, name, image_path, category, unit, retail_price, wholesale_price, '
-      'min_stock_threshold, expiry_date, created_at';
+      'min_stock_threshold, expiry_date, created_at, deleted_at';
 
   Future<List<ProductCatalogItem>> getCategories() =>
       _getCatalog('product_categories');
@@ -81,6 +81,7 @@ class ProductsRepository {
     final rows = await _supabase
         .from('products')
         .select(_productFields)
+        .isFilter('deleted_at', null)
         .order('name', ascending: true);
 
     return (rows as List)
@@ -90,6 +91,21 @@ class ProductsRepository {
           ),
         )
         .toList();
+  }
+
+  Future<ProductModel?> getProductById(String id) async {
+    try {
+      final row = await _supabase
+          .from('products')
+          .select(_productFields)
+          .eq('id', id)
+          .maybeSingle();
+
+      if (row == null) return null;
+      return _fromRow(Map<String, dynamic>.from(row));
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<ProductModel> createProduct({
@@ -143,7 +159,10 @@ class ProductsRepository {
   }
 
   Future<void> deleteProduct(String id) async {
-    await _supabase.from('products').delete().eq('id', id);
+    await _supabase
+        .from('products')
+        .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
+        .eq('id', id);
   }
 
   ProductModel _fromRow(Map<String, dynamic> row) => ProductModel.fromMap(row);

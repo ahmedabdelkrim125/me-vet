@@ -32,7 +32,10 @@ class VehicleStockRepositoryImpl implements VehicleStockRepository {
   @override
   Future<List<VehicleStockModel>> getVehicleStock(String vehicleId) async {
     final rows = await remoteDataSource.getVehicleStock(vehicleId);
-    return rows.map(VehicleStockModel.fromMap).toList();
+    return rows
+        .map(VehicleStockModel.fromMap)
+        .where((stock) => stock.product != null && !stock.product!.isDeleted)
+        .toList();
   }
 
   @override

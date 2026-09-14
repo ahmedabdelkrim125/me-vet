@@ -123,6 +123,20 @@ class CustomersRepository {
     return null;
   }
 
+  Future<CustomerModel?> fetchCustomerById(String id) async {
+    final cached = getCustomerById(id);
+    if (cached != null) return cached;
+    try {
+      final row =
+          await _supabase.from('customers').select().eq('id', id).maybeSingle();
+      if (row == null) return null;
+      return CustomerModel.fromSupabaseRow(row);
+    } catch (e) {
+      debugPrint('[CustomersRepository] fetchCustomerById error: $e');
+      return null;
+    }
+  }
+
   List<CustomerModel> getCustomers(
       {CustomerStatus? status, String query = ''}) {
     final normalizedQuery = query.trim().toLowerCase();

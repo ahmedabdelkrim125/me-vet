@@ -5,14 +5,28 @@ import 'package:device_preview/device_preview.dart';
 import 'package:mivet_app/core/routing/routes.dart';
 import 'package:mivet_app/core/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/notifications/notification_navigator.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/utils/responsive_extension.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 
-class MevetApp extends StatelessWidget {
+class MevetApp extends StatefulWidget {
   const MevetApp({super.key});
+
+  static final navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  State<MevetApp> createState() => _MevetAppState();
+}
+
+class _MevetAppState extends State<MevetApp> {
+  @override
+  void initState() {
+    super.initState();
+    NotificationNavigator.instance.setNavigatorKey(MevetApp.navigatorKey);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +37,7 @@ class MevetApp extends StatelessWidget {
         builder: (context, mode, _) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+            navigatorKey: MevetApp.navigatorKey,
             onGenerateRoute: AppRouter.generateRoute,
             initialRoute: Routes.splashScreen,
             locale: DevicePreview.locale(context) ?? const Locale('ar'),
