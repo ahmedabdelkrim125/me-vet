@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -17,24 +18,62 @@ class PushNotificationService {
 
   static const String _androidChannelId = 'mivet_default_channel';
 
+  bool _localNotificationsInitialized = false;
+  bool _tokenRefreshListenerRegistered = false;
+
   Future<void> initializeLocalNotifications() async {
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidInit);
-    await _localNotifications.initialize(settings: initSettings);
+    if (_localNotificationsInitialized) {
+      debugPrint('[Push] initializeLocalNotifications: اتنادت قبل كده، هتجاهل');
+      return;
+    }
 
-    const channel = AndroidNotificationChannel(
-      _androidChannelId,
-      'إشعارات ميفيت',
-      description: 'تنبيهات المخزون، العملاء، والتقارير',
-      importance: Importance.high,
-    );
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+    try {
+      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosInit = DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      );
+      const initSettings = InitializationSettings(
+        android: androidInit,
+        iOS: iosInit,
+      );
+      await _localNotifications.initialize(
+        settings: initSettings,
+        onDidReceiveNotificationResponse: _onLocalNotificationTapped,
+      );
 
-    FirebaseMessaging.onMessage.listen(_showLocalNotification);
-    debugPrint('[Push] initializeLocalNotifications: خلصت بنجاح');
+      const channel = AndroidNotificationChannel(
+        _androidChannelId,
+        'إشعارات ميفيت',
+        description: 'تنبيهات المخزون، العملاء، والتقارير',
+        importance: Importance.high,
+      );
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: false,
+        badge: true,
+        sound: false,
+      );
+
+      FirebaseMessaging.onMessage.listen(_showLocalNotification);
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+
+      final initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _handleNotificationTap(initialMessage);
+      }
+
+      _localNotificationsInitialized = true;
+      debugPrint('[Push] initializeLocalNotifications: خلصت بنجاح');
+    } catch (e, stack) {
+      debugPrint('[Push] EXCEPTION في initializeLocalNotifications: $e');
+      debugPrint('[Push] Stack trace: $stack');
+    }
   }
 
   Future<void> registerDeviceForCurrentUser() async {
@@ -71,10 +110,13 @@ class PushNotificationService {
 
       await _saveToken(token);
 
-      _messaging.onTokenRefresh.listen((newToken) {
-        debugPrint('[Push] onTokenRefresh: token جديد وصل');
-        _saveToken(newToken);
-      });
+      if (!_tokenRefreshListenerRegistered) {
+        _tokenRefreshListenerRegistered = true;
+        _messaging.onTokenRefresh.listen((newToken) {
+          debugPrint('[Push] onTokenRefresh: token جديد وصل');
+          _saveToken(newToken);
+        });
+      }
 
       debugPrint('[Push] registerDeviceForCurrentUser: خلصت بنجاح');
     } catch (e, stack) {
@@ -135,8 +177,33 @@ class PushNotificationService {
           importance: Importance.high,
           priority: Priority.high,
         ),
+        iOS: DarwinNotificationDetails(),
       ),
+      payload: jsonEncode(message.data),
     );
+  }
+
+  void _onLocalNotificationTapped(NotificationResponse response) {
+    final payload = response.payload;
+    if (payload == null || payload.isEmpty) return;
+    try {
+      final data = Map<String, dynamic>.from(
+        jsonDecode(payload) as Map,
+      );
+      _logNotificationTap(data);
+    } catch (e) {
+      debugPrint('[Push] _onLocalNotificationTapped: فشل decode للـ payload — $e');
+    }
+  }
+
+  void _handleNotificationTap(RemoteMessage message) {
+    _logNotificationTap(message.data);
+  }
+
+  void _logNotificationTap(Map<String, dynamic> data) {
+    final type = data['type'];
+    final relatedId = data['related_id'];
+    debugPrint('[Push] notification tapped: type=$type related_id=$relatedId');
   }
 
   @pragma('vm:entry-point')
