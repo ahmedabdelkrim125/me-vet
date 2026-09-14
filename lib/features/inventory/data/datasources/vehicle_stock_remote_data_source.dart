@@ -39,7 +39,7 @@ class VehicleStockRemoteDataSource {
         .select(
           'vehicle_id, product_id, quantity, min_threshold, '
           'products(id, name, image_path, category, unit, retail_price, '
-          'wholesale_price, min_stock_threshold, expiry_date, created_at)',
+          'wholesale_price, min_stock_threshold, expiry_date, created_at, deleted_at)',
         )
         .eq('vehicle_id', vehicleId)
         .order('product_id', ascending: true);

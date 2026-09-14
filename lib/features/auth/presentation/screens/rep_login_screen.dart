@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/errors/app_exception.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/notifications/notification_navigator.dart';
 import 'package:mivet_app/core/routing/routes.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
@@ -62,6 +63,7 @@ class _RepLoginScreenState extends State<RepLoginScreen> {
                 Routes.mainScreen,
                 predicate: (_) => false,
               );
+              NotificationNavigator.instance.consumePending();
             }
             if (state.status == AuthStatus.error) {
               showAppError(

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 enum NotificationType {
   visitReminder,
   customerStalled,
@@ -8,6 +10,8 @@ enum NotificationType {
   productExpiringSoon,
   productExpired,
   dailyReportReminder,
+  customerDebt,
+  unknown,
 }
 
 extension NotificationTypeX on NotificationType {
@@ -31,10 +35,13 @@ extension NotificationTypeX on NotificationType {
         return 'صنف منتهي الصلاحية';
       case NotificationType.dailyReportReminder:
         return 'تذكير بتقرير اليوم';
+      case NotificationType.customerDebt:
+        return 'دين على عميل';
+      case NotificationType.unknown:
+        return '';
     }
   }
 
-  /// القيمة المطابقة لـ enum `notification_type` في Supabase (snake_case).
   String get dbValue {
     switch (this) {
       case NotificationType.visitReminder:
@@ -55,6 +62,10 @@ extension NotificationTypeX on NotificationType {
         return 'product_expired';
       case NotificationType.dailyReportReminder:
         return 'daily_report_reminder';
+      case NotificationType.customerDebt:
+        return 'customer_debt';
+      case NotificationType.unknown:
+        return '';
     }
   }
 }
@@ -77,8 +88,12 @@ NotificationType notificationTypeFromDb(String? value) {
       return NotificationType.productExpiringSoon;
     case 'product_expired':
       return NotificationType.productExpired;
+    case 'customer_debt':
+      return NotificationType.customerDebt;
     case 'daily_report_reminder':
-    default:
       return NotificationType.dailyReportReminder;
+    default:
+      debugPrint('[NotificationType] unknown db value: $value');
+      return NotificationType.unknown;
   }
 }

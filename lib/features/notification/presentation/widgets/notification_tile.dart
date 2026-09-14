@@ -3,9 +3,9 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import 'package:mivet_app/features/customer-visits/customers/screens/customer_detail_screen.dart';
-import '../../../customer-visits/customers/data/customers_repository.dart';
+import '../../../../core/notifications/notification_navigator.dart';
 import '../../domain/models/app_notification_model.dart';
+import '../../domain/models/notification_type.dart';
 import '../../domain/notification_repository.dart';
 import 'notification_time_label.dart';
 import 'notification_type_style.dart';
@@ -26,15 +26,16 @@ class NotificationTile extends StatelessWidget {
     }
 
     final relatedId = notification.relatedId;
-    if (relatedId == null) return;
+    if (relatedId == null || relatedId.isEmpty) return;
 
-    final customer = CustomersRepository.instance.getCustomerById(relatedId);
-    if (customer == null || customer.id.isEmpty || !context.mounted) return;
+    if (!context.mounted) return;
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CustomerDetailScreen(customer: customer),
-      ),
+    await NotificationNavigator.instance.navigate(
+      {
+        'type': notification.type.dbValue,
+        'related_id': relatedId,
+      },
+      context: context,
     );
   }
 

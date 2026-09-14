@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/routing/routes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/notifications/notification_navigator.dart';
 import '../../../core/utils/extensions.dart';
 import '../../auth/data/repositories/auth_repository_impl.dart';
 import '../../auth/domain/models/user_profile.dart';
@@ -51,8 +52,10 @@ class _SplashScreenState extends State<SplashScreen>
       context.pushReplacementNamed(Routes.loginTypeScreen);
     } else if (profile.role == UserRole.owner) {
       context.pushReplacementNamed(Routes.ownerDashboard);
+      await NotificationNavigator.instance.consumePending();
     } else {
       context.pushReplacementNamed(Routes.mainScreen);
+      await NotificationNavigator.instance.consumePending();
     }
   }
 

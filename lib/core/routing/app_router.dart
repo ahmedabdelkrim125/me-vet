@@ -24,7 +24,11 @@ class AppRouter {
       case Routes.repEntryScreen:
         return MaterialPageRoute(builder: (_) => const RepEntryScreen());
       case Routes.mainScreen:
-        return MaterialPageRoute(builder: (_) => const MainScreen());
+        final initialIndex =
+            settings.arguments is int ? settings.arguments as int : null;
+        return MaterialPageRoute(
+          builder: (_) => MainScreen(initialIndex: initialIndex),
+        );
       default:
         return MaterialPageRoute(
           builder: (_) =>

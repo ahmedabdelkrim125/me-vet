@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'notification_navigator.dart';
 
 class PushNotificationService {
   PushNotificationService._internal();
@@ -61,11 +61,12 @@ class PushNotificationService {
       );
 
       FirebaseMessaging.onMessage.listen(_showLocalNotification);
-      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundTap);
 
       final initialMessage = await _messaging.getInitialMessage();
       if (initialMessage != null) {
-        _handleNotificationTap(initialMessage);
+        NotificationNavigator.instance.setPendingPayload(initialMessage.data);
+        debugPrint('[Push] getInitialMessage: pending payload حُفظ');
       }
 
       _localNotificationsInitialized = true;
@@ -190,20 +191,18 @@ class PushNotificationService {
       final data = Map<String, dynamic>.from(
         jsonDecode(payload) as Map,
       );
-      _logNotificationTap(data);
+      debugPrint('[Push] local notification tapped: type=${data['type']}');
+      NotificationNavigator.instance.navigate(data);
     } catch (e) {
-      debugPrint('[Push] _onLocalNotificationTapped: فشل decode للـ payload — $e');
+      debugPrint(
+          '[Push] _onLocalNotificationTapped: فشل decode للـ payload — $e');
     }
   }
 
-  void _handleNotificationTap(RemoteMessage message) {
-    _logNotificationTap(message.data);
-  }
-
-  void _logNotificationTap(Map<String, dynamic> data) {
-    final type = data['type'];
-    final relatedId = data['related_id'];
-    debugPrint('[Push] notification tapped: type=$type related_id=$relatedId');
+  void _handleBackgroundTap(RemoteMessage message) {
+    debugPrint(
+        '[Push] onMessageOpenedApp tapped: type=${message.data['type']}');
+    NotificationNavigator.instance.navigate(message.data);
   }
 
   @pragma('vm:entry-point')

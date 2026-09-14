@@ -14,6 +14,9 @@ class ProductModel {
   final DateTime? expiryDate;
   final DateTime createdAt;
 
+  /// Soft-delete timestamp. Non-null means the product is logically deleted.
+  final DateTime? deletedAt;
+
   const ProductModel({
     required this.id,
     required this.name,
@@ -25,7 +28,11 @@ class ProductModel {
     required this.minStockThreshold,
     this.expiryDate,
     required this.createdAt,
+    this.deletedAt,
   });
+
+  /// Whether this product has been soft-deleted.
+  bool get isDeleted => deletedAt != null;
 
   double get basePrice => retailPrice;
 
@@ -43,6 +50,9 @@ class ProductModel {
           ? null
           : DateTime.parse(map['expiry_date'] as String),
       createdAt: DateTime.parse(map['created_at'] as String),
+      deletedAt: map['deleted_at'] == null
+          ? null
+          : DateTime.parse(map['deleted_at'] as String),
     );
   }
 
@@ -73,6 +83,7 @@ class ProductModel {
       expiryDate:
           expiryDate == _unset ? this.expiryDate : expiryDate as DateTime?,
       createdAt: createdAt,
+      deletedAt: deletedAt,
     );
   }
 }
