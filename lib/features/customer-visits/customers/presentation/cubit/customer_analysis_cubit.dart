@@ -10,7 +10,7 @@ class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
 
   final String _customerId;
 
-  static const int _notBoughtThresholdDays = 45;
+  static const int _notBoughtThresholdDays = 14;
 
   Future<void> load() async {
     if (isClosed) return;
@@ -24,7 +24,10 @@ class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
           await InvoicesRepository.instance.getInvoicesForCustomer(_customerId);
 
       final now = DateTime.now();
-      final sorted = [...stats]
+
+      final activeStats = stats.where((s) => !s.isDeleted).toList();
+
+      final sorted = [...activeStats]
         ..sort((a, b) => b.timesPurchased.compareTo(a.timesPurchased));
 
       final top = sorted
@@ -36,7 +39,7 @@ class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
               ))
           .toList();
 
-      final notBought = stats
+      final notBought = activeStats
           .where((s) =>
               now.difference(s.lastPurchaseDate).inDays >=
               _notBoughtThresholdDays)

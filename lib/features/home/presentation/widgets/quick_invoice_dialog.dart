@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
@@ -14,6 +15,7 @@ import '../../../customer-visits/customers/data/invoices_repository.dart';
 import '../../../customer-visits/customers/domain/models/invoice_line_input.dart';
 import '../../../inventory/data/products_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
+import '../../../inventory/presentation/cubit/vehicle_stock_state.dart';
 import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../../../invoices/domain/invoice_draft.dart';
 import '../../domain/models/quick_invoice_models.dart';
@@ -61,6 +63,42 @@ String _money(double value) {
 String _date(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+class _VehicleStockInfo {
+  final bool known;
+  final Map<String, int> quantities;
+  final String? errorMessage;
+
+  const _VehicleStockInfo({
+    required this.known,
+    required this.quantities,
+    this.errorMessage,
+  });
+
+  int availableFor(String productId) => quantities[productId] ?? 0;
+}
+
+_VehicleStockInfo _resolveVehicleStockInfo(VehicleStockState state) {
+  final known = state.selectedVehicleId != null &&
+      state.status != VehicleStockStatus.initial &&
+      state.status != VehicleStockStatus.loading &&
+      state.status != VehicleStockStatus.error;
+
+  if (!known) {
+    return _VehicleStockInfo(
+      known: false,
+      quantities: const {},
+      errorMessage:
+          state.status == VehicleStockStatus.error ? state.errorMessage : null,
+    );
+  }
+
+  final quantities = <String, int>{};
+  for (final stock in state.vehicleStock) {
+    quantities[stock.productId] = stock.quantity > 0 ? stock.quantity : 0;
+  }
+  return _VehicleStockInfo(known: true, quantities: quantities);
+}
+
 class QuickInvoiceDialog extends StatefulWidget {
   final InvoiceCustomerModel? initialCustomer;
   final ValueChanged<IssuedInvoiceInfo>? onIssued;
@@ -80,6 +118,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   InvoiceCustomerModel? customer;
   final List<InvoiceLineItemModel> lineItems = [];
   Map<String, CustomerProductPrice> _customerPrices = {};
+  int _customerPricesRequestId = 0;
   int _currentPage = 1;
   bool _loadingCustomerPrices = false;
   double discountPercent = 0;
@@ -87,6 +126,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   final paidNowController = TextEditingController(text: '0');
   bool _isIssuing = false;
   PaymentMethod? _paymentMethod;
+  final VehicleStockCubit _vehicleStockCubit = sl<VehicleStockCubit>();
 
   @override
   void initState() {
@@ -95,6 +135,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     customer = widget.initialCustomer;
     CustomersRepository.instance.initialize();
     if (customer != null) _loadCustomerPrices(customer!.customer.id);
+    if (_vehicleStockCubit.state.status == VehicleStockStatus.initial) {
+      _vehicleStockCubit.loadVehicles();
+    }
   }
 
   @override
@@ -150,6 +193,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   }
 
   Future<void> _loadCustomerPrices(String customerId) async {
+    final requestId = ++_customerPricesRequestId;
     setState(() {
       _loadingCustomerPrices = true;
       _customerPrices = {};
@@ -157,17 +201,50 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     try {
       final prices = await InvoicesRepository.instance
           .getCustomerProductPrices(customerId);
-      if (mounted && customer?.customer.id == customerId) {
-        setState(() => _customerPrices = prices);
-      }
-    } catch (_) {
-    } finally {
-      if (mounted) setState(() => _loadingCustomerPrices = false);
+      if (!mounted || requestId != _customerPricesRequestId) return;
+      setState(() {
+        _customerPrices = prices;
+        _loadingCustomerPrices = false;
+      });
+    } catch (error) {
+      if (!mounted || requestId != _customerPricesRequestId) return;
+      setState(() => _loadingCustomerPrices = false);
+      showAppError(context, error);
     }
   }
 
-  Future<void> _openAddProducts() async {
+  int _applyStockGuard({
+    required _VehicleStockInfo stockInfo,
+    required InvoiceProductModel product,
+    required int currentQuantity,
+    required int desiredQuantity,
+  }) {
+    if (desiredQuantity <= currentQuantity) {
+      return desiredQuantity < 0 ? 0 : desiredQuantity;
+    }
+    if (!stockInfo.known) {
+      _toast('تعذر تعديل الكمية، جاري التأكد من مخزون العربية');
+      return currentQuantity;
+    }
+    final available = stockInfo.availableFor(product.id);
+    if (available <= currentQuantity) {
+      _toast('لا يوجد مخزون إضافي متاح لهذا المنتج في العربية');
+      return currentQuantity;
+    }
+    final clamped = desiredQuantity > available ? available : desiredQuantity;
+    if (clamped == currentQuantity) {
+      _toast('لا يوجد مخزون إضافي متاح لهذا المنتج في العربية');
+    }
+    return clamped;
+  }
+
+  Future<void> _openAddProducts(_VehicleStockInfo stockInfo) async {
     if (!mounted) return;
+    if (!stockInfo.known) {
+      _toast(stockInfo.errorMessage ??
+          'جاري تحميل بيانات مخزون العربية، حاول بعد قليل');
+      return;
+    }
     List<ProductModel> products;
     try {
       products = await ProductsRepository.instance.getProducts();
@@ -184,6 +261,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
         existing: lineItems,
         products: products,
         customerPrices: _customerPrices,
+        stockByProductId: stockInfo.quantities,
       ),
     );
     if (added != null) {
@@ -336,7 +414,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
             .map((item) => InvoicePdfLineItem(
                   name: item.product.name,
                   quantity: item.quantity,
-                  price: item.product.price,
+                  price: item.unitPrice,
                   total: item.total,
                 ))
             .toList(),
@@ -404,38 +482,53 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                       SizedBox(height: 14.h),
                       _StatementTile(onTap: _openStatement),
                       SizedBox(height: 14.h),
-                      _SectionCard(
-                        child: _ProductsSection(
-                          items: lineItems,
-                          currentPage: _currentPage,
-                          loadingCustomerPrices: _loadingCustomerPrices,
-                          onPageChanged: (page) =>
-                              setState(() => _currentPage = page),
-                          onAdd: _openAddProducts,
-                          onPriceChanged: (item, price) =>
-                              setState(() => item.unitPrice = price),
-                          onQuantityChanged: (item, qty) => setState(() {
-                            if (qty <= 0) {
-                              lineItems.remove(item);
-                              _currentPage = _currentPage.clamp(
-                                1,
-                                lineItems.isEmpty
-                                    ? 1
-                                    : (lineItems.length / 15).ceil(),
-                              );
-                            } else {
-                              item.quantity = qty;
-                            }
-                          }),
-                          onRemove: (item) =>
-                              setState(() => lineItems.remove(item)),
-                          subtotal: subtotal,
-                          discountPercent: discountPercent,
-                          onDiscountChanged: (v) =>
-                              setState(() => discountPercent = v),
-                          discountAmount: discountAmount,
-                          grandTotal: grandTotal,
-                        ),
+                      BlocBuilder<VehicleStockCubit, VehicleStockState>(
+                        bloc: _vehicleStockCubit,
+                        builder: (context, vehicleStockState) {
+                          final stockInfo =
+                              _resolveVehicleStockInfo(vehicleStockState);
+                          return _SectionCard(
+                            child: _ProductsSection(
+                              items: lineItems,
+                              currentPage: _currentPage,
+                              loadingCustomerPrices: _loadingCustomerPrices,
+                              stockKnown: stockInfo.known,
+                              stockErrorMessage: stockInfo.errorMessage,
+                              onPageChanged: (page) =>
+                                  setState(() => _currentPage = page),
+                              onAdd: () => _openAddProducts(stockInfo),
+                              onPriceChanged: (item, price) =>
+                                  setState(() => item.unitPrice = price),
+                              onQuantityChanged: (item, qty) => setState(() {
+                                final applied = _applyStockGuard(
+                                  stockInfo: stockInfo,
+                                  product: item.product,
+                                  currentQuantity: item.quantity,
+                                  desiredQuantity: qty,
+                                );
+                                if (applied <= 0) {
+                                  lineItems.remove(item);
+                                  _currentPage = _currentPage.clamp(
+                                    1,
+                                    lineItems.isEmpty
+                                        ? 1
+                                        : (lineItems.length / 15).ceil(),
+                                  );
+                                } else {
+                                  item.quantity = applied;
+                                }
+                              }),
+                              onRemove: (item) =>
+                                  setState(() => lineItems.remove(item)),
+                              subtotal: subtotal,
+                              discountPercent: discountPercent,
+                              onDiscountChanged: (v) =>
+                                  setState(() => discountPercent = v),
+                              discountAmount: discountAmount,
+                              grandTotal: grandTotal,
+                            ),
+                          );
+                        },
                       ),
                       if (lineItems.isNotEmpty) ...[
                         SizedBox(height: 14.h),
@@ -1299,6 +1392,8 @@ class _ProductsSection extends StatelessWidget {
   final List<InvoiceLineItemModel> items;
   final int currentPage;
   final bool loadingCustomerPrices;
+  final bool stockKnown;
+  final String? stockErrorMessage;
   final ValueChanged<int> onPageChanged;
   final VoidCallback onAdd;
   final void Function(InvoiceLineItemModel, double) onPriceChanged;
@@ -1314,6 +1409,8 @@ class _ProductsSection extends StatelessWidget {
     required this.items,
     required this.currentPage,
     required this.loadingCustomerPrices,
+    required this.stockKnown,
+    this.stockErrorMessage,
     required this.onPageChanged,
     required this.onAdd,
     required this.onPriceChanged,
@@ -1336,7 +1433,7 @@ class _ProductsSection extends StatelessWidget {
           icon: Icons.inventory_2_outlined,
           title: 'الأصناف (${items.length})',
           trailing: TextButton.icon(
-            onPressed: onAdd,
+            onPressed: stockKnown ? onAdd : null,
             icon: Icon(Icons.add_circle_outline_rounded,
                 size: 16.sp, color: colors.primary),
             label: Text(
@@ -1347,6 +1444,30 @@ class _ProductsSection extends StatelessWidget {
           ),
         ),
         SizedBox(height: 8.h),
+        if (!stockKnown)
+          Container(
+            margin: EdgeInsets.only(bottom: 8.h),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: colors.statusNotReached.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.error_outline,
+                    size: 14.sp, color: colors.statusNotReached),
+                SizedBox(width: 6.w),
+                Expanded(
+                  child: Text(
+                    stockErrorMessage ?? 'جاري تحميل مخزون العربية...',
+                    style: AppTextStyles.almaraiRegular14.copyWith(
+                        color: colors.statusNotReached, fontSize: 11.sp),
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (items.isEmpty)
           Container(
             padding: EdgeInsets.symmetric(vertical: 20.h),
@@ -1688,10 +1809,12 @@ class _ProductPickerSheet extends StatefulWidget {
   final List<InvoiceLineItemModel> existing;
   final List<ProductModel> products;
   final Map<String, CustomerProductPrice> customerPrices;
+  final Map<String, int> stockByProductId;
   const _ProductPickerSheet({
     required this.existing,
     required this.products,
     required this.customerPrices,
+    required this.stockByProductId,
   });
 
   @override
@@ -1720,19 +1843,33 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     return match.isEmpty ? 0 : match.first.quantity;
   }
 
+  int _availableStockFor(InvoiceProductModel p) =>
+      widget.stockByProductId[p.id] ?? 0;
+
   void _setQuantity(InvoiceProductModel p, int qty) {
+    final available = _availableStockFor(p);
+    final clamped = qty < 0 ? 0 : (qty > available ? available : qty);
     setState(() {
+      final existingIndex = cart.indexWhere((c) => c.product.id == p.id);
+      final existingPrice =
+          existingIndex == -1 ? null : cart[existingIndex].unitPrice;
       cart.removeWhere((c) => c.product.id == p.id);
-      if (qty > 0) {
+      if (clamped > 0) {
         final previous = widget.customerPrices[p.id]?.lastPrice;
         cart.add(InvoiceLineItemModel(
           product: p,
-          quantity: qty,
-          unitPrice: previous ?? p.price,
+          quantity: clamped,
+          unitPrice: existingPrice ?? previous ?? p.price,
           previousCustomerPrice: previous,
         ));
       }
     });
+    if (clamped < qty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('الكمية المتاحة في العربية أقل من المطلوب')),
+      );
+    }
   }
 
   @override
@@ -1770,6 +1907,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
           SizedBox(height: 12.h),
           ...filtered.map((p) {
             final qty = _quantityFor(p);
+            final available = _availableStockFor(p);
+            final outOfStock = available <= 0;
             return Padding(
               padding: EdgeInsets.only(bottom: 10.h),
               child: Container(
@@ -1786,7 +1925,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                   ),
                 ),
                 child: Opacity(
-                  opacity: 1,
+                  opacity: outOfStock ? 0.5 : 1,
                   child: Row(
                     children: [
                       Expanded(
@@ -1798,16 +1937,32 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                                     color: colors.text, fontSize: 12.5.sp)),
                             SizedBox(height: 2.h),
                             Text(
-                              ' / ',
+                              outOfStock
+                                  ? 'غير متاح في مخزون العربية'
+                                  : 'المتاح بالعربية: $available',
                               style: AppTextStyles.almaraiRegular14.copyWith(
-                                color: colors.textMuted,
+                                color: outOfStock
+                                    ? colors.statusNotReached
+                                    : colors.textMuted,
                                 fontSize: 10.5.sp,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      if (qty == 0)
+                      if (outOfStock)
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12.w, vertical: 8.h),
+                          decoration: BoxDecoration(
+                            color: colors.textMuted.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Text('غير متاح',
+                              style: AppTextStyles.cairoMedium16.copyWith(
+                                  color: colors.textMuted, fontSize: 11.sp)),
+                        )
+                      else if (qty == 0)
                         Material(
                           color: colors.primary,
                           borderRadius: BorderRadius.circular(10.r),
@@ -1837,8 +1992,18 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                                       color: colors.text, fontSize: 12.sp)),
                             ),
                             _StepButton(
-                                icon: Icons.add_rounded,
-                                onTap: () => _setQuantity(p, qty + 1)),
+                              icon: Icons.add_rounded,
+                              onTap: qty >= available
+                                  ? () {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'الكمية المتاحة في العربية أقل من المطلوب')),
+                                      );
+                                    }
+                                  : () => _setQuantity(p, qty + 1),
+                            ),
                           ],
                         ),
                     ],
