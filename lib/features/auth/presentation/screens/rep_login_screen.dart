@@ -40,9 +40,11 @@ class _RepLoginScreenState extends State<RepLoginScreen> {
     super.dispose();
   }
 
-  bool get _canSubmit =>
-      _phoneController.text.trim().length == 11 &&
-      _pinController.text.trim().length == 4;
+  bool get _canSubmit {
+    final phoneLen = _phoneController.text.trim().length;
+    final pinLen = _pinController.text.trim().length;
+    return phoneLen == 11 && (pinLen == 4 || pinLen == 6);
+  }
 
   void _submit() {
     context.read<AuthCubit>().signInAsRep(

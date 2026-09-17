@@ -9,7 +9,7 @@ import 'core/notifications/notification_navigator.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/utils/responsive_extension.dart';
-import 'features/auth/data/repositories/auth_repository_impl.dart';
+import 'features/auth/domain/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 
 class MevetApp extends StatefulWidget {

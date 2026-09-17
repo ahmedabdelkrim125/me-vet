@@ -38,10 +38,6 @@ class CustomerAccountRemoteDataSource {
           );
         }
 
-        try {
-          await _client.auth.signOut();
-        } catch (_) {}
-
         rethrow;
       }
 
@@ -77,10 +73,6 @@ class CustomerAccountRemoteDataSource {
           );
         }
 
-        try {
-          await _client.auth.signOut();
-        } catch (_) {}
-
         rethrow;
       }
 
@@ -111,10 +103,6 @@ class CustomerAccountRemoteDataSource {
             '[RepresentativeName] session refresh failed: $refreshError',
           );
         }
-
-        try {
-          await _client.auth.signOut();
-        } catch (_) {}
 
         rethrow;
       }
@@ -169,7 +157,9 @@ class CustomerAccountRemoteDataSource {
     if (error is AuthException) return true;
 
     if (error is PostgrestException) {
-      return error.code == '401' || error.code == 'PGRST301';
+      return error.code == '401' ||
+          error.code == 'PGRST301' ||
+          error.code == 'PGRST303';
     }
 
     if (error is FunctionException) {
