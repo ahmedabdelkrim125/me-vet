@@ -9,57 +9,52 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../auth/domain/models/user_profile.dart';
 import '../../auth/presentation/cubit/auth_cubit.dart';
 import '../data/owner_service.dart';
+import 'cubit/owner_dashboard_cubit.dart';
+import 'cubit/owner_dashboard_state.dart';
 import 'widgets/add_rep_dialog.dart';
 import 'widgets/rep_list_tile.dart';
 
-class OwnerDashboardScreen extends StatefulWidget {
+class OwnerDashboardScreen extends StatelessWidget {
   const OwnerDashboardScreen({super.key});
 
   @override
-  State<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => OwnerDashboardCubit(OwnerService())..loadReps(),
+      child: const _OwnerDashboardView(),
+    );
+  }
 }
 
-class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
-  final _ownerService = OwnerService();
-  List<UserProfile> _reps = [];
-  bool _loading = true;
+class _OwnerDashboardView extends StatelessWidget {
+  const _OwnerDashboardView();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadReps();
-  }
-
-  Future<void> _loadReps() async {
-    setState(() => _loading = true);
-    try {
-      final reps = await _ownerService.getAllReps();
-      if (!mounted) return;
-      setState(() {
-        _reps = reps;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      showAppError(context, e);
-    }
-  }
-
-  Future<void> _addRep() async {
+  Future<void> _addRep(BuildContext context) async {
     final added = await showDialog<bool>(
       context: context,
       builder: (_) => const AddRepDialog(),
     );
-    if (added == true) _loadReps();
+    if (added == true && context.mounted) {
+      context.read<OwnerDashboardCubit>().loadReps();
+    }
   }
 
-  Future<void> _deleteRep(UserProfile rep) async {
+  Future<void> _editRep(BuildContext context, UserProfile rep) async {
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (_) => AddRepDialog(rep: rep),
+    );
+    if (updated == true && context.mounted) {
+      context.read<OwnerDashboardCubit>().loadReps();
+    }
+  }
+
+  Future<void> _deactivateRep(BuildContext context, UserProfile rep) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('حذف مندوب'),
-        content: Text('هل تريد حذف "${rep.name}"؟'),
+        title: const Text('تعطيل مندوب'),
+        content: Text('هل تريد تعطيل "${rep.name}"؟'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -70,25 +65,45 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.statusNotReached,
             ),
-            child: const Text('حذف', style: TextStyle(color: Colors.white)),
+            child: const Text('تعطيل', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
-
-    try {
-      await _ownerService.deleteRep(rep.id);
-      _loadReps();
-    } catch (e) {
-      if (!mounted) return;
-      showAppError(context, e);
+    if (confirmed == true && context.mounted) {
+      context.read<OwnerDashboardCubit>().deactivateRep(rep.id);
     }
   }
 
-  Future<void> _signOut() async {
+  Future<void> _reactivateRep(BuildContext context, UserProfile rep) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('تفعيل مندوب'),
+        content: Text('هل تريد إعادة تفعيل المندوب "${rep.name}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+            ),
+            child: const Text('تفعيل', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      context.read<OwnerDashboardCubit>().reactivateRep(rep.id);
+    }
+  }
+
+  Future<void> _signOut(BuildContext context) async {
     await context.read<AuthCubit>().signOut();
-    if (mounted) {
+    if (context.mounted) {
       context.pushNamedAndRemoveUntil(
         Routes.loginTypeScreen,
         predicate: (_) => false,
@@ -109,60 +124,77 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: _signOut,
+            onPressed: () => _signOut(context),
             icon: const Icon(Icons.logout_rounded, color: Colors.white),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addRep,
+        onPressed: () => _addRep(context),
         backgroundColor: AppColors.primaryGreen,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text('إضافة مندوب', style: TextStyle(color: Colors.white)),
       ),
-      body: _loading
-          ? const Center(
+      body: BlocConsumer<OwnerDashboardCubit, OwnerDashboardState>(
+        listenWhen: (previous, current) => previous.error != current.error,
+        listener: (context, state) {
+          if (state.error != null) {
+            showAppError(context, state.error!);
+          }
+        },
+        builder: (context, state) {
+          if (state.isLoading && state.reps.isEmpty) {
+            return const Center(
               child: CircularProgressIndicator(color: AppColors.primaryGreen),
-            )
-          : RefreshIndicator(
-              onRefresh: _loadReps,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: context.adaptiveMaxContentWidth,
-                  ),
-                  child: _reps.isEmpty
-                      ? ListView(
-                          padding: EdgeInsets.all(16.w),
-                          children: [
-                            SizedBox(height: 100.h),
-                            Icon(
-                              Icons.people_outline_rounded,
-                              size: 64.sp,
-                              color: AppColors.navInactive,
-                            ),
-                            SizedBox(height: 16.h),
-                            Text(
-                              'لا يوجد مندوبين بعد',
-                              style: AppTextStyles.almaraiRegular14.copyWith(
-                                color: AppColors.navInactive,
-                                fontSize: 14.sp,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.all(16.w),
-                          itemCount: _reps.length,
-                          itemBuilder: (context, index) => RepListTile(
-                            rep: _reps[index],
-                            onDelete: () => _deleteRep(_reps[index]),
-                          ),
-                        ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => context.read<OwnerDashboardCubit>().loadReps(),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: context.adaptiveMaxContentWidth,
                 ),
+                child: state.reps.isEmpty
+                    ? ListView(
+                        padding: EdgeInsets.all(16.w),
+                        children: [
+                          SizedBox(height: 100.h),
+                          Icon(
+                            Icons.people_outline_rounded,
+                            size: 64.sp,
+                            color: AppColors.navInactive,
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            'لا يوجد مندوبين بعد',
+                            style: AppTextStyles.almaraiRegular14.copyWith(
+                              color: AppColors.navInactive,
+                              fontSize: 14.sp,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      )
+                    : ListView.builder(
+                        padding: EdgeInsets.all(16.w),
+                        itemCount: state.reps.length,
+                        itemBuilder: (context, index) {
+                          final rep = state.reps[index];
+                          return RepListTile(
+                            rep: rep,
+                            onEdit: () => _editRep(context, rep),
+                            onDeactivate: () => _deactivateRep(context, rep),
+                            onReactivate: () => _reactivateRep(context, rep),
+                          );
+                        },
+                      ),
               ),
             ),
+          );
+        },
+      ),
     );
   }
 }

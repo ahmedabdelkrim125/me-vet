@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/notifications/notification_navigator.dart';
 import '../../../core/utils/extensions.dart';
-import '../../auth/data/repositories/auth_repository_impl.dart';
+import '../../auth/domain/repositories/auth_repository_impl.dart';
 import '../../auth/domain/models/user_profile.dart';
 import 'widgets/splash_body.dart';
 

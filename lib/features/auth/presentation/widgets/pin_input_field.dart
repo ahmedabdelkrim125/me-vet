@@ -39,12 +39,12 @@ class _PinInputFieldState extends State<PinInputField> {
           textDirection: TextDirection.ltr,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(4),
+            LengthLimitingTextInputFormatter(6),
           ],
           style: AppTextStyles.cairoMedium16
               .copyWith(fontSize: 16.sp, color: AppColors.primary),
           decoration: InputDecoration(
-            hintText: '••••',
+            hintText: '••••••',
             hintStyle: AppTextStyles.cairoMedium16
                 .copyWith(color: AppColors.navInactive),
             prefixIcon: Icon(

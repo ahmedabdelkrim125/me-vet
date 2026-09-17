@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../../../auth/domain/models/user_profile.dart';
 import '../../data/owner_service.dart';
 
 class AddRepDialog extends StatefulWidget {
-  const AddRepDialog({super.key});
+  final UserProfile? rep;
+
+  const AddRepDialog({super.key, this.rep});
 
   @override
   State<AddRepDialog> createState() => _AddRepDialogState();
@@ -20,6 +23,17 @@ class _AddRepDialogState extends State<AddRepDialog> {
 
   bool _loading = false;
   String? _error;
+
+  bool get _isEditMode => widget.rep != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.rep != null) {
+      _nameController.text = widget.rep!.name;
+      _phoneController.text = widget.rep!.phone;
+    }
+  }
 
   @override
   void dispose() {
@@ -35,11 +49,21 @@ class _AddRepDialogState extends State<AddRepDialog> {
       _error = null;
     });
     try {
-      await _ownerService.createRep(
-        name: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        pin: _pinController.text.trim(),
-      );
+      if (_isEditMode) {
+        final pin = _pinController.text.trim();
+        await _ownerService.updateRep(
+          repId: widget.rep!.id,
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          pin: pin.isEmpty ? null : pin,
+        );
+      } else {
+        await _ownerService.createRep(
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          pin: _pinController.text.trim(),
+        );
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       setState(() {
@@ -53,7 +77,7 @@ class _AddRepDialogState extends State<AddRepDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(
-        'إضافة مندوب جديد',
+        _isEditMode ? 'تعديل بيانات المندوب' : 'إضافة مندوب جديد',
         style: AppTextStyles.cairoBold18
             .copyWith(color: AppColors.primary, fontSize: 17.sp),
       ),
@@ -85,10 +109,11 @@ class _AddRepDialogState extends State<AddRepDialog> {
             textDirection: TextDirection.ltr,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4),
+              LengthLimitingTextInputFormatter(6),
             ],
-            decoration: const InputDecoration(
-              labelText: 'رمز PIN (4 أرقام)',
+            decoration: InputDecoration(
+              labelText:
+                  _isEditMode ? 'PIN جديد (اختياري)' : 'رمز PIN (6 أرقام)',
             ),
           ),
           if (_error != null) ...[
@@ -123,7 +148,10 @@ class _AddRepDialogState extends State<AddRepDialog> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('إضافة', style: TextStyle(color: Colors.white)),
+              : Text(
+                  _isEditMode ? 'حفظ التعديلات' : 'إضافة',
+                  style: const TextStyle(color: Colors.white),
+                ),
         ),
       ],
     );

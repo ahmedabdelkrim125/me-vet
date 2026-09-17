@@ -65,7 +65,7 @@ async function createRep(adminClient: ReturnType<typeof createClient>, body: any
 
   if (name.length === 0) return json({ error: 'اكتب اسم المندوب' }, 400)
   if (phone.length !== 11) return json({ error: 'رقم الموبايل لازم يكون 11 رقم' }, 400)
-  if (pin.length !== 4) return json({ error: 'رمز الـ PIN لازم يكون 4 أرقام' }, 400)
+  if (pin.length !== 6) return json({ error: 'رمز الـ PIN لازم يكون 6 أرقام' }, 400)
 
   const email = `${phone}@mivet.app`
 

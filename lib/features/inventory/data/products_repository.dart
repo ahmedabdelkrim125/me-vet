@@ -159,10 +159,8 @@ class ProductsRepository {
   }
 
   Future<void> deleteProduct(String id) async {
-    await _supabase
-        .from('products')
-        .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
-        .eq('id', id);
+    await _supabase.from('products').update(
+        {'deleted_at': DateTime.now().toUtc().toIso8601String()}).eq('id', id);
   }
 
   ProductModel _fromRow(Map<String, dynamic> row) => ProductModel.fromMap(row);
