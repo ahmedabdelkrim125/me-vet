@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/daily_report_repository.dart';
 import '../../domain/models/report_period_type.dart';
@@ -27,6 +28,41 @@ class DailyReportCubit extends Cubit<DailyReportState> {
     await _fetchReport(period);
   }
 
+//   Future<void> _fetchReport(ReportPeriodType period) async {
+//     try {
+//       final now = DateTime.now();
+//       DateTime from;
+//       DateTime to;
+
+//       switch (period) {
+//         case ReportPeriodType.daily:
+//           from = DateTime(now.year, now.month, now.day);
+//           to = from.add(const Duration(days: 1));
+//           break;
+//         case ReportPeriodType.weekly:
+//           final daysSinceSaturday = (now.weekday + 1) % 7;
+//           from = DateTime(now.year, now.month, now.day)
+//               .subtract(Duration(days: daysSinceSaturday));
+//           to = from.add(const Duration(days: 7));
+//           break;
+//         case ReportPeriodType.monthly:
+//           from = DateTime(now.year, now.month, 1);
+//           to = DateTime(now.year, now.month + 1, 1);
+//           break;
+//       }
+
+//       final report = await _repository.getDailyReport(
+//         from: from,
+//         to: to,
+//         repId: _ownerSelectedRepId,
+//       );
+
+//       emit(DailyReportLoaded(report: report, selectedPeriod: period));
+//     } catch (e) {
+//       emit(DailyReportError(e.toString()));
+//     }
+//   }
+// }
   Future<void> _fetchReport(ReportPeriodType period) async {
     try {
       final now = DateTime.now();
@@ -49,6 +85,14 @@ class DailyReportCubit extends Cubit<DailyReportState> {
           to = DateTime(now.year, now.month + 1, 1);
           break;
       }
+
+      // --- STEP 3: LOG THE CURRENT REPORT PERIOD ---
+      debugPrint('\n=== DAILY_REPORT_DEBUG_CUBIT ===');
+      debugPrint('CURRENT NOW: $now');
+      debugPrint('CURRENT PERIOD: $period');
+      debugPrint('FROM (Local): $from');
+      debugPrint('TO (Local): $to');
+      debugPrint('================================\n');
 
       final report = await _repository.getDailyReport(
         from: from,

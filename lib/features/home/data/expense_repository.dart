@@ -18,7 +18,6 @@ class ExpenseRepository {
         'p_payment_method': paymentMethod,
         'p_category': category,
         if (notes != null && notes.isNotEmpty) 'p_notes': notes,
-        // .toUtc() guarantees absolute correct UTC instant with 'Z'
         'p_expense_at': DateTime.now().toUtc().toIso8601String(),
       },
     );
