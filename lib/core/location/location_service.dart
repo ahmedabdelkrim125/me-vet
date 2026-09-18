@@ -3,13 +3,10 @@ import 'package:geolocator/geolocator.dart';
 
 import '../errors/app_exception.dart';
 
-/// نتيجة تحديد الموقع: إحداثيات دقيقة + عنوان نصي مقروء (لو قدرنا نجيبه).
 class LocationResult {
   final double latitude;
   final double longitude;
 
-  /// عنوان مقروء اتبني من الإحداثيات (شارع/حي/مدينة). ممكن يرجع فاضي لو
-  /// خدمة الـ reverse geocoding فشلت — الإحداثيات نفسها تفضل صح برضه.
   final String? readableAddress;
 
   const LocationResult({
