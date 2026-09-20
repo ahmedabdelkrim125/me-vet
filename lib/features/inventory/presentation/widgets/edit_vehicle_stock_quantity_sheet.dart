@@ -69,13 +69,15 @@ class _EditVehicleStockQuantitySheetState
           SizedBox(height: 24.h),
           Text(
             'تعديل كمية المنتج',
-            style: AppTextStyles.cairoBold18.copyWith(color: context.colors.text),
+            style:
+                AppTextStyles.cairoBold18.copyWith(color: context.colors.text),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 8.h),
           Text(
             widget.productName,
-            style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.primary),
+            style: AppTextStyles.almaraiRegular14
+                .copyWith(color: context.colors.primary),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 32.h),
@@ -93,7 +95,8 @@ class _EditVehicleStockQuantitySheetState
                 child: Text(
                   '$_quantity',
                   textAlign: TextAlign.center,
-                  style: AppTextStyles.cairoBold18.copyWith(color: context.colors.text,fontSize: 24.sp),
+                  style: AppTextStyles.cairoBold18
+                      .copyWith(color: context.colors.text, fontSize: 24.sp),
                 ),
               ),
               SizedBox(width: 32.w),
@@ -115,7 +118,8 @@ class _EditVehicleStockQuantitySheetState
             ),
             child: Text(
               'حفظ التعديل',
-              style: AppTextStyles.cairoBold18.copyWith(color: Colors.white,fontSize: 16.sp),
+              style: AppTextStyles.cairoBold18
+                  .copyWith(color: Colors.white, fontSize: 16.sp),
             ),
           ),
         ],

@@ -96,20 +96,6 @@ class ProductsRepository {
     }
   }
 
-  /// Deletes a category. If [reassignProductsTo] is provided, every product
-  /// currently linked to [code] is moved to that category first, in a single
-  /// UPDATE statement (atomic per-row at the database level), before the
-  /// category itself is deleted. This never touches product id, prices,
-  /// images, or vehicle_stock — only the products.category column.
-  ///
-  /// NOTE ON ATOMICITY: the reassignment UPDATE and the category DELETE are
-  /// still two separate network requests. If the UPDATE succeeds but the
-  /// DELETE then fails (e.g. connection drop), no product or vehicle_stock
-  /// data is lost — the only leftover is the old category row, now unused,
-  /// which a retry of this same call will clean up. Wrapping both steps in
-  /// one guaranteed-atomic operation requires a Postgres function (RPC) run
-  /// as a transaction on the backend — that is a Supabase-stage change, not
-  /// implemented here.
   Future<void> deleteCategory(
     String code, {
     String? reassignProductsTo,
@@ -117,8 +103,7 @@ class ProductsRepository {
     if (reassignProductsTo != null && reassignProductsTo != code) {
       await _supabase
           .from('products')
-          .update({'category': reassignProductsTo})
-          .eq('category', code);
+          .update({'category': reassignProductsTo}).eq('category', code);
     }
     try {
       await _supabase.from('product_categories').delete().eq('code', code);
@@ -236,8 +221,11 @@ class ProductsRepository {
   }
 
   Future<void> deleteProduct(String id) async {
-    await _supabase.from('products').update(
-        {'deleted_at': DateTime.now().toUtc().toIso8601String()}).eq('id', id);
+    final result =
+        await _supabase.from('products').delete().eq('id', id).select('id');
+    if ((result as List).isEmpty) {
+      throw Exception('لم يتم العثور على الصنف لحذفه');
+    }
   }
 
   ProductModel _fromRow(Map<String, dynamic> row) => ProductModel.fromMap(row);

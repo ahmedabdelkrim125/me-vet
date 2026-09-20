@@ -1,6 +1,6 @@
 class StockMovementModel {
   final String id;
-  final String productId;
+  final String? productId;
   final String? productName;
   final String? vehicleId;
   final String type;
@@ -12,7 +12,7 @@ class StockMovementModel {
 
   const StockMovementModel({
     required this.id,
-    required this.productId,
+    this.productId,
     this.productName,
     this.vehicleId,
     required this.type,
@@ -56,7 +56,7 @@ class StockMovementModel {
 
     return StockMovementModel(
       id: map['id'] as String,
-      productId: map['product_id'] as String,
+      productId: map['product_id'] as String?,
       productName: pName,
       vehicleId: map['vehicle_id'] as String?,
       type: map['type'] as String,

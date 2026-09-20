@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/di/service_locator.dart';
 import 'core/notifications/push_notification_service.dart';
 import 'core/storage/secure_local_storage.dart';
+import 'core/theme/theme_controller.dart';
 import 'me_vet_app.dart';
 
 Future<void> main() async {
@@ -18,6 +19,8 @@ Future<void> main() async {
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
+
+  await ThemeController.instance.initialize();
 
   await dotenv.load(fileName: '.env');
 

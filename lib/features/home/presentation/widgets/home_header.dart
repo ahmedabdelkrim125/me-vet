@@ -50,22 +50,15 @@ class _HomeHeaderState extends State<HomeHeader> {
       ),
       child: Row(
         children: [
-          Tooltip(
-            message: 'القائمة',
-            child: Material(
+          Container(
+            width: 54.w,
+            height: 54.w,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
               color: colors.background,
               borderRadius: BorderRadius.circular(18.r),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18.r),
-                onTap: () => Scaffold.of(context).openDrawer(),
-                child: Container(
-                  width: 54.w,
-                  height: 54.w,
-                  alignment: Alignment.center,
-                  child: Image.asset(AppImages.logoSplash, height: 38.h),
-                ),
-              ),
             ),
+            child: Image.asset(AppImages.logoSplash, height: 38.h),
           ),
           SizedBox(width: 12.w),
           Expanded(

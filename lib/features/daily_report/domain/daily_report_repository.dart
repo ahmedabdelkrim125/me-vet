@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/models/representative_report_model.dart';
 
@@ -46,9 +46,8 @@ class DailyReportRepository {
     }
     debugPrint('==============================\n');
 
-    final report = RepresentativeReportModel.fromJson(response as Map<String, dynamic>);
-
-   
+    final report =
+        RepresentativeReportModel.fromJson(response as Map<String, dynamic>);
 
     return report;
   }

@@ -1054,7 +1054,8 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                         borderRadius: BorderRadius.circular(14.r),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(14.r),
-                          onTap: _sharingReport ? null : () => _shareReport(state),
+                          onTap:
+                              _sharingReport ? null : () => _shareReport(state),
                           child: Container(
                             width: 52.h,
                             height: 52.h,

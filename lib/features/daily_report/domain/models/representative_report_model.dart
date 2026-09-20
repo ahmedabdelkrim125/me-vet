@@ -150,9 +150,11 @@ class PaymentMethodBalanceModel {
 
   factory PaymentMethodBalanceModel.fromJson(Map<String, dynamic> json) {
     return PaymentMethodBalanceModel(
-      beforeExpenses: RepresentativeReportModel._parseDouble(json['before_expenses']),
+      beforeExpenses:
+          RepresentativeReportModel._parseDouble(json['before_expenses']),
       expenses: RepresentativeReportModel._parseDouble(json['expenses']),
-      afterExpenses: RepresentativeReportModel._parseDouble(json['after_expenses']),
+      afterExpenses:
+          RepresentativeReportModel._parseDouble(json['after_expenses']),
     );
   }
 }

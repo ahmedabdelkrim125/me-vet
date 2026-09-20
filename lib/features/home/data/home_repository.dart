@@ -88,11 +88,13 @@ class HomeRepository {
     _ensureTzInitialized();
     final location = tz.getLocation('Africa/Cairo');
     final nowCairo = tz.TZDateTime.now(location);
-    
-    final today = tz.TZDateTime(location, nowCairo.year, nowCairo.month, nowCairo.day);
+
+    final today =
+        tz.TZDateTime(location, nowCairo.year, nowCairo.month, nowCairo.day);
     final currentWeekStart = today.subtract(const Duration(days: 6));
     final currentWeekEnd = today.add(const Duration(days: 1));
-    final previousWeekStart = currentWeekStart.subtract(const Duration(days: 7));
+    final previousWeekStart =
+        currentWeekStart.subtract(const Duration(days: 7));
     final previousWeekEnd = currentWeekStart;
 
     final rows = await _supabase
@@ -106,8 +108,9 @@ class HomeRepository {
 
     for (final row in rows as List) {
       final amount = (row['amount'] as num).toDouble();
-      final collectedAtUtc = DateTime.parse(row['collected_at'] as String).toUtc();
-      
+      final collectedAtUtc =
+          DateTime.parse(row['collected_at'] as String).toUtc();
+
       if (!collectedAtUtc.isBefore(currentWeekStart.toUtc()) &&
           collectedAtUtc.isBefore(currentWeekEnd.toUtc())) {
         currentTotal += amount;

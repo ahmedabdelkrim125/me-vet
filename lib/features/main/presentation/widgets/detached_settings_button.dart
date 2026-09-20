@@ -3,14 +3,20 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+
+import 'dock_surface.dart';
 import 'nav_items.dart';
 
+/// Settings entry that sits next to the navigation pill as its own
+/// floating button (same height and glass style as the pill).
 class DetachedSettingsButton extends StatelessWidget {
+  final double height;
   final bool isSelected;
   final VoidCallback onTap;
 
   const DetachedSettingsButton({
     super.key,
+    required this.height,
     required this.isSelected,
     required this.onTap,
   });
@@ -19,51 +25,43 @@ class DetachedSettingsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final item = appNavItems.last;
-    final color = isSelected ? Colors.white : colors.text;
+    final color = isSelected ? Colors.white : colors.textMuted;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 240),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.all(4.w),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: colors.background,
-            border: Border.all(color: colors.border),
-            boxShadow: [
-              BoxShadow(
-                color: colors.subtleShadow,
-                blurRadius: 18,
-                offset: const Offset(0, 8),
+    return DockSurface(
+      height: height,
+      width: 74.w,
+      radius: 28.r,
+      fillColor: isSelected ? colors.primary : null,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              HugeIcon(icon: item.icon, size: 22.sp, color: color),
+              SizedBox(height: 3.h),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    item.label,
+                    maxLines: 1,
+                    style: AppTextStyles.cairoRegular14.copyWith(
+                      fontSize: 10.sp,
+                      height: 1.2,
+                      color: color,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          child: Material(
-            color: isSelected ? colors.primary : colors.surface,
-            shape: const CircleBorder(),
-            elevation: 0,
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: onTap,
-              child: Padding(
-                padding: EdgeInsets.all(12.w),
-                child: HugeIcon(icon: item.icon, size: 20.sp, color: color),
-              ),
-            ),
-          ),
         ),
-        SizedBox(height: 4.h),
-        Text(
-          item.label,
-          style: AppTextStyles.cairoRegular14.copyWith(
-            fontSize: 10.sp,
-            color: isSelected ? colors.primary : colors.textMuted,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

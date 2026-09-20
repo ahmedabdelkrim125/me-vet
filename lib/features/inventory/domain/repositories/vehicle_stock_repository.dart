@@ -93,7 +93,8 @@ abstract class VehicleStockRepository {
     String? note,
   });
 
-  Future<List<VehicleStockAddedTodayModel>> getVehicleStockAddedTodayShareReport(
+  Future<List<VehicleStockAddedTodayModel>>
+      getVehicleStockAddedTodayShareReport(
     String vehicleId,
   );
 }

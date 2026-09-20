@@ -37,7 +37,8 @@ class VehicleStockShareTypeSheet extends StatelessWidget {
           SizedBox(height: 24.h),
           Text(
             'مشاركة مخزون العربية',
-            style: AppTextStyles.cairoBold18.copyWith(color: context.colors.text),
+            style:
+                AppTextStyles.cairoBold18.copyWith(color: context.colors.text),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 24.h),
@@ -98,17 +99,20 @@ class VehicleStockShareTypeSheet extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: AppTextStyles.cairoBold18.copyWith(color: context.colors.text,fontSize: 16.sp),
+                      style: AppTextStyles.cairoBold18.copyWith(
+                          color: context.colors.text, fontSize: 16.sp),
                     ),
                     SizedBox(height: 4.h),
                     Text(
                       subtitle,
-                      style: AppTextStyles.almaraiRegular14.copyWith(color: context.colors.textMuted),
+                      style: AppTextStyles.almaraiRegular14
+                          .copyWith(color: context.colors.textMuted),
                     ),
                   ],
                 ),
               ),
-              Icon(CupertinoIcons.chevron_left, color: context.colors.textMuted, size: 18.sp),
+              Icon(CupertinoIcons.chevron_left,
+                  color: context.colors.textMuted, size: 18.sp),
             ],
           ),
         ),

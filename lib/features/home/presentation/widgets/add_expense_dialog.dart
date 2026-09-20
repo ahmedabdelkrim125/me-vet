@@ -64,7 +64,8 @@ class _AddExpenseDialogViewState extends State<_AddExpenseDialogView> {
         if (state is ExpenseSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('تم إضافة المصروف بنجاح', style: TextStyle(color: Colors.white)),
+              content: Text('تم إضافة المصروف بنجاح',
+                  style: TextStyle(color: Colors.white)),
               backgroundColor: AppColors.primaryGreen,
             ),
           );
@@ -72,7 +73,8 @@ class _AddExpenseDialogViewState extends State<_AddExpenseDialogView> {
         } else if (state is ExpenseError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message, style: const TextStyle(color: Colors.white)),
+              content: Text(state.message,
+                  style: const TextStyle(color: Colors.white)),
               backgroundColor: AppColors.statusNotReached,
             ),
           );
@@ -80,7 +82,8 @@ class _AddExpenseDialogViewState extends State<_AddExpenseDialogView> {
       },
       child: Dialog(
         backgroundColor: colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
         insetPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
         child: SingleChildScrollView(
           padding: EdgeInsets.all(24.w),
@@ -94,7 +97,8 @@ class _AddExpenseDialogViewState extends State<_AddExpenseDialogView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('إضافة مصروف',
-                        style: AppTextStyles.cairoBold18.copyWith(color: colors.text)),
+                        style: AppTextStyles.cairoBold18
+                            .copyWith(color: colors.text)),
                     IconButton(
                       icon: Icon(Icons.close, color: colors.textMuted),
                       onPressed: () => Navigator.of(context).pop(),
@@ -104,14 +108,18 @@ class _AddExpenseDialogViewState extends State<_AddExpenseDialogView> {
                 SizedBox(height: 24.h),
                 TextFormField(
                   controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: 'المبلغ',
-                    labelStyle: AppTextStyles.cairoMedium16.copyWith(color: colors.textMuted),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                    labelStyle: AppTextStyles.cairoMedium16
+                        .copyWith(color: colors.textMuted),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r)),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'يرجى إدخال المبلغ';
+                    if (value == null || value.isEmpty)
+                      return 'يرجى إدخال المبلغ';
                     if (double.tryParse(value) == null) return 'قيمة غير صالحة';
                     return null;
                   },
@@ -121,24 +129,31 @@ class _AddExpenseDialogViewState extends State<_AddExpenseDialogView> {
                   controller: _categoryController,
                   decoration: InputDecoration(
                     labelText: 'التصنيف',
-                    labelStyle: AppTextStyles.cairoMedium16.copyWith(color: colors.textMuted),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                    labelStyle: AppTextStyles.cairoMedium16
+                        .copyWith(color: colors.textMuted),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r)),
                   ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty) ? 'يرجى إدخال التصنيف' : null,
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'يرجى إدخال التصنيف'
+                      : null,
                 ),
                 SizedBox(height: 16.h),
                 DropdownButtonFormField<String>(
                   value: _selectedPaymentMethod,
                   decoration: InputDecoration(
                     labelText: 'طريقة الدفع',
-                    labelStyle: AppTextStyles.cairoMedium16.copyWith(color: colors.textMuted),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                    labelStyle: AppTextStyles.cairoMedium16
+                        .copyWith(color: colors.textMuted),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r)),
                   ),
                   items: const [
                     DropdownMenuItem(value: 'cash', child: Text('كاش')),
-                    DropdownMenuItem(value: 'vodafone_cash', child: Text('فودافون كاش')),
-                    DropdownMenuItem(value: 'instapay', child: Text('InstaPay')),
+                    DropdownMenuItem(
+                        value: 'vodafone_cash', child: Text('فودافون كاش')),
+                    DropdownMenuItem(
+                        value: 'instapay', child: Text('InstaPay')),
                   ],
                   onChanged: (value) {
                     if (value != null) {
@@ -152,8 +167,10 @@ class _AddExpenseDialogViewState extends State<_AddExpenseDialogView> {
                   maxLines: 3,
                   decoration: InputDecoration(
                     labelText: 'ملاحظات (اختياري)',
-                    labelStyle: AppTextStyles.cairoMedium16.copyWith(color: colors.textMuted),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                    labelStyle: AppTextStyles.cairoMedium16
+                        .copyWith(color: colors.textMuted),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r)),
                   ),
                 ),
                 SizedBox(height: 32.h),
@@ -162,7 +179,8 @@ class _AddExpenseDialogViewState extends State<_AddExpenseDialogView> {
                     return ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r)),
                         padding: EdgeInsets.symmetric(vertical: 14.h),
                       ),
                       onPressed: state is ExpenseLoading ? null : _submit,
@@ -170,10 +188,12 @@ class _AddExpenseDialogViewState extends State<_AddExpenseDialogView> {
                           ? SizedBox(
                               width: 24.w,
                               height: 24.w,
-                              child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: const CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
                             )
                           : Text('حفظ المصروف',
-                              style: AppTextStyles.cairoBold18.copyWith(color: Colors.white)),
+                              style: AppTextStyles.cairoBold18
+                                  .copyWith(color: Colors.white)),
                     );
                   },
                 ),

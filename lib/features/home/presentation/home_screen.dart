@@ -231,16 +231,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             }
                           },
                           child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16.w, vertical: 16.h),
                             child: Row(
                               children: [
                                 Container(
                                   padding: EdgeInsets.all(8.w),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen.withOpacity(0.1),
+                                    color:
+                                        AppColors.primaryGreen.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10.r),
                                   ),
-                                  child: Icon(Icons.money_off_csred_outlined, color: AppColors.primaryGreen, size: 24.w),
+                                  child: Icon(Icons.money_off_csred_outlined,
+                                      color: AppColors.primaryGreen,
+                                      size: 24.w),
                                 ),
                                 SizedBox(width: 12.w),
                                 Expanded(
@@ -252,7 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                 ),
-                                Icon(Icons.arrow_forward_ios_rounded, color: colors.textMuted, size: 16.w),
+                                Icon(Icons.arrow_forward_ios_rounded,
+                                    color: colors.textMuted, size: 16.w),
                               ],
                             ),
                           ),
