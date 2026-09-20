@@ -7,7 +7,6 @@ void main() {
     id: 'product-1',
     name: 'Vitamin X',
     category: 'poultry',
-    unit: 'piece',
     retailPrice: 200,
     wholesalePrice: 200,
     minStockThreshold: 1,

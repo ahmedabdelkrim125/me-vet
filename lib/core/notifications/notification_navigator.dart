@@ -155,9 +155,7 @@ class NotificationNavigator {
     try {
       final results = await Future.wait([
         ProductsRepository.instance.getCategories(),
-        ProductsRepository.instance.getUnits(),
       ]);
-      catalog = ProductCatalog(categories: results[0], units: results[1]);
     } catch (e) {
       debugPrint('[NotificationNavigator] catalog load error: $e');
     }

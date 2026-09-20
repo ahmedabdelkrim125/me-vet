@@ -197,24 +197,26 @@ class ProductTile extends StatelessWidget {
                               color: context.colors.statOrange),
                       ],
                     ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      '${product.category} — ${product.unit} — ${product.basePrice.toStringAsFixed(0)} ج.م',
-                      style: AppTextStyles.almaraiRegular14.copyWith(
-                          color: context.colors.textMuted, fontSize: 10.sp),
-                    ),
-                    SizedBox(height: 6.h),
-                    Text(
-                      stock == null
-                          ? 'غير موجود في العربية'
-                          : '$quantity ${product.unit} في العربية',
-                      style: AppTextStyles.cairoMedium16.copyWith(
-                        color: isLow
-                            ? context.colors.statusNotReached
-                            : context.colors.primary,
-                        fontSize: 10.sp,
-                      ),
-                    ),
+                  SizedBox(height: 4.h),
+Text(
+  '${product.category} — ${product.basePrice.toStringAsFixed(0)} ج.م',
+  style: AppTextStyles.almaraiRegular14.copyWith(
+    color: context.colors.textMuted,
+    fontSize: 10.sp,
+  ),
+),
+SizedBox(height: 6.h),
+Text(
+  stock == null
+      ? 'غير موجود في العربية'
+      : '$quantity في العربية',
+  style: AppTextStyles.cairoMedium16.copyWith(
+    color: isLow
+        ? context.colors.statusNotReached
+        : context.colors.primary,
+    fontSize: 10.sp,
+  ),
+),
                   ],
                 ),
               ),

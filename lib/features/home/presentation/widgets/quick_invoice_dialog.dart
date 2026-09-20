@@ -35,7 +35,6 @@ InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
     id: product.id,
     name: product.name,
     price: product.basePrice,
-    unit: product.unit,
   );
 }
 

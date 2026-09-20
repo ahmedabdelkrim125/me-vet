@@ -72,9 +72,11 @@ class WarehouseStockTile extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  '${product.category} — ${product.unit}',
+                  product.category,
                   style: AppTextStyles.almaraiRegular14.copyWith(
-                      color: context.colors.textMuted, fontSize: 10.sp),
+                    color: context.colors.textMuted,
+                    fontSize: 10.sp,
+                  ),
                 ),
               ],
             ),

@@ -2,6 +2,7 @@ import '../../data/datasources/vehicle_stock_remote_data_source.dart';
 import '../../domain/models/delivery_vehicle_model.dart';
 import '../../domain/models/stock_movement_model.dart';
 import '../../domain/models/vehicle_stock_model.dart';
+import '../../domain/models/vehicle_stock_added_today_model.dart';
 import '../../domain/repositories/vehicle_stock_repository.dart';
 
 class VehicleStockRepositoryImpl implements VehicleStockRepository {
@@ -32,16 +33,16 @@ class VehicleStockRepositoryImpl implements VehicleStockRepository {
   @override
   Future<List<VehicleStockModel>> getVehicleStock(String vehicleId) async {
     final rows = await remoteDataSource.getVehicleStock(vehicleId);
-    return rows
-        .map(VehicleStockModel.fromMap)
-        .where((stock) => stock.product != null && !stock.product!.isDeleted)
-        .toList();
+    return rows.map(VehicleStockModel.fromMap).toList();
   }
 
   @override
-  Future<List<StockMovementModel>> getStockMovements(
-      {String? vehicleId}) async {
-    final rows = await remoteDataSource.getStockMovements(vehicleId: vehicleId);
+  Future<List<StockMovementModel>> getStockMovements({
+    String? vehicleId,
+  }) async {
+    final rows = await remoteDataSource.getStockMovements(
+      vehicleId: vehicleId,
+    );
     return rows.map(StockMovementModel.fromMap).toList();
   }
 
@@ -94,5 +95,28 @@ class VehicleStockRepositoryImpl implements VehicleStockRepository {
       referenceId: referenceId,
       note: note,
     );
+  }
+
+  @override
+  Future<void> updateVehicleStockQuantity({
+    required String vehicleId,
+    required String productId,
+    required int newQuantity,
+    String? note,
+  }) {
+    return remoteDataSource.updateVehicleStockQuantity(
+      vehicleId: vehicleId,
+      productId: productId,
+      newQuantity: newQuantity,
+      note: note,
+    );
+  }
+
+  @override
+  Future<List<VehicleStockAddedTodayModel>>
+      getVehicleStockAddedTodayShareReport(String vehicleId) async {
+    final rows =
+        await remoteDataSource.getVehicleStockAddedTodayShareReport(vehicleId);
+    return rows.map(VehicleStockAddedTodayModel.fromMap).toList();
   }
 }

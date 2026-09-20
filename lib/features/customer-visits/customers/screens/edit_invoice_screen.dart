@@ -989,7 +989,6 @@ class _EditInvoiceScreenState extends State<EditInvoiceScreen> {
       id: item.productId ?? '',
       name: item.productName,
       category: 'other',
-      unit: 'piece',
       retailPrice: item.unitPrice,
       wholesalePrice: item.unitPrice,
       minStockThreshold: 0,
