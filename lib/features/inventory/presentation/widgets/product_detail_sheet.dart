@@ -303,22 +303,24 @@ class _DetailRow extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16.sp, color: context.colors.textMuted),
           SizedBox(width: 8.w),
           Text(label,
               style: AppTextStyles.almaraiRegular14
                   .copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
-          const Spacer(),
-          Text(value,
-              style: AppTextStyles.cairoMedium16
-                  .copyWith(color: context.colors.text, fontSize: 12.sp)),
+          SizedBox(width: 8.w),
+          Expanded(
+              child: Text(value,
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(color: context.colors.text, fontSize: 12.sp),
+                  textAlign: TextAlign.end)),
         ],
       ),
     );
   }
 }
-
 
 /// Asks the user for their account password before a destructive action.
 ///
@@ -411,8 +413,9 @@ class _PasswordConfirmationDialogState
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
                 ),
-                onPressed:
-                    _verifying ? null : () => setState(() => _obscure = !_obscure),
+                onPressed: _verifying
+                    ? null
+                    : () => setState(() => _obscure = !_obscure),
               ),
             ),
           ),

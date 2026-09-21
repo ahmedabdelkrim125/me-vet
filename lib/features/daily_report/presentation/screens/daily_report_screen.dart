@@ -1021,13 +1021,14 @@ class _BaseCard extends StatelessWidget {
                 ),
                 SizedBox(width: 10.w),
               ],
-              Text(
-                title,
-                style: AppTextStyles.cairoBold18.copyWith(
-                  fontSize: 16.sp,
-                  color: context.colors.text,
-                ),
-              ),
+              Flexible(
+                  child: Text(title,
+                      style: AppTextStyles.cairoBold18.copyWith(
+                        fontSize: 16.sp,
+                        color: context.colors.text,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)),
             ],
           ),
           SizedBox(height: 16.h),
@@ -1201,9 +1202,12 @@ class _BalancesSection extends StatelessWidget {
                 child: Image.asset(imagePath, width: 18.w, height: 18.w),
               ),
             SizedBox(width: 10.w),
-            Text(title,
-                style: AppTextStyles.cairoBold18
-                    .copyWith(fontSize: 14.sp, color: context.colors.text)),
+            Flexible(
+                child: Text(title,
+                    style: AppTextStyles.cairoBold18
+                        .copyWith(fontSize: 14.sp, color: context.colors.text),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
           ],
         ),
         SizedBox(height: 12.h),
@@ -1287,9 +1291,14 @@ class _CollectionsSection extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(c.customerName,
-                            style: AppTextStyles.cairoMedium16.copyWith(
-                                fontSize: 14.sp, color: context.colors.text)),
+                        Expanded(
+                            child: Text(c.customerName,
+                                style: AppTextStyles.cairoMedium16.copyWith(
+                                    fontSize: 14.sp,
+                                    color: context.colors.text),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis)),
+                        SizedBox(width: 8.w),
                         Text('${c.totalCollected.toStringAsFixed(2)} ج.م',
                             style: AppTextStyles.cairoBold18.copyWith(
                                 fontSize: 14.sp,
@@ -1497,8 +1506,8 @@ class _ExportButtons extends StatelessWidget {
                         color: exportColor, size: 18.sp),
                     SizedBox(width: 8.w),
                     Text('تصدير PDF',
-                        style: AppTextStyles.cairoMedium16.copyWith(
-                            color: exportColor, fontSize: 14.sp)),
+                        style: AppTextStyles.cairoMedium16
+                            .copyWith(color: exportColor, fontSize: 14.sp)),
                   ],
                 ),
               ),

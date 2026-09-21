@@ -104,9 +104,8 @@ class _NavTab extends StatelessWidget {
       curve: Curves.easeOutCubic,
       margin: EdgeInsets.symmetric(horizontal: 2.w, vertical: 6.h),
       decoration: BoxDecoration(
-        color: isSelected
-            ? colors.primary.withOpacity(0.13)
-            : Colors.transparent,
+        color:
+            isSelected ? colors.primary.withOpacity(0.13) : Colors.transparent,
         borderRadius: BorderRadius.circular(20.r),
       ),
       child: Material(

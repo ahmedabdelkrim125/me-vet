@@ -37,7 +37,6 @@ class SplashNetworkIssueBody extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: AppTextStyles.tajawalMedium16.copyWith(
                   color: context.colors.text,
-                  
                 ),
               ),
             ],

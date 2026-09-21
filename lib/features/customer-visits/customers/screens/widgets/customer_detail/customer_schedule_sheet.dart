@@ -79,29 +79,15 @@ class _CustomerScheduleSheetState extends State<_CustomerScheduleSheet> {
         final row = _schedule.firstWhere((s) => s.weekday == weekday);
         await VisitsRepository.instance.removeSchedule(row.id);
       } else {
-        final time = await showTimePicker(
-          context: context,
-          initialTime: const TimeOfDay(hour: 9, minute: 0),
-          helpText: 'ميعاد الزيارة التقريبي',
-        );
-        if (time == null) return;
         await VisitsRepository.instance.addSchedule(
           customerId: widget.customerId,
           weekday: weekday,
-          hour: time.hour,
-          minute: time.minute,
         );
       }
       await _load();
     } catch (e) {
       if (mounted) showAppError(context, e);
     }
-  }
-
-  String _timeLabel(ScheduleRow row) {
-    final h = row.hour.toString().padLeft(2, '0');
-    final m = row.minute.toString().padLeft(2, '0');
-    return '$h:$m';
   }
 
   @override
@@ -113,7 +99,8 @@ class _CustomerScheduleSheetState extends State<_CustomerScheduleSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
       padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 24.h),
-      child: Column(
+      child: SingleChildScrollView(
+          child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -150,14 +137,10 @@ class _CustomerScheduleSheetState extends State<_CustomerScheduleSheet> {
               _DayRow(
                 name: _dbWeekdayNames[weekday],
                 selected: _hasDay(weekday),
-                timeLabel: _hasDay(weekday)
-                    ? _timeLabel(
-                        _schedule.firstWhere((s) => s.weekday == weekday))
-                    : null,
                 onTap: () => _toggleDay(weekday),
               ),
         ],
-      ),
+      )),
     );
   }
 }
@@ -165,13 +148,11 @@ class _CustomerScheduleSheetState extends State<_CustomerScheduleSheet> {
 class _DayRow extends StatelessWidget {
   final String name;
   final bool selected;
-  final String? timeLabel;
   final VoidCallback onTap;
 
   const _DayRow({
     required this.name,
     required this.selected,
-    required this.timeLabel,
     required this.onTap,
   });
 
@@ -210,13 +191,6 @@ class _DayRow extends StatelessWidget {
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
-                const Spacer(),
-                if (timeLabel != null)
-                  Text(
-                    timeLabel!,
-                    style: AppTextStyles.almaraiRegular14
-                        .copyWith(color: colors.primary, fontSize: 12.sp),
-                  ),
               ],
             ),
           ),

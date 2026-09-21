@@ -8,6 +8,7 @@ import 'package:mivet_app/core/utils/arabic_date_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../customer-visits/customers/presentation/controllers/today_route_controller.dart';
 import '../../../notification/domain/models/app_notification_model.dart';
 import '../../../notification/domain/notification_repository.dart';
 import '../../../notification/presentation/screens/notifications_screen.dart';
@@ -90,8 +91,10 @@ class _HomeHeaderState extends State<HomeHeader> {
           SizedBox(width: 8.w),
           _ActionButton(
             icon: HugeIcons.strokeRoundedRefresh,
-            onTap: () =>
-                context.read<HomeCubit>().loadWeeklySummary(forceRefresh: true),
+            onTap: () {
+              context.read<HomeCubit>().loadWeeklySummary(forceRefresh: true);
+              TodayRouteController.instance.refresh();
+            },
           ),
           SizedBox(width: 8.w),
           ValueListenableBuilder<List<AppNotificationModel>>(

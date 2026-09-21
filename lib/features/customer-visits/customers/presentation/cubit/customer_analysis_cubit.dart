@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/invoices_repository.dart';
 import '../../domain/models/customer_detail_model.dart';
-import '../../domain/models/invoice_record_model.dart';
 import 'customer_analysis_state.dart';
 
 class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
@@ -18,10 +17,6 @@ class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
     try {
       final stats = await InvoicesRepository.instance
           .getProductStatsForCustomer(_customerId);
-      final invoices = await InvoicesRepository.instance
-          .getInvoicesForCustomer(_customerId, since: _sixMonthsAgo());
-      final allInvoices =
-          await InvoicesRepository.instance.getInvoicesForCustomer(_customerId);
 
       final now = DateTime.now();
 
@@ -57,26 +52,10 @@ class CustomerAnalysisCubit extends Cubit<CustomerAnalysisState> {
                   lastPurchaseDate: s.lastPurchaseDate,
                 ))
             .toList(),
-        recentInvoices: invoices.map(_toSummary).toList(),
-        allInvoices: allInvoices.map(_toSummary).toList(),
       ));
     } catch (_) {
       if (isClosed) return;
       emit(state.copyWith(isLoading: false));
     }
-  }
-
-  DateTime _sixMonthsAgo() {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month - 6, now.day);
-  }
-
-  InvoiceSummaryModel _toSummary(InvoiceRecordModel invoice) {
-    return InvoiceSummaryModel(
-      code: invoice.code,
-      date: invoice.date,
-      amount: invoice.amount,
-      status: invoice.status.label,
-    );
   }
 }

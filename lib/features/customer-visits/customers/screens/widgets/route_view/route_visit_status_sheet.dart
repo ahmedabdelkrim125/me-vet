@@ -54,7 +54,8 @@ class _RouteStopActionsSheet extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
       padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 24.h),
-      child: Column(
+      child: SingleChildScrollView(
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -83,11 +84,12 @@ class _RouteStopActionsSheet extends StatelessWidget {
                 color: context.colors.textMuted,
               ),
               SizedBox(width: 4.w),
-              Text(
-                stop.area,
-                style: AppTextStyles.almaraiRegular14
-                    .copyWith(color: context.colors.textMuted, fontSize: 11.sp),
-              ),
+              Flexible(
+                  child: Text(stop.area,
+                      style: AppTextStyles.almaraiRegular14.copyWith(
+                          color: context.colors.textMuted, fontSize: 11.sp),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis)),
             ],
           ),
           SizedBox(height: 18.h),
@@ -163,7 +165,7 @@ class _RouteStopActionsSheet extends StatelessWidget {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 }

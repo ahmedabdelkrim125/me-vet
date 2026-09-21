@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../data/customers_repository.dart';
 import '../../data/visits_repository.dart';
@@ -7,7 +10,10 @@ import '../../domain/models/route_stop_model.dart';
 import '../../domain/models/visit_history_model.dart';
 import '../../domain/models/visit_status.dart';
 
-class TodayRouteController {
+/// Holds today's route and keeps it correct across midnight: at 12:00 AM (and
+/// whenever the app comes back to the foreground on a new day) it asks the
+/// server to generate the new day's visits and reloads the stops.
+class TodayRouteController with WidgetsBindingObserver {
   TodayRouteController._internal();
 
   static final TodayRouteController instance = TodayRouteController._internal();
@@ -18,6 +24,11 @@ class TodayRouteController {
       ValueNotifier<List<VisitHistoryModel>>(<VisitHistoryModel>[]);
 
   bool _initialized = false;
+  bool _observingLifecycle = false;
+  Timer? _midnightTimer;
+
+  /// The day (local midnight) the current [stops] belong to.
+  DateTime? _loadedDay;
 
   List<RouteStopModel> get stops => stopsNotifier.value;
 
@@ -49,9 +60,12 @@ class TodayRouteController {
     await VisitsRepository.instance.generateTodayVisits();
     await _reloadToday();
     _initialized = true;
+    _startDayRollover();
   }
 
   void reset() {
+    _stopDayRollover();
+    _loadedDay = null;
     _initialized = false;
     stopsNotifier.value = <RouteStopModel>[];
     visitHistoryNotifier.value = <VisitHistoryModel>[];
@@ -62,10 +76,57 @@ class TodayRouteController {
     await _reloadToday();
   }
 
+  // ---- new-day handling ---------------------------------------------------
+
+  DateTime _dayOf(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  void _startDayRollover() {
+    if (!_observingLifecycle) {
+      WidgetsBinding.instance.addObserver(this);
+      _observingLifecycle = true;
+    }
+    _armMidnightTimer();
+  }
+
+  void _stopDayRollover() {
+    _midnightTimer?.cancel();
+    _midnightTimer = null;
+    if (_observingLifecycle) {
+      WidgetsBinding.instance.removeObserver(this);
+      _observingLifecycle = false;
+    }
+  }
+
+  void _armMidnightTimer() {
+    _midnightTimer?.cancel();
+    final now = DateTime.now();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    _midnightTimer = Timer(
+      nextMidnight.difference(now) + const Duration(seconds: 3),
+      () async {
+        await refresh();
+        _armMidnightTimer();
+      },
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Dart timers do not fire while the app is suspended, so also check the
+    // day when the app comes back.
+    if (state == AppLifecycleState.resumed) _refreshIfDayChanged();
+  }
+
+  Future<void> _refreshIfDayChanged() async {
+    if (!_initialized) return;
+    if (_loadedDay != _dayOf(DateTime.now())) await refresh();
+    _armMidnightTimer();
+  }
+
   Future<void> _reloadToday() async {
     try {
-      final rows =
-          await VisitsRepository.instance.getVisitsForDay(DateTime.now());
+      final day = DateTime.now();
+      final rows = await VisitsRepository.instance.getVisitsForDay(day);
       final loaded = <RouteStopModel>[];
       for (int i = 0; i < rows.length; i++) {
         final row = rows[i];
@@ -83,6 +144,7 @@ class TodayRouteController {
         ));
       }
       stopsNotifier.value = loaded;
+      _loadedDay = _dayOf(day);
     } catch (e) {
       debugPrint('Error reloading today route: $e');
     }

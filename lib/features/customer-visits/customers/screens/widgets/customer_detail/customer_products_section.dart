@@ -138,9 +138,12 @@ class _SectionCard extends StatelessWidget {
             children: [
               Icon(icon, color: iconColor, size: 16.sp),
               SizedBox(width: 8.w),
-              Text(title,
-                  style: AppTextStyles.cairoMedium16
-                      .copyWith(color: colors.text, fontSize: 13.sp)),
+              Flexible(
+                  child: Text(title,
+                      style: AppTextStyles.cairoMedium16
+                          .copyWith(color: colors.text, fontSize: 13.sp),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)),
             ],
           ),
           SizedBox(height: 12.h),

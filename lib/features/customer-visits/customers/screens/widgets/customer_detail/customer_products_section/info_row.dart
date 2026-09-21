@@ -15,14 +15,17 @@ class InfoRow extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: 6.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
               style: AppTextStyles.almaraiRegular14
                   .copyWith(color: colors.textMuted, fontSize: 11.sp)),
-          const Spacer(),
-          Text(value,
-              style: AppTextStyles.cairoMedium16
-                  .copyWith(color: colors.text, fontSize: 11.sp)),
+          SizedBox(width: 8.w),
+          Expanded(
+              child: Text(value,
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(color: colors.text, fontSize: 11.sp),
+                  textAlign: TextAlign.end)),
         ],
       ),
     );

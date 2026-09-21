@@ -72,17 +72,9 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
             .firstWhere((s) => s.weekday == weekday);
         await VisitsRepository.instance.removeSchedule(row.id);
       } else {
-        final time = await showTimePicker(
-          context: context,
-          initialTime: const TimeOfDay(hour: 9, minute: 0),
-          helpText: 'ميعاد زيارة ${customer.name} التقريبي',
-        );
-        if (time == null) return;
         await VisitsRepository.instance.addSchedule(
           customerId: customer.id,
           weekday: weekday,
-          hour: time.hour,
-          minute: time.minute,
         );
       }
       await _load();

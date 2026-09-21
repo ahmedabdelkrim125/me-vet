@@ -38,10 +38,6 @@ InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
   );
 }
 
-List<PastInvoiceSummaryModel> _statementFor(InvoiceCustomerModel invoice) {
-  return const [];
-}
-
 String _money(double value) {
   final negative = value < 0;
   final whole = value.abs().truncate();
@@ -275,19 +271,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     }
   }
 
-  void _openStatement() {
-    if (customer == null) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _StatementSheet(
-        invoice: customer!,
-        entries: _statementFor(customer!),
-      ),
-    );
-  }
-
   Future<void> _issueInvoice() async {
     if (customer == null) {
       _toast('الرجاء اختيار العميل أولاً');
@@ -479,8 +462,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                       SizedBox(height: 14.h),
                       _FinancialSummaryRow(invoice: customer!),
                       SizedBox(height: 14.h),
-                      _StatementTile(onTap: _openStatement),
-                      SizedBox(height: 14.h),
                       BlocBuilder<VehicleStockCubit, VehicleStockState>(
                         bloc: _vehicleStockCubit,
                         builder: (context, vehicleStockState) {
@@ -627,13 +608,14 @@ class _Header extends StatelessWidget {
                     Icon(Icons.qr_code_2_rounded,
                         size: 13.sp, color: Colors.white70),
                     SizedBox(width: 4.w),
-                    Text(
-                      invoiceNumber,
-                      style: AppTextStyles.almaraiRegular14.copyWith(
-                        color: Colors.white70,
-                        fontSize: 12.sp,
-                      ),
-                    ),
+                    Flexible(
+                        child: Text(invoiceNumber,
+                            style: AppTextStyles.almaraiRegular14.copyWith(
+                              color: Colors.white70,
+                              fontSize: 12.sp,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis)),
                   ],
                 ),
               ],
@@ -660,13 +642,14 @@ class _RepChip extends StatelessWidget {
       children: [
         Icon(Icons.badge_outlined, size: 15.sp, color: colors.textMuted),
         SizedBox(width: 6.w),
-        Text(
-          'المندوب الحالي: $name',
-          style: AppTextStyles.almaraiRegular14.copyWith(
-            color: colors.textMuted,
-            fontSize: 12.sp,
-          ),
-        ),
+        Flexible(
+            child: Text('المندوب الحالي: $name',
+                style: AppTextStyles.almaraiRegular14.copyWith(
+                  color: colors.textMuted,
+                  fontSize: 12.sp,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis)),
       ],
     );
   }
@@ -712,14 +695,14 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Icon(icon, size: 16.sp, color: colors.primary),
         SizedBox(width: 8.w),
-        Text(
-          title,
-          style: AppTextStyles.cairoMedium16.copyWith(
-            color: colors.text,
-            fontSize: 13.sp,
-          ),
-        ),
-        const Spacer(),
+        Expanded(
+            child: Text(title,
+                style: AppTextStyles.cairoMedium16.copyWith(
+                  color: colors.text,
+                  fontSize: 13.sp,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis)),
         if (trailing != null) trailing!,
       ],
     );
@@ -841,11 +824,12 @@ class _CustomerInfo extends StatelessWidget {
           children: [
             Icon(Icons.call_outlined, size: 14.sp, color: colors.textMuted),
             SizedBox(width: 4.w),
-            Text(
-              invoice.customer.phone,
-              style: AppTextStyles.almaraiRegular14
-                  .copyWith(color: colors.textMuted, fontSize: 12.sp),
-            ),
+            Flexible(
+                child: Text(invoice.customer.phone,
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.textMuted, fontSize: 12.sp),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
           ],
         ),
       ],
@@ -1273,120 +1257,6 @@ class _FinancialCard extends StatelessWidget {
   }
 }
 
-class _StatementTile extends StatelessWidget {
-  final VoidCallback onTap;
-  const _StatementTile({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(14.r),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14.r),
-        child: Container(
-          padding: EdgeInsets.all(14.w),
-          decoration: BoxDecoration(
-            border: Border.all(color: colors.border),
-            borderRadius: BorderRadius.circular(14.r),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.receipt_long_outlined,
-                  color: colors.text, size: 20.sp),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Text(
-                  'كشف الحساب',
-                  style: AppTextStyles.cairoMedium16
-                      .copyWith(color: colors.text, fontSize: 13.sp),
-                ),
-              ),
-              Icon(Icons.chevron_left_rounded,
-                  color: colors.textMuted, size: 20.sp),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatementSheet extends StatelessWidget {
-  final InvoiceCustomerModel invoice;
-  final List<PastInvoiceSummaryModel> entries;
-
-  const _StatementSheet({required this.invoice, required this.entries});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return _BottomSheetShell(
-      title: 'كشف حساب: ${invoice.customer.name}',
-      icon: Icons.receipt_long_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: entries
-            .map(
-              (e) => Container(
-                margin: EdgeInsets.only(bottom: 10.h),
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: colors.background,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(e.invoiceNumber,
-                              style: AppTextStyles.cairoMedium16.copyWith(
-                                  color: colors.text, fontSize: 12.sp)),
-                          SizedBox(height: 2.h),
-                          Text(_date(e.date),
-                              style: AppTextStyles.almaraiRegular14.copyWith(
-                                  color: colors.textMuted, fontSize: 11.sp)),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: (e.status == 'مدفوعة'
-                                ? colors.primary
-                                : colors.statOrange)
-                            .withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Text(
-                        e.status,
-                        style: AppTextStyles.almaraiRegular14.copyWith(
-                          color: e.status == 'مدفوعة'
-                              ? colors.primary
-                              : colors.statOrange,
-                          fontSize: 10.sp,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 10.w),
-                    Text(_money(e.total),
-                        style: AppTextStyles.cairoBold18
-                            .copyWith(color: colors.text, fontSize: 13.sp)),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
-}
-
 class _ProductsSection extends StatelessWidget {
   final List<InvoiceLineItemModel> items;
   final int currentPage;
@@ -1566,14 +1436,14 @@ class _TotalsRow extends StatelessWidget {
         Text(label,
             style: AppTextStyles.almaraiRegular14
                 .copyWith(color: colors.textMuted, fontSize: 12.sp)),
-        const Spacer(),
-        Text(
-          value,
-          style: AppTextStyles.cairoMedium16.copyWith(
-            color: muted ? colors.statOrange : colors.text,
-            fontSize: 13.sp,
-          ),
-        ),
+        SizedBox(width: 8.w),
+        Expanded(
+            child: Text(value,
+                style: AppTextStyles.cairoMedium16.copyWith(
+                  color: muted ? colors.statOrange : colors.text,
+                  fontSize: 13.sp,
+                ),
+                textAlign: TextAlign.end)),
       ],
     );
   }

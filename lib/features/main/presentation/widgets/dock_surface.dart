@@ -53,8 +53,8 @@ class DockSurface extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: fillColor ??
-                  colors.surface.withOpacity(isDark ? 0.97 : 0.92),
+              color:
+                  fillColor ?? colors.surface.withOpacity(isDark ? 0.97 : 0.92),
               borderRadius: borderRadius,
               border: Border.all(color: colors.border.withOpacity(0.9)),
             ),
