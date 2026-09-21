@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../../core/const/app_images.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import 'package:mivet_app/core/utils/pdf_page_background.dart';
 
 class InvoicePdfLineItem {
   final String name;
@@ -88,18 +89,8 @@ class InvoicePdfBuilder {
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(28),
           theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
-          buildBackground: (context) {
-            if (watermarkBytes == null) return pw.SizedBox();
-            return pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 35),
-              child: pw.Center(
-                child: pw.Image(
-                  pw.MemoryImage(watermarkBytes),
-                  width: 320,
-                ),
-              ),
-            );
-          },
+          buildBackground: (context) =>
+              buildWhitePdfBackground(watermarkBytes: watermarkBytes),
         ),
         header: (context) => pw.Directionality(
           textDirection: pw.TextDirection.rtl,

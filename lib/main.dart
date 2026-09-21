@@ -33,6 +33,23 @@ Future<void> main() async {
     ),
   );
 
+  // Diagnostics: shows WHY a logout happened. Look for the "[Auth]" lines
+  // in `flutter run` / `adb logcat -s flutter`.
+  Supabase.instance.client.auth.onAuthStateChange.listen(
+    (state) => debugPrint(
+      '[Auth] event=${state.event.name}'
+      '${state.signOutReason != null ? ' reason=${state.signOutReason!.name}' : ''}',
+    ),
+    onError: (Object error) {
+      if (error is AuthException) {
+        debugPrint('[Auth] error code=${error.code} '
+            'status=${error.statusCode} message=${error.message}');
+      } else {
+        debugPrint('[Auth] error: $error');
+      }
+    },
+  );
+
   setupServiceLocator();
 
   try {

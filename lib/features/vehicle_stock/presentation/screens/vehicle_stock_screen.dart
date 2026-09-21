@@ -1219,7 +1219,8 @@ class _VehicleStockViewState extends State<_VehicleStockView>
 
       if (shareType == 'all') {
         if (state.vehicleStock.isEmpty) {
-          throw Exception('لا يوجد مخزون في العربية لمشاركته');
+          showAppInfo(context, 'لا يوجد مخزون في العربية لمشاركته');
+          return;
         }
         await VehicleStockShareService.shareVehicleStockReport(
           representativeName: representativeName,
@@ -1232,7 +1233,10 @@ class _VehicleStockViewState extends State<_VehicleStockView>
             .read<VehicleStockCubit>()
             .getAddedTodayReport(vehicle.id);
         if (todayStock.isEmpty) {
-          throw Exception('لم تتم إضافة أي منتجات للعربية اليوم');
+          if (mounted) {
+            showAppInfo(context, 'لم تتم إضافة أي منتجات للعربية اليوم');
+          }
+          return;
         }
         await VehicleStockShareService.shareVehicleStockTodayReport(
           representativeName: representativeName,

@@ -1437,6 +1437,10 @@ class _ExportButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // navy in light mode, light gray in dark mode — AppColors.primary (navy)
+    // is invisible on the dark surface.
+    final exportColor = context.colors.text;
+
     return Row(
       children: [
         Expanded(
@@ -1475,7 +1479,7 @@ class _ExportButtons extends StatelessWidget {
             color: context.colors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14.r),
-              side: BorderSide(color: AppColors.primary.withOpacity(0.2)),
+              side: BorderSide(color: exportColor.withOpacity(0.25)),
             ),
             child: InkWell(
               borderRadius: BorderRadius.circular(14.r),
@@ -1490,11 +1494,11 @@ class _ExportButtons extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.ios_share_rounded,
-                        color: AppColors.primary, size: 18.sp),
+                        color: exportColor, size: 18.sp),
                     SizedBox(width: 8.w),
                     Text('تصدير PDF',
                         style: AppTextStyles.cairoMedium16.copyWith(
-                            color: AppColors.primary, fontSize: 14.sp)),
+                            color: exportColor, fontSize: 14.sp)),
                   ],
                 ),
               ),

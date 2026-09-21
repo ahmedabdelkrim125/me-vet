@@ -9,6 +9,7 @@ import '../../../inventory/domain/models/delivery_vehicle_model.dart';
 import '../../../inventory/domain/models/product_catalog.dart';
 import '../../../inventory/domain/models/vehicle_stock_model.dart';
 import '../../../inventory/domain/models/vehicle_stock_added_today_model.dart';
+import 'package:mivet_app/core/utils/pdf_page_background.dart';
 
 class VehicleStockReportBuilder {
   VehicleStockReportBuilder._();
@@ -132,15 +133,8 @@ class VehicleStockReportBuilder {
       ),
     );
 
-    pw.Widget buildBackground(pw.Context context) {
-      if (watermarkBytes == null) return pw.SizedBox();
-      return pw.Padding(
-        padding: const pw.EdgeInsets.only(top: 35),
-        child: pw.Center(
-          child: pw.Image(pw.MemoryImage(watermarkBytes), width: 320),
-        ),
-      );
-    }
+    pw.Widget buildBackground(pw.Context context) =>
+        buildWhitePdfBackground(watermarkBytes: watermarkBytes);
 
     if (singlePage) {
       document.addPage(

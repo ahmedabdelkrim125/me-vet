@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import 'entities/customer_ledger.dart';
 import 'entities/customer_transaction.dart';
+import 'package:mivet_app/core/utils/pdf_page_background.dart';
 
 /// Dedicated to the customer's full financial statement — a different
 /// document from [InvoicePdfBuilder], which stays scoped to one invoice.
@@ -38,6 +39,7 @@ class CustomerStatementPdfBuilder {
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(28),
           theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
+          buildBackground: (context) => buildWhitePdfBackground(),
         ),
         build: (context) => [
           pw.Directionality(

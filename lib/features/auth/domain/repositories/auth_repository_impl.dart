@@ -89,6 +89,7 @@
 //     });
 //   }
 // }
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../models/user_profile.dart';
@@ -165,13 +166,18 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Stream<UserProfile?> get authStateChanges {
-    return _supabase.auth.onAuthStateChange.asyncMap((event) async {
+    return _supabase.auth.onAuthStateChange.asyncExpand((event) async* {
       final user = event.session?.user;
-      if (user == null) return null;
+      if (user == null) {
+        yield null;
+        return;
+      }
       try {
-        return await _profileFor(user.id);
-      } catch (_) {
-        return null;
+        yield await _profileFor(user.id);
+      } catch (e) {
+        // A temporary failure (e.g. no network right after a token refresh)
+        // must NOT be reported as "user signed out". Keep the previous state.
+        debugPrint('[Auth] profile fetch failed on ${event.event.name}: $e');
       }
     });
   }

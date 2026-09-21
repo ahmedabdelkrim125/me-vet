@@ -39,6 +39,10 @@ class AuthCubit extends Cubit<AuthState> {
         unawaited(
             PushNotificationService.instance.registerDeviceForCurrentUser());
       }
+    }, onError: (Object error, StackTrace stack) {
+      // Supabase pushes refresh/network errors into this stream. Without a
+      // handler they become unhandled exceptions.
+      debugPrint('[Auth] authStateChanges error: $error');
     });
   }
 

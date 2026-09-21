@@ -97,110 +97,12 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     await _performDelete();
   }
 
-  Future<bool?> _showPasswordConfirmationDialog(String email) async {
-    final controller = TextEditingController();
-    var obscure = true;
-    var verifying = false;
-    String? errorText;
-
-    final result = await showDialog<bool>(
+  Future<bool?> _showPasswordConfirmationDialog(String email) {
+    return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final canSubmit = controller.text.trim().isNotEmpty && !verifying;
-            return AlertDialog(
-              title: const Text('تأكيد حذف المنتج'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'للحذف النهائي، أدخل كلمة مرور حسابك',
-                    style: AppTextStyles.almaraiRegular14.copyWith(
-                      color: dialogContext.colors.textMuted,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  TextField(
-                    controller: controller,
-                    obscureText: obscure,
-                    autofocus: true,
-                    onChanged: (_) => setDialogState(() {}),
-                    decoration: InputDecoration(
-                      labelText: 'كلمة المرور',
-                      errorText: errorText,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscure
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                        ),
-                        onPressed: verifying
-                            ? null
-                            : () => setDialogState(() => obscure = !obscure),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: verifying
-                      ? null
-                      : () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('إلغاء'),
-                ),
-                FilledButton(
-                  onPressed: !canSubmit
-                      ? null
-                      : () async {
-                          setDialogState(() {
-                            verifying = true;
-                            errorText = null;
-                          });
-                          try {
-                            await Supabase.instance.client.auth
-                                .signInWithPassword(
-                              email: email,
-                              password: controller.text,
-                            );
-                            if (dialogContext.mounted) {
-                              Navigator.of(dialogContext).pop(true);
-                            }
-                          } on AuthException {
-                            setDialogState(() {
-                              verifying = false;
-                              errorText = 'كلمة المرور غير صحيحة';
-                            });
-                          } catch (error) {
-                            if (mounted) showAppError(context, error);
-                            setDialogState(() {
-                              verifying = false;
-                            });
-                          }
-                        },
-                  child: verifying
-                      ? SizedBox(
-                          width: 16.sp,
-                          height: 16.sp,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text('تأكيد الحذف'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (_) => _PasswordConfirmationDialog(email: email),
     );
-
-    controller.dispose();
-    return result;
   }
 
   Future<void> _performDelete() async {
@@ -413,6 +315,128 @@ class _DetailRow extends StatelessWidget {
                   .copyWith(color: context.colors.text, fontSize: 12.sp)),
         ],
       ),
+    );
+  }
+}
+
+
+/// Asks the user for their account password before a destructive action.
+///
+/// The [TextEditingController] lives in this [State] on purpose: the framework
+/// disposes it only after the dialog route has finished its closing animation.
+/// (Disposing it right after `await showDialog(...)` returns is too early —
+/// the dialog is still on screen while it fades out and rebuilds, which throws
+/// "A TextEditingController was used after being disposed".)
+class _PasswordConfirmationDialog extends StatefulWidget {
+  final String email;
+
+  const _PasswordConfirmationDialog({required this.email});
+
+  @override
+  State<_PasswordConfirmationDialog> createState() =>
+      _PasswordConfirmationDialogState();
+}
+
+class _PasswordConfirmationDialogState
+    extends State<_PasswordConfirmationDialog> {
+  final _controller = TextEditingController();
+  bool _obscure = true;
+  bool _verifying = false;
+  String? _errorText;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _verifying = true;
+      _errorText = null;
+    });
+
+    try {
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: widget.email,
+        password: _controller.text,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } on AuthRetryableFetchException catch (error) {
+      // No / bad network — not a wrong password.
+      if (!mounted) return;
+      setState(() => _verifying = false);
+      showAppError(context, error);
+    } on AuthException {
+      if (!mounted) return;
+      setState(() {
+        _verifying = false;
+        _errorText = 'كلمة المرور غير صحيحة';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _verifying = false);
+      showAppError(context, error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSubmit = _controller.text.trim().isNotEmpty && !_verifying;
+
+    return AlertDialog(
+      title: const Text('تأكيد حذف المنتج'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'للحذف النهائي، أدخل كلمة مرور حسابك',
+            style: AppTextStyles.almaraiRegular14.copyWith(
+              color: context.colors.textMuted,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          TextField(
+            controller: _controller,
+            obscureText: _obscure,
+            autofocus: true,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'كلمة المرور',
+              errorText: _errorText,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+                onPressed:
+                    _verifying ? null : () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _verifying ? null : () => Navigator.of(context).pop(false),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          onPressed: canSubmit ? _submit : null,
+          child: _verifying
+              ? SizedBox(
+                  width: 16.sp,
+                  height: 16.sp,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('تأكيد الحذف'),
+        ),
+      ],
     );
   }
 }

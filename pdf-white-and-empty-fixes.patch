@@ -1,0 +1,259 @@
+diff --git a/lib/core/errors/app_toast.dart b/lib/core/errors/app_toast.dart
+index d4cb754..132905e 100644
+--- a/lib/core/errors/app_toast.dart
++++ b/lib/core/errors/app_toast.dart
+@@ -35,7 +35,13 @@ void showAppSuccess(BuildContext context, String message) {
+   _showToast(context, message: message, type: _ToastType.success);
+ }
+ 
+-enum _ToastType { success, error }
++/// رسالة معلومة عادية (مش خطأ) — لون أزرق وأيقونة info. مناسبة لحالات زي
++/// "مفيش منتجات اتضافت النهاردة" اللي مش عطل في التطبيق.
++void showAppInfo(BuildContext context, String message) {
++  _showToast(context, message: message, type: _ToastType.info);
++}
++
++enum _ToastType { success, error, info }
+ 
+ void _showToast(
+   BuildContext context, {
+@@ -130,11 +136,19 @@ class _AppToastState extends State<_AppToast>
+   @override
+   Widget build(BuildContext context) {
+     final colors = context.colors;
+-    final isError = widget.type == _ToastType.error;
+-    final accent = isError
+-        ? const Color(0xFFE0473F) // نفس statusNotReached لكن ثابتة هنا
+-        : colors.primary;
+-    final icon = isError ? Icons.error_rounded : Icons.check_circle_rounded;
++    final Color accent;
++    final IconData icon;
++    switch (widget.type) {
++      case _ToastType.error:
++        accent = const Color(0xFFE0473F); // نفس statusNotReached لكن ثابتة هنا
++        icon = Icons.error_rounded;
++      case _ToastType.success:
++        accent = colors.primary;
++        icon = Icons.check_circle_rounded;
++      case _ToastType.info:
++        accent = colors.statBlue;
++        icon = Icons.info_rounded;
++    }
+ 
+     return Positioned(
+       top: MediaQuery.of(context).padding.top + 10.h,
+diff --git a/lib/core/utils/pdf_page_background.dart b/lib/core/utils/pdf_page_background.dart
+new file mode 100644
+index 0000000..739d45d
+--- /dev/null
++++ b/lib/core/utils/pdf_page_background.dart
+@@ -0,0 +1,29 @@
++import 'dart:typed_data';
++
++import 'package:pdf/pdf.dart';
++import 'package:pdf/widgets.dart' as pw;
++
++/// Page background used by EVERY generated PDF.
++///
++/// A PDF page has no background by default (it is transparent). Viewers show
++/// that as white, but when a page is rasterised to PNG (e.g. the images we
++/// share) the transparent pixels turn black in dark viewers. Painting an
++/// explicit white page makes the result white everywhere.
++///
++/// Use it as `pageTheme: pw.PageTheme(buildBackground: (_) => buildWhitePdfBackground(...))`.
++pw.Widget buildWhitePdfBackground({Uint8List? watermarkBytes}) {
++  return pw.FullPage(
++    ignoreMargins: true,
++    child: pw.Container(
++      color: PdfColors.white,
++      child: watermarkBytes == null
++          ? null
++          : pw.Padding(
++              padding: const pw.EdgeInsets.only(top: 35),
++              child: pw.Center(
++                child: pw.Image(pw.MemoryImage(watermarkBytes), width: 320),
++              ),
++            ),
++    ),
++  );
++}
+diff --git a/lib/features/customer_account/domain/customer_statement_pdf_builder.dart b/lib/features/customer_account/domain/customer_statement_pdf_builder.dart
+index 51fbd50..e352aaf 100644
+--- a/lib/features/customer_account/domain/customer_statement_pdf_builder.dart
++++ b/lib/features/customer_account/domain/customer_statement_pdf_builder.dart
+@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
+ 
+ import 'entities/customer_ledger.dart';
+ import 'entities/customer_transaction.dart';
++import 'package:mivet_app/core/utils/pdf_page_background.dart';
+ 
+ /// Dedicated to the customer's full financial statement — a different
+ /// document from [InvoicePdfBuilder], which stays scoped to one invoice.
+@@ -38,6 +39,7 @@ class CustomerStatementPdfBuilder {
+           pageFormat: PdfPageFormat.a4,
+           margin: const pw.EdgeInsets.all(28),
+           theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
++          buildBackground: (context) => buildWhitePdfBackground(),
+         ),
+         build: (context) => [
+           pw.Directionality(
+diff --git a/lib/features/daily_report/domain/report_pdf_builder.dart b/lib/features/daily_report/domain/report_pdf_builder.dart
+index fe82acb..b0eb456 100644
+--- a/lib/features/daily_report/domain/report_pdf_builder.dart
++++ b/lib/features/daily_report/domain/report_pdf_builder.dart
+@@ -377,6 +377,7 @@ import '../../../core/const/app_images.dart';
+ import '../../../core/theme/app_colors.dart';
+ import '../../../core/theme/app_text_styles.dart';
+ import 'models/representative_report_model.dart';
++import 'package:mivet_app/core/utils/pdf_page_background.dart';
+ 
+ class ReportPdfBuilder {
+   ReportPdfBuilder._();
+@@ -418,18 +419,8 @@ class ReportPdfBuilder {
+           pageFormat: PdfPageFormat.a4,
+           margin: const pw.EdgeInsets.all(28),
+           theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
+-          buildBackground: (context) {
+-            if (watermarkBytes == null) return pw.SizedBox();
+-            return pw.Padding(
+-              padding: const pw.EdgeInsets.only(top: 35),
+-              child: pw.Center(
+-                child: pw.Image(
+-                  pw.MemoryImage(watermarkBytes),
+-                  width: 320,
+-                ),
+-              ),
+-            );
+-          },
++          buildBackground: (context) =>
++              buildWhitePdfBackground(watermarkBytes: watermarkBytes),
+         ),
+         header: (context) => pw.Directionality(
+           textDirection: pw.TextDirection.rtl,
+diff --git a/lib/features/daily_report/presentation/screens/daily_report_screen.dart b/lib/features/daily_report/presentation/screens/daily_report_screen.dart
+index 24b091b..e97d8ba 100644
+--- a/lib/features/daily_report/presentation/screens/daily_report_screen.dart
++++ b/lib/features/daily_report/presentation/screens/daily_report_screen.dart
+@@ -1437,6 +1437,10 @@ class _ExportButtons extends StatelessWidget {
+ 
+   @override
+   Widget build(BuildContext context) {
++    // navy in light mode, light gray in dark mode — AppColors.primary (navy)
++    // is invisible on the dark surface.
++    final exportColor = context.colors.text;
++
+     return Row(
+       children: [
+         Expanded(
+@@ -1475,7 +1479,7 @@ class _ExportButtons extends StatelessWidget {
+             color: context.colors.surface,
+             shape: RoundedRectangleBorder(
+               borderRadius: BorderRadius.circular(14.r),
+-              side: BorderSide(color: AppColors.primary.withOpacity(0.2)),
++              side: BorderSide(color: exportColor.withOpacity(0.25)),
+             ),
+             child: InkWell(
+               borderRadius: BorderRadius.circular(14.r),
+@@ -1490,11 +1494,11 @@ class _ExportButtons extends StatelessWidget {
+                   mainAxisAlignment: MainAxisAlignment.center,
+                   children: [
+                     Icon(Icons.ios_share_rounded,
+-                        color: AppColors.primary, size: 18.sp),
++                        color: exportColor, size: 18.sp),
+                     SizedBox(width: 8.w),
+                     Text('تصدير PDF',
+                         style: AppTextStyles.cairoMedium16.copyWith(
+-                            color: AppColors.primary, fontSize: 14.sp)),
++                            color: exportColor, fontSize: 14.sp)),
+                   ],
+                 ),
+               ),
+diff --git a/lib/features/invoices/domain/invoice_pdf_builder.dart b/lib/features/invoices/domain/invoice_pdf_builder.dart
+index e8eecc2..52a1322 100644
+--- a/lib/features/invoices/domain/invoice_pdf_builder.dart
++++ b/lib/features/invoices/domain/invoice_pdf_builder.dart
+@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
+ import '../../../core/const/app_images.dart';
+ import '../../../core/theme/app_colors.dart';
+ import '../../../core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/pdf_page_background.dart';
+ 
+ class InvoicePdfLineItem {
+   final String name;
+@@ -88,18 +89,8 @@ class InvoicePdfBuilder {
+           pageFormat: PdfPageFormat.a4,
+           margin: const pw.EdgeInsets.all(28),
+           theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
+-          buildBackground: (context) {
+-            if (watermarkBytes == null) return pw.SizedBox();
+-            return pw.Padding(
+-              padding: const pw.EdgeInsets.only(top: 35),
+-              child: pw.Center(
+-                child: pw.Image(
+-                  pw.MemoryImage(watermarkBytes),
+-                  width: 320,
+-                ),
+-              ),
+-            );
+-          },
++          buildBackground: (context) =>
++              buildWhitePdfBackground(watermarkBytes: watermarkBytes),
+         ),
+         header: (context) => pw.Directionality(
+           textDirection: pw.TextDirection.rtl,
+diff --git a/lib/features/vehicle_stock/presentation/screens/vehicle_stock_screen.dart b/lib/features/vehicle_stock/presentation/screens/vehicle_stock_screen.dart
+index 8920ec8..48d8129 100644
+--- a/lib/features/vehicle_stock/presentation/screens/vehicle_stock_screen.dart
++++ b/lib/features/vehicle_stock/presentation/screens/vehicle_stock_screen.dart
+@@ -1219,7 +1219,8 @@ class _VehicleStockViewState extends State<_VehicleStockView>
+ 
+       if (shareType == 'all') {
+         if (state.vehicleStock.isEmpty) {
+-          throw Exception('لا يوجد مخزون في العربية لمشاركته');
++          showAppInfo(context, 'لا يوجد مخزون في العربية لمشاركته');
++          return;
+         }
+         await VehicleStockShareService.shareVehicleStockReport(
+           representativeName: representativeName,
+@@ -1232,7 +1233,10 @@ class _VehicleStockViewState extends State<_VehicleStockView>
+             .read<VehicleStockCubit>()
+             .getAddedTodayReport(vehicle.id);
+         if (todayStock.isEmpty) {
+-          throw Exception('لم تتم إضافة أي منتجات للعربية اليوم');
++          if (mounted) {
++            showAppInfo(context, 'لم تتم إضافة أي منتجات للعربية اليوم');
++          }
++          return;
+         }
+         await VehicleStockShareService.shareVehicleStockTodayReport(
+           representativeName: representativeName,
+diff --git a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
+index edfa418..23d6d3c 100644
+--- a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
++++ b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
+@@ -9,6 +9,7 @@ import '../../../inventory/domain/models/delivery_vehicle_model.dart';
+ import '../../../inventory/domain/models/product_catalog.dart';
+ import '../../../inventory/domain/models/vehicle_stock_model.dart';
+ import '../../../inventory/domain/models/vehicle_stock_added_today_model.dart';
++import 'package:mivet_app/core/utils/pdf_page_background.dart';
+ 
+ class VehicleStockReportBuilder {
+   VehicleStockReportBuilder._();
+@@ -132,15 +133,8 @@ class VehicleStockReportBuilder {
+       ),
+     );
+ 
+-    pw.Widget buildBackground(pw.Context context) {
+-      if (watermarkBytes == null) return pw.SizedBox();
+-      return pw.Padding(
+-        padding: const pw.EdgeInsets.only(top: 35),
+-        child: pw.Center(
+-          child: pw.Image(pw.MemoryImage(watermarkBytes), width: 320),
+-        ),
+-      );
+-    }
++    pw.Widget buildBackground(pw.Context context) =>
++        buildWhitePdfBackground(watermarkBytes: watermarkBytes);
+ 
+     if (singlePage) {
+       document.addPage(
