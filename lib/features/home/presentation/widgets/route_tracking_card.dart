@@ -167,7 +167,8 @@ class _TrackingStep extends StatelessWidget {
       state == _StepState.visited || state == _StepState.missed;
 
   void _openCustomer(BuildContext context) {
-    final customer = CustomersRepository.instance.getCustomerById(stop.customerId);
+    final customer =
+        CustomersRepository.instance.getCustomerById(stop.customerId);
     if (customer == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -183,7 +184,8 @@ class _TrackingStep extends StatelessWidget {
     final Color accent = switch (state) {
       _StepState.current => colors.primary,
       _StepState.upcoming => colors.textMuted,
-      _StepState.visited || _StepState.missed =>
+      _StepState.visited ||
+      _StepState.missed =>
         routeStatusColor(context, stop.status),
     };
 
@@ -206,7 +208,11 @@ class _TrackingStep extends StatelessWidget {
               width: 46.w,
               child: Column(
                 children: [
-                  _Node(state: state, number: number, accent: accent, status: stop.status),
+                  _Node(
+                      state: state,
+                      number: number,
+                      accent: accent,
+                      status: stop.status),
                   if (!isLast)
                     Expanded(
                       child: Padding(

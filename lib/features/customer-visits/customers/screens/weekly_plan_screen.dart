@@ -32,6 +32,9 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
   bool _loading = true;
   String _search = '';
 
+  /// null = كل الأيام. 0 = الأحد ... 6 = السبت (نفس ترقيم weekday في الجدول).
+  int? _selectedDay;
+
   @override
   void initState() {
     super.initState();
@@ -84,12 +87,22 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
   }
 
   List<CustomerModel> get _filtered {
-    if (_search.trim().isEmpty) return _customers;
+    final day = _selectedDay;
+    var result = day == null
+        ? _customers
+        : _customers.where((c) => _customerHasDay(c.id, day)).toList();
+
     final q = _search.trim();
-    return _customers
-        .where((c) => c.name.contains(q) || c.phone.contains(q))
-        .toList();
+    if (q.isNotEmpty) {
+      result = result.where((c) => c.name.contains(q) || c.phone.contains(q))
+          .toList();
+    }
+    return result;
   }
+
+  /// عدد العملاء المخططين ليوم معين، لعرضه على التاب.
+  int _customerCountForDay(int weekday) =>
+      _customers.where((c) => _customerHasDay(c.id, weekday)).length;
 
   @override
   Widget build(BuildContext context) {
@@ -100,6 +113,12 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
         child: Column(
           children: [
             _Header(onBack: () => Navigator.of(context).pop()),
+            _DayFilterTabs(
+              selectedDay: _selectedDay,
+              customerCountForDay: _customerCountForDay,
+              totalCustomers: _customers.length,
+              onSelect: (day) => setState(() => _selectedDay = day),
+            ),
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 8.h),
               child: TextField(
@@ -127,7 +146,11 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : _filtered.isEmpty
                       ? Center(
-                          child: Text('مفيش عملاء',
+                          child: Text(
+                              _selectedDay == null
+                                  ? 'مفيش عملاء'
+                                  : 'مفيش عملاء متخططين يوم ${_shortDayNames[_selectedDay!]}',
+                              textAlign: TextAlign.center,
                               style: AppTextStyles.cairoMedium16.copyWith(
                                   color: colors.textMuted, fontSize: 13.sp)),
                         )
@@ -182,6 +205,117 @@ class _Header extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DayFilterTabs extends StatelessWidget {
+  final int? selectedDay;
+  final int Function(int weekday) customerCountForDay;
+  final int totalCustomers;
+  final void Function(int? day) onSelect;
+
+  const _DayFilterTabs({
+    required this.selectedDay,
+    required this.customerCountForDay,
+    required this.totalCustomers,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      color: colors.surface,
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Row(
+          children: [
+            _DayTab(
+              label: 'كل العملاء',
+              count: totalCustomers,
+              selected: selectedDay == null,
+              onTap: () => onSelect(null),
+            ),
+            for (int wd = 0; wd < 7; wd++) ...[
+              SizedBox(width: 6.w),
+              _DayTab(
+                label: _shortDayNames[wd],
+                count: customerCountForDay(wd),
+                selected: selectedDay == wd,
+                onTap: () => onSelect(wd),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DayTab extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DayTab({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+        decoration: BoxDecoration(
+          color: selected ? colors.primary : colors.background,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: selected ? colors.primary : colors.border,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: AppTextStyles.cairoMedium16.copyWith(
+                color: selected ? Colors.white : colors.text,
+                fontSize: 12.sp,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+            if (count > 0) ...[
+              SizedBox(width: 5.w),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Colors.white.withOpacity(0.25)
+                      : colors.primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Text(
+                  '$count',
+                  style: AppTextStyles.cairoMedium16.copyWith(
+                    color: selected ? Colors.white : colors.primary,
+                    fontSize: 10.sp,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

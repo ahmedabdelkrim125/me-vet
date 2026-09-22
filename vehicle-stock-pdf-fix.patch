@@ -1,0 +1,103 @@
+diff --git a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
+index 23d6d3c..dc6f2e0 100644
+--- a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
++++ b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
+@@ -119,20 +119,12 @@ class VehicleStockReportBuilder {
+       watermarkBytes = null;
+     }
+ 
+-    final content = pw.Directionality(
+-      textDirection: pw.TextDirection.rtl,
+-      child: pw.Column(
+-        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+-        children: [
+-          _buildTitle(title, boldFont),
+-          pw.SizedBox(height: 18),
+-          _buildMetaRow(representativeName, vehicle, boldFont),
+-          pw.SizedBox(height: 20),
+-          ...tableBuilder(boldFont, regularFont),
+-        ],
+-      ),
+-    );
+-
++    // The "كل مخزون العربية" report can have dozens of category tables — more
++    // than fit on one page. `pw.Directionality` cannot be split across pages
++    // (unlike `pw.MultiPage`'s own children), so wrapping the whole content in
++    // one used to throw `TooManyPagesException` once the stock got big. The
++    // fix: set the direction on the PageTheme itself, and give MultiPage a
++    // flat, top-level list of widgets instead of one Directionality blob.
+     pw.Widget buildBackground(pw.Context context) =>
+         buildWhitePdfBackground(watermarkBytes: watermarkBytes);
+ 
+@@ -143,39 +135,44 @@ class VehicleStockReportBuilder {
+             pageFormat: PdfPageFormat.a4,
+             margin: const pw.EdgeInsets.all(28),
+             theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
++            textDirection: pw.TextDirection.rtl,
+             buildBackground: buildBackground,
+           ),
+-          build: (context) => pw.Directionality(
+-            textDirection: pw.TextDirection.rtl,
+-            child: pw.Column(
+-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+-              children: [
+-                _buildHeader(logoBytes, boldFont),
+-                pw.SizedBox(height: 18),
+-                content,
+-              ],
+-            ),
++          build: (context) => pw.Column(
++            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
++            children: [
++              _buildHeader(logoBytes, boldFont),
++              pw.SizedBox(height: 18),
++              _buildTitle(title, boldFont),
++              pw.SizedBox(height: 18),
++              _buildMetaRow(representativeName, vehicle, boldFont),
++              pw.SizedBox(height: 20),
++              ...tableBuilder(boldFont, regularFont),
++            ],
+           ),
+         ),
+       );
+     } else {
+       document.addPage(
+         pw.MultiPage(
++          // A big stock list must be allowed to flow over many pages.
++          maxPages: 200,
+           pageTheme: pw.PageTheme(
+             pageFormat: PdfPageFormat.a4,
+             margin: const pw.EdgeInsets.all(28),
+             theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
+-            buildBackground: buildBackground,
+-          ),
+-          header: (context) => pw.Directionality(
+-            textDirection: pw.TextDirection.rtl,
+-            child: _buildHeader(logoBytes, boldFont),
+-          ),
+-          footer: (context) => pw.Directionality(
+             textDirection: pw.TextDirection.rtl,
+-            child: _buildFooter(boldFont),
++            buildBackground: buildBackground,
+           ),
+-          build: (context) => [content],
++          header: (context) => _buildHeader(logoBytes, boldFont),
++          footer: (context) => _buildFooter(boldFont),
++          build: (context) => [
++            _buildTitle(title, boldFont),
++            pw.SizedBox(height: 18),
++            _buildMetaRow(representativeName, vehicle, boldFont),
++            pw.SizedBox(height: 20),
++            ...tableBuilder(boldFont, regularFont),
++          ],
+         ),
+       );
+     }
+@@ -397,6 +394,7 @@ class VehicleStockReportBuilder {
+           columnWidths: columnWidths,
+           children: [
+             pw.TableRow(
++              repeat: true,
+               decoration: pw.BoxDecoration(color: _navy),
+               children: headers
+                   .map((h) => pw.Padding(
