@@ -10,7 +10,7 @@ class LoginHeader extends StatelessWidget {
 
   const LoginHeader({
     super.key,
-    this.title = 'أهلًا بيك في MIVET',
+    this.title = 'أهلًا بيك في MEVET',
     this.subtitle = 'سجّل الدخول للمتابعة',
   });
 
@@ -18,8 +18,7 @@ class LoginHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Image.asset(AppImages.logoSplash, width: 88.w, height: 88.w),
-        SizedBox(height: 16.h),
+        Image.asset(AppImages.logoSplash, width: 150.w, height: 180.w),
         Text(
           title,
           style: AppTextStyles.cairoBold18

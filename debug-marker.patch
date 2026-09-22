@@ -1,0 +1,16 @@
+diff --git a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
+index c5a287c..9f3e051 100644
+--- a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
++++ b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
+@@ -94,6 +94,11 @@ class VehicleStockReportBuilder {
+     required List<pw.Widget> Function(pw.Font, pw.Font) tableBuilder,
+     required bool singlePage,
+   }) async {
++    // TEMP marker: if this line does NOT appear in the log before the
++    // exception, the running app is not the one in this file — a rebuild is
++    // needed (flutter clean, uninstall the app, flutter run fresh).
++    // ignore: avoid_print
++    print('[VehicleStockReportBuilder] v2-splittable start, singlePage=\$singlePage');
+     final document = pw.Document();
+ 
+     final regularFontData = await rootBundle.load(
