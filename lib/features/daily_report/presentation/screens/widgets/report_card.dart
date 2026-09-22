@@ -32,9 +32,12 @@ class ReportCard extends StatelessWidget {
             children: [
               Icon(icon, size: 16.sp, color: colors.primary),
               SizedBox(width: 8.w),
-              Text(title,
-                  style: AppTextStyles.cairoMedium16
-                      .copyWith(color: colors.text, fontSize: 13.sp)),
+              Flexible(
+                  child: Text(title,
+                      style: AppTextStyles.cairoMedium16
+                          .copyWith(color: colors.text, fontSize: 13.sp),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)),
             ],
           ),
           SizedBox(height: 10.h),
@@ -42,14 +45,17 @@ class ReportCard extends StatelessWidget {
             Padding(
               padding: EdgeInsets.only(bottom: 8.h),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(row.$1,
                       style: AppTextStyles.almaraiRegular14
                           .copyWith(color: colors.textMuted, fontSize: 11.sp)),
-                  const Spacer(),
-                  Text(row.$2,
-                      style: AppTextStyles.cairoMedium16
-                          .copyWith(color: colors.text, fontSize: 12.sp)),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                      child: Text(row.$2,
+                          style: AppTextStyles.cairoMedium16
+                              .copyWith(color: colors.text, fontSize: 12.sp),
+                          textAlign: TextAlign.end)),
                 ],
               ),
             ),

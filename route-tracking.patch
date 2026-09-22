@@ -1,0 +1,850 @@
+diff --git a/lib/features/customer-visits/customers/data/visits_repository.dart b/lib/features/customer-visits/customers/data/visits_repository.dart
+index 3b1994c..bae76a4 100644
+--- a/lib/features/customer-visits/customers/data/visits_repository.dart
++++ b/lib/features/customer-visits/customers/data/visits_repository.dart
+@@ -64,6 +64,12 @@ class VisitsRepository {
+ 
+   SupabaseClient get _supabase => Supabase.instance.client;
+ 
++  /// Start of the (device-local) day. The device is expected to be on Cairo
++  /// time, the same time zone the server uses to build each day's route.
++  ///
++  /// NOTE: every DateTime sent to Supabase goes through `.toUtc()`. A local
++  /// DateTime serialises WITHOUT an offset, and Postgres reads that as UTC, which
++  /// used to shift every "today" window (and every status_updated_at) by 2-3h.
+   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
+ 
+   Future<List<VisitRow>> getVisitsForDay(DateTime day) async {
+@@ -72,8 +78,8 @@ class VisitsRepository {
+     final rows = await _supabase
+         .from('customer_visits')
+         .select()
+-        .gte('scheduled_at', start.toIso8601String())
+-        .lt('scheduled_at', end.toIso8601String())
++        .gte('scheduled_at', start.toUtc().toIso8601String())
++        .lt('scheduled_at', end.toUtc().toIso8601String())
+         .order('stop_order', ascending: true);
+     return (rows as List)
+         .map((row) => VisitRow.fromSupabaseRow(row as Map<String, dynamic>))
+@@ -95,8 +101,8 @@ class VisitsRepository {
+     final rows = await _supabase
+         .from('customer_visits')
+         .select()
+-        .gte('scheduled_at', start.toIso8601String())
+-        .lt('scheduled_at', end.toIso8601String());
++        .gte('scheduled_at', start.toUtc().toIso8601String())
++        .lt('scheduled_at', end.toUtc().toIso8601String());
+     return (rows as List)
+         .map((row) => VisitRow.fromSupabaseRow(row as Map<String, dynamic>))
+         .toList();
+@@ -136,7 +142,7 @@ class VisitsRepository {
+           'rep_id': userId,
+           'stop_order': i + 1,
+           'status': RouteVisitStatus.pending.dbValue,
+-          'scheduled_at': today.toIso8601String(),
++          'scheduled_at': today.toUtc().toIso8601String(),
+         });
+       }
+     }
+@@ -145,7 +151,7 @@ class VisitsRepository {
+   Future<void> updateStatus(String visitId, RouteVisitStatus status) async {
+     await _supabase.from('customer_visits').update({
+       'status': status.dbValue,
+-      'status_updated_at': DateTime.now().toIso8601String(),
++      'status_updated_at': DateTime.now().toUtc().toIso8601String(),
+     }).eq('id', visitId);
+   }
+ 
+@@ -159,11 +165,11 @@ class VisitsRepository {
+         .from('customer_visits')
+         .update({
+           'status': status.dbValue,
+-          'status_updated_at': DateTime.now().toIso8601String(),
++          'status_updated_at': DateTime.now().toUtc().toIso8601String(),
+         })
+         .eq('customer_id', customerId)
+-        .gte('scheduled_at', today.toIso8601String())
+-        .lt('scheduled_at', tomorrow.toIso8601String());
++        .gte('scheduled_at', today.toUtc().toIso8601String())
++        .lt('scheduled_at', tomorrow.toUtc().toIso8601String());
+   }
+ 
+   Future<void> removeFromToday(String customerId) async {
+@@ -173,8 +179,8 @@ class VisitsRepository {
+         .from('customer_visits')
+         .delete()
+         .eq('customer_id', customerId)
+-        .gte('scheduled_at', today.toIso8601String())
+-        .lt('scheduled_at', tomorrow.toIso8601String());
++        .gte('scheduled_at', today.toUtc().toIso8601String())
++        .lt('scheduled_at', tomorrow.toUtc().toIso8601String());
+   }
+ 
+   Future<void> reorderToday(List<String> orderedCustomerIds) async {
+@@ -190,8 +196,8 @@ class VisitsRepository {
+         .from('customer_visits')
+         .update({'stop_order': order})
+         .eq('customer_id', customerId)
+-        .gte('scheduled_at', today.toIso8601String())
+-        .lt('scheduled_at', tomorrow.toIso8601String());
++        .gte('scheduled_at', today.toUtc().toIso8601String())
++        .lt('scheduled_at', tomorrow.toUtc().toIso8601String());
+   }
+ 
+   Future<DateTime?> lastVisitDateForCustomer(String customerId) async {
+@@ -214,8 +220,8 @@ class VisitsRepository {
+     final rows = await _supabase
+         .from('customer_visits')
+         .select()
+-        .gte('scheduled_at', start.toIso8601String())
+-        .lt('scheduled_at', end.toIso8601String())
++        .gte('scheduled_at', start.toUtc().toIso8601String())
++        .lt('scheduled_at', end.toUtc().toIso8601String())
+         .order('scheduled_at', ascending: true)
+         .order('stop_order', ascending: true);
+     return (rows as List)
+@@ -238,14 +244,14 @@ class VisitsRepository {
+         .from('customer_visits')
+         .select('id')
+         .eq('customer_id', customerId)
+-        .gte('scheduled_at', dayStart.toIso8601String())
+-        .lt('scheduled_at', dayEnd.toIso8601String())
++        .gte('scheduled_at', dayStart.toUtc().toIso8601String())
++        .lt('scheduled_at', dayEnd.toUtc().toIso8601String())
+         .maybeSingle();
+ 
+     if (existing != null) {
+       await _supabase
+           .from('customer_visits')
+-          .update({'scheduled_at': scheduledAt.toIso8601String()}).eq(
++          .update({'scheduled_at': scheduledAt.toUtc().toIso8601String()}).eq(
+               'id', existing['id'] as String);
+       return;
+     }
+@@ -255,14 +261,14 @@ class VisitsRepository {
+       'rep_id': userId,
+       'stop_order': stopOrder,
+       'status': RouteVisitStatus.pending.dbValue,
+-      'scheduled_at': scheduledAt.toIso8601String(),
++      'scheduled_at': scheduledAt.toUtc().toIso8601String(),
+     });
+   }
+ 
+   Future<void> rescheduleVisit(String visitId, DateTime newDate) async {
+     await _supabase
+         .from('customer_visits')
+-        .update({'scheduled_at': newDate.toIso8601String()}).eq('id', visitId);
++        .update({'scheduled_at': newDate.toUtc().toIso8601String()}).eq('id', visitId);
+   }
+ 
+   Future<void> removeVisit(String visitId) async {
+@@ -276,8 +282,8 @@ class VisitsRepository {
+         .from('customer_visits')
+         .select()
+         .eq('status', RouteVisitStatus.pending.dbValue)
+-        .gte('scheduled_at', start.toIso8601String())
+-        .lt('scheduled_at', end.toIso8601String());
++        .gte('scheduled_at', start.toUtc().toIso8601String())
++        .lt('scheduled_at', end.toUtc().toIso8601String());
+     return (rows as List)
+         .map((row) => VisitRow.fromSupabaseRow(row as Map<String, dynamic>))
+         .toList();
+@@ -291,7 +297,7 @@ class VisitsRepository {
+     for (final id in visitIds) {
+       await _supabase
+           .from('customer_visits')
+-          .update({'scheduled_at': target.toIso8601String()}).eq('id', id);
++          .update({'scheduled_at': target.toUtc().toIso8601String()}).eq('id', id);
+     }
+   }
+ 
+diff --git a/lib/features/customer-visits/customers/presentation/controllers/today_route_controller.dart b/lib/features/customer-visits/customers/presentation/controllers/today_route_controller.dart
+index 333b5e9..8caf37c 100644
+--- a/lib/features/customer-visits/customers/presentation/controllers/today_route_controller.dart
++++ b/lib/features/customer-visits/customers/presentation/controllers/today_route_controller.dart
+@@ -1,4 +1,7 @@
++import 'dart:async';
++
+ import 'package:flutter/foundation.dart';
++import 'package:flutter/widgets.dart';
+ 
+ import '../../data/customers_repository.dart';
+ import '../../data/visits_repository.dart';
+@@ -7,7 +10,10 @@ import '../../domain/models/route_stop_model.dart';
+ import '../../domain/models/visit_history_model.dart';
+ import '../../domain/models/visit_status.dart';
+ 
+-class TodayRouteController {
++/// Holds today's route and keeps it correct across midnight: at 12:00 AM (and
++/// whenever the app comes back to the foreground on a new day) it asks the
++/// server to generate the new day's visits and reloads the stops.
++class TodayRouteController with WidgetsBindingObserver {
+   TodayRouteController._internal();
+ 
+   static final TodayRouteController instance = TodayRouteController._internal();
+@@ -18,6 +24,11 @@ class TodayRouteController {
+       ValueNotifier<List<VisitHistoryModel>>(<VisitHistoryModel>[]);
+ 
+   bool _initialized = false;
++  bool _observingLifecycle = false;
++  Timer? _midnightTimer;
++
++  /// The day (local midnight) the current [stops] belong to.
++  DateTime? _loadedDay;
+ 
+   List<RouteStopModel> get stops => stopsNotifier.value;
+ 
+@@ -49,9 +60,12 @@ class TodayRouteController {
+     await VisitsRepository.instance.generateTodayVisits();
+     await _reloadToday();
+     _initialized = true;
++    _startDayRollover();
+   }
+ 
+   void reset() {
++    _stopDayRollover();
++    _loadedDay = null;
+     _initialized = false;
+     stopsNotifier.value = <RouteStopModel>[];
+     visitHistoryNotifier.value = <VisitHistoryModel>[];
+@@ -62,10 +76,57 @@ class TodayRouteController {
+     await _reloadToday();
+   }
+ 
++  // ---- new-day handling ---------------------------------------------------
++
++  DateTime _dayOf(DateTime d) => DateTime(d.year, d.month, d.day);
++
++  void _startDayRollover() {
++    if (!_observingLifecycle) {
++      WidgetsBinding.instance.addObserver(this);
++      _observingLifecycle = true;
++    }
++    _armMidnightTimer();
++  }
++
++  void _stopDayRollover() {
++    _midnightTimer?.cancel();
++    _midnightTimer = null;
++    if (_observingLifecycle) {
++      WidgetsBinding.instance.removeObserver(this);
++      _observingLifecycle = false;
++    }
++  }
++
++  void _armMidnightTimer() {
++    _midnightTimer?.cancel();
++    final now = DateTime.now();
++    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
++    _midnightTimer = Timer(
++      nextMidnight.difference(now) + const Duration(seconds: 3),
++      () async {
++        await refresh();
++        _armMidnightTimer();
++      },
++    );
++  }
++
++  @override
++  void didChangeAppLifecycleState(AppLifecycleState state) {
++    // Dart timers do not fire while the app is suspended, so also check the
++    // day when the app comes back.
++    if (state == AppLifecycleState.resumed) _refreshIfDayChanged();
++  }
++
++  Future<void> _refreshIfDayChanged() async {
++    if (!_initialized) return;
++    if (_loadedDay != _dayOf(DateTime.now())) await refresh();
++    _armMidnightTimer();
++  }
++
+   Future<void> _reloadToday() async {
+     try {
+-      final rows =
+-          await VisitsRepository.instance.getVisitsForDay(DateTime.now());
++      final day = DateTime.now();
++      final rows = await VisitsRepository.instance.getVisitsForDay(day);
+       final loaded = <RouteStopModel>[];
+       for (int i = 0; i < rows.length; i++) {
+         final row = rows[i];
+@@ -83,6 +144,7 @@ class TodayRouteController {
+         ));
+       }
+       stopsNotifier.value = loaded;
++      _loadedDay = _dayOf(day);
+     } catch (e) {
+       debugPrint('Error reloading today route: $e');
+     }
+diff --git a/lib/features/home/presentation/home_screen.dart b/lib/features/home/presentation/home_screen.dart
+index 61731b8..6a60320 100644
+--- a/lib/features/home/presentation/home_screen.dart
++++ b/lib/features/home/presentation/home_screen.dart
+@@ -123,13 +123,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
+ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+ import 'package:mivet_app/core/utils/responsive_extension.dart';
+ import '../../../core/di/service_locator.dart';
+-import '../../../core/theme/app_colors.dart';
+-import '../../../core/theme/app_text_styles.dart';
+ import '../../customer-visits/customers/presentation/controllers/today_route_controller.dart';
+ import 'cubit/home_cubit.dart';
+ import 'widgets/home_header.dart';
+ import 'widgets/route_progress_card.dart';
+-import 'widgets/add_expense_dialog.dart';
++import 'widgets/route_tracking_card.dart';
+ 
+ class HomeScreen extends StatefulWidget {
+   const HomeScreen({super.key});
+@@ -167,7 +165,10 @@ class _HomeScreenState extends State<HomeScreen> {
+         backgroundColor: colors.background,
+         body: SafeArea(
+           child: RefreshIndicator(
+-            onRefresh: () => _homeCubit.loadWeeklySummary(forceRefresh: true),
++            onRefresh: () => Future.wait([
++              _homeCubit.loadWeeklySummary(forceRefresh: true),
++              _routeController.refresh(),
++            ]),
+             child: DecoratedBox(
+               decoration: BoxDecoration(
+                 gradient: LinearGradient(
+@@ -214,55 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
+                         },
+                       ),
+                       SizedBox(height: 14.h),
+-                      Material(
+-                        color: colors.surface,
+-                        borderRadius: BorderRadius.circular(16.r),
+-                        elevation: 1,
+-                        shadowColor: AppColors.primary.withOpacity(0.05),
+-                        child: InkWell(
+-                          borderRadius: BorderRadius.circular(16.r),
+-                          onTap: () async {
+-                            final added = await showDialog<bool>(
+-                              context: context,
+-                              builder: (_) => const AddExpenseDialog(),
+-                            );
+-                            if (added == true) {
+-                              _homeCubit.loadWeeklySummary(forceRefresh: true);
+-                            }
+-                          },
+-                          child: Padding(
+-                            padding: EdgeInsets.symmetric(
+-                                horizontal: 16.w, vertical: 16.h),
+-                            child: Row(
+-                              children: [
+-                                Container(
+-                                  padding: EdgeInsets.all(8.w),
+-                                  decoration: BoxDecoration(
+-                                    color:
+-                                        AppColors.primaryGreen.withOpacity(0.1),
+-                                    borderRadius: BorderRadius.circular(10.r),
+-                                  ),
+-                                  child: Icon(Icons.money_off_csred_outlined,
+-                                      color: AppColors.primaryGreen,
+-                                      size: 24.w),
+-                                ),
+-                                SizedBox(width: 12.w),
+-                                Expanded(
+-                                  child: Text(
+-                                    'إضافة مصروف',
+-                                    style: AppTextStyles.cairoBold18.copyWith(
+-                                      fontSize: 16.sp,
+-                                      color: colors.text,
+-                                    ),
+-                                  ),
+-                                ),
+-                                Icon(Icons.arrow_forward_ios_rounded,
+-                                    color: colors.textMuted, size: 16.w),
+-                              ],
+-                            ),
+-                          ),
+-                        ),
+-                      ),
++                      const RouteTrackingCard(),
+                       SizedBox(height: 16.h),
+                     ],
+                   ),
+diff --git a/lib/features/home/presentation/widgets/home_header.dart b/lib/features/home/presentation/widgets/home_header.dart
+index 6196c63..0a74c2e 100644
+--- a/lib/features/home/presentation/widgets/home_header.dart
++++ b/lib/features/home/presentation/widgets/home_header.dart
+@@ -8,6 +8,7 @@ import 'package:mivet_app/core/utils/arabic_date_utils.dart';
+ import 'package:mivet_app/core/utils/responsive_extension.dart';
+ 
+ import '../../../auth/presentation/cubit/auth_cubit.dart';
++import '../../../customer-visits/customers/presentation/controllers/today_route_controller.dart';
+ import '../../../notification/domain/models/app_notification_model.dart';
+ import '../../../notification/domain/notification_repository.dart';
+ import '../../../notification/presentation/screens/notifications_screen.dart';
+@@ -90,8 +91,10 @@ class _HomeHeaderState extends State<HomeHeader> {
+           SizedBox(width: 8.w),
+           _ActionButton(
+             icon: HugeIcons.strokeRoundedRefresh,
+-            onTap: () =>
+-                context.read<HomeCubit>().loadWeeklySummary(forceRefresh: true),
++            onTap: () {
++              context.read<HomeCubit>().loadWeeklySummary(forceRefresh: true);
++              TodayRouteController.instance.refresh();
++            },
+           ),
+           SizedBox(width: 8.w),
+           ValueListenableBuilder<List<AppNotificationModel>>(
+diff --git a/lib/features/home/presentation/widgets/route_tracking_card.dart b/lib/features/home/presentation/widgets/route_tracking_card.dart
+new file mode 100644
+index 0000000..d36d55c
+--- /dev/null
++++ b/lib/features/home/presentation/widgets/route_tracking_card.dart
+@@ -0,0 +1,454 @@
++import 'package:flutter/material.dart';
++import 'package:hugeicons/hugeicons.dart';
++import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++import 'package:mivet_app/features/customer-visits/customers/data/customers_repository.dart';
++import 'package:mivet_app/features/customer-visits/customers/domain/models/route_stop_model.dart';
++import 'package:mivet_app/features/customer-visits/customers/domain/models/visit_status.dart';
++import 'package:mivet_app/features/customer-visits/customers/presentation/controllers/today_route_controller.dart';
++import 'package:mivet_app/features/customer-visits/customers/screens/customer_detail_screen.dart';
++import 'package:mivet_app/features/customer-visits/customers/screens/weekly_plan_screen.dart';
++import 'package:mivet_app/features/customer-visits/customers/screens/widgets/route_view/route_status_style.dart';
++
++/// Delivery-style tracking of today's customers route.
++///
++/// One step per customer, in route order:
++///  * visited  (تمت / بيع / بدون طلب) — done, with the time it was recorded
++///  * missed   (لم يوصل)              — the rep could not reach the customer
++///  * current  (جاري الآن)            — the first customer not handled yet
++///  * upcoming (قادم)                 — the rest
++///
++/// The statuses are changed from the route page (customers route tab); this
++/// card only reflects them, live, through [TodayRouteController.stopsNotifier].
++/// The list is replaced with the new day's customers at 12:00 AM.
++class RouteTrackingCard extends StatelessWidget {
++  const RouteTrackingCard({super.key});
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++
++    return ValueListenableBuilder<List<RouteStopModel>>(
++      valueListenable: TodayRouteController.instance.stopsNotifier,
++      builder: (context, stops, _) {
++        final currentIndex =
++            stops.indexWhere((s) => s.status == RouteVisitStatus.pending);
++        final visited = stops.where(_isVisited).length;
++        final missed =
++            stops.where((s) => s.status == RouteVisitStatus.notReached).length;
++
++        return Container(
++          padding: EdgeInsets.all(18.w),
++          decoration: BoxDecoration(
++            color: colors.surface,
++            borderRadius: BorderRadius.circular(24.r),
++            border: Border.all(color: colors.border),
++            boxShadow: [
++              BoxShadow(
++                color: colors.subtleShadow,
++                blurRadius: 24,
++                offset: const Offset(0, 10),
++              ),
++            ],
++          ),
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.stretch,
++            children: [
++              _Header(total: stops.length, visited: visited, missed: missed),
++              SizedBox(height: 18.h),
++              if (stops.isEmpty)
++                const _EmptyState()
++              else ...[
++                if (currentIndex == -1) const _AllDoneBanner(),
++                for (int i = 0; i < stops.length; i++)
++                  _TrackingStep(
++                    stop: stops[i],
++                    number: i + 1,
++                    state: _stateOf(stops[i], isCurrent: i == currentIndex),
++                    isLast: i == stops.length - 1,
++                  ),
++              ],
++            ],
++          ),
++        );
++      },
++    );
++  }
++
++  static bool _isVisited(RouteStopModel stop) =>
++      stop.status == RouteVisitStatus.completed ||
++      stop.status == RouteVisitStatus.sold ||
++      stop.status == RouteVisitStatus.noOrder;
++
++  static _StepState _stateOf(RouteStopModel stop, {required bool isCurrent}) {
++    if (stop.status == RouteVisitStatus.notReached) return _StepState.missed;
++    if (_isVisited(stop)) return _StepState.visited;
++    return isCurrent ? _StepState.current : _StepState.upcoming;
++  }
++}
++
++enum _StepState { visited, missed, current, upcoming }
++
++class _Header extends StatelessWidget {
++  final int total;
++  final int visited;
++  final int missed;
++
++  const _Header({
++    required this.total,
++    required this.visited,
++    required this.missed,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    final subtitle = total == 0
++        ? 'مفيش عملاء في خط النهاردة'
++        : 'زرت $visited من $total'
++            '${missed > 0 ? ' · لم يوصل $missed' : ''}';
++
++    return Row(
++      children: [
++        Container(
++          width: 46.w,
++          height: 46.w,
++          decoration: BoxDecoration(
++            color: colors.primary.withOpacity(0.12),
++            borderRadius: BorderRadius.circular(16.r),
++          ),
++          child: Center(
++            child: HugeIcon(
++              icon: HugeIcons.strokeRoundedRoute01,
++              color: colors.primary,
++              size: 24.sp,
++            ),
++          ),
++        ),
++        SizedBox(width: 12.w),
++        Expanded(
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              Text(
++                'تتبع خط العملاء',
++                style: AppTextStyles.cairoBold18
++                    .copyWith(color: colors.text, fontSize: 17.sp),
++              ),
++              SizedBox(height: 2.h),
++              Text(
++                subtitle,
++                style: AppTextStyles.almaraiRegular14
++                    .copyWith(color: colors.textMuted, fontSize: 12.sp),
++              ),
++            ],
++          ),
++        ),
++      ],
++    );
++  }
++}
++
++class _TrackingStep extends StatelessWidget {
++  final RouteStopModel stop;
++  final int number;
++  final _StepState state;
++  final bool isLast;
++
++  const _TrackingStep({
++    required this.stop,
++    required this.number,
++    required this.state,
++    required this.isLast,
++  });
++
++  bool get _handled =>
++      state == _StepState.visited || state == _StepState.missed;
++
++  void _openCustomer(BuildContext context) {
++    final customer = CustomersRepository.instance.getCustomerById(stop.customerId);
++    if (customer == null) return;
++    Navigator.of(context).push(
++      MaterialPageRoute(
++        builder: (_) => CustomerDetailScreen(customer: customer),
++      ),
++    );
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++
++    final Color accent = switch (state) {
++      _StepState.current => colors.primary,
++      _StepState.upcoming => colors.textMuted,
++      _StepState.visited || _StepState.missed =>
++        routeStatusColor(context, stop.status),
++    };
++
++    final badgeLabel = switch (state) {
++      _StepState.current => 'جاري الآن',
++      _StepState.upcoming => 'قادم',
++      _StepState.visited || _StepState.missed => stop.status.label,
++    };
++
++    final updatedAt = stop.statusUpdatedAt;
++
++    return InkWell(
++      borderRadius: BorderRadius.circular(16.r),
++      onTap: () => _openCustomer(context),
++      child: IntrinsicHeight(
++        child: Row(
++          crossAxisAlignment: CrossAxisAlignment.stretch,
++          children: [
++            SizedBox(
++              width: 46.w,
++              child: Column(
++                children: [
++                  _Node(state: state, number: number, accent: accent, status: stop.status),
++                  if (!isLast)
++                    Expanded(
++                      child: Padding(
++                        padding: EdgeInsets.symmetric(vertical: 4.h),
++                        child: SizedBox(
++                          width: 2,
++                          child: CustomPaint(
++                            painter: _DashedLinePainter(
++                              color: _handled
++                                  ? accent.withOpacity(0.55)
++                                  : colors.border,
++                            ),
++                          ),
++                        ),
++                      ),
++                    ),
++                ],
++              ),
++            ),
++            SizedBox(width: 12.w),
++            Expanded(
++              child: Padding(
++                padding: EdgeInsets.only(bottom: isLast ? 0 : 18.h, top: 2.h),
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    Text(
++                      stop.customerName,
++                      maxLines: 1,
++                      overflow: TextOverflow.ellipsis,
++                      style: AppTextStyles.cairoBold18.copyWith(
++                        color: colors.text,
++                        fontSize: 14.sp,
++                      ),
++                    ),
++                    SizedBox(height: 2.h),
++                    Text(
++                      stop.area.isEmpty ? 'بدون عنوان' : stop.area,
++                      maxLines: 1,
++                      overflow: TextOverflow.ellipsis,
++                      style: AppTextStyles.almaraiRegular14
++                          .copyWith(color: colors.textMuted, fontSize: 11.sp),
++                    ),
++                  ],
++                ),
++              ),
++            ),
++            SizedBox(width: 8.w),
++            Padding(
++              padding: EdgeInsets.only(top: 2.h),
++              child: Column(
++                crossAxisAlignment: CrossAxisAlignment.end,
++                children: [
++                  Container(
++                    padding:
++                        EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
++                    decoration: BoxDecoration(
++                      color: accent.withOpacity(0.12),
++                      borderRadius: BorderRadius.circular(10.r),
++                    ),
++                    child: Text(
++                      badgeLabel,
++                      style: AppTextStyles.cairoMedium16
++                          .copyWith(color: accent, fontSize: 11.sp),
++                    ),
++                  ),
++                  if (_handled && updatedAt != null) ...[
++                    SizedBox(height: 4.h),
++                    Text(
++                      _formatTime(updatedAt),
++                      style: AppTextStyles.almaraiRegular14
++                          .copyWith(color: colors.textMuted, fontSize: 11.sp),
++                    ),
++                  ],
++                ],
++              ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  /// 03:30 م
++  static String _formatTime(DateTime time) {
++    final t = time.toLocal();
++    final hour12 = t.hour % 12 == 0 ? 12 : t.hour % 12;
++    final minute = t.minute.toString().padLeft(2, '0');
++    return '${hour12.toString().padLeft(2, '0')}:$minute ${t.hour < 12 ? 'ص' : 'م'}';
++  }
++}
++
++class _Node extends StatelessWidget {
++  final _StepState state;
++  final int number;
++  final Color accent;
++  final RouteVisitStatus status;
++
++  const _Node({
++    required this.state,
++    required this.number,
++    required this.accent,
++    required this.status,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    final filled = state != _StepState.upcoming;
++
++    final Widget child = switch (state) {
++      _StepState.upcoming => Text(
++          '$number',
++          style: AppTextStyles.cairoBold18
++              .copyWith(color: colors.textMuted, fontSize: 15.sp),
++        ),
++      _StepState.current =>
++        Icon(Icons.storefront_rounded, color: Colors.white, size: 22.sp),
++      _StepState.missed =>
++        Icon(Icons.close_rounded, color: Colors.white, size: 24.sp),
++      _StepState.visited => Icon(
++          status == RouteVisitStatus.noOrder
++              ? Icons.remove_rounded
++              : Icons.check_rounded,
++          color: Colors.white,
++          size: 24.sp,
++        ),
++    };
++
++    return Container(
++      width: 46.w,
++      height: 46.w,
++      decoration: BoxDecoration(
++        shape: BoxShape.circle,
++        color: filled ? accent : accent.withOpacity(0.10),
++        boxShadow: state == _StepState.current
++            ? [
++                BoxShadow(
++                  color: accent.withOpacity(0.35),
++                  blurRadius: 14,
++                  spreadRadius: 1,
++                ),
++              ]
++            : null,
++      ),
++      child: Center(child: child),
++    );
++  }
++}
++
++class _DashedLinePainter extends CustomPainter {
++  final Color color;
++
++  const _DashedLinePainter({required this.color});
++
++  @override
++  void paint(Canvas canvas, Size size) {
++    final paint = Paint()
++      ..color = color
++      ..strokeWidth = 2
++      ..strokeCap = StrokeCap.round;
++    const dash = 5.0;
++    const gap = 4.0;
++    var y = 0.0;
++    while (y < size.height) {
++      canvas.drawLine(
++        Offset(size.width / 2, y),
++        Offset(size.width / 2, (y + dash).clamp(0.0, size.height).toDouble()),
++        paint,
++      );
++      y += dash + gap;
++    }
++  }
++
++  @override
++  bool shouldRepaint(_DashedLinePainter old) => old.color != color;
++}
++
++class _AllDoneBanner extends StatelessWidget {
++  const _AllDoneBanner();
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Container(
++      margin: EdgeInsets.only(bottom: 16.h),
++      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
++      decoration: BoxDecoration(
++        color: colors.primary.withOpacity(0.10),
++        borderRadius: BorderRadius.circular(14.r),
++      ),
++      child: Row(
++        children: [
++          Icon(Icons.task_alt_rounded, color: colors.primary, size: 20.sp),
++          SizedBox(width: 8.w),
++          Expanded(
++            child: Text(
++              'خلّصت كل زيارات النهاردة',
++              style: AppTextStyles.cairoMedium16
++                  .copyWith(color: colors.primary, fontSize: 12.sp),
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _EmptyState extends StatelessWidget {
++  const _EmptyState();
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    return Column(
++      children: [
++        Icon(Icons.event_available_outlined,
++            color: colors.textMuted, size: 40.sp),
++        SizedBox(height: 8.h),
++        Text(
++          'مفيش عملاء متخططين النهاردة',
++          style: AppTextStyles.cairoMedium16
++              .copyWith(color: colors.text, fontSize: 13.sp),
++        ),
++        SizedBox(height: 4.h),
++        Text(
++          'حدد أيام زيارة كل عميل من خطة الأسبوع، وهيظهروا هنا تلقائيًا '
++          'كل يوم الساعة 12 بالليل',
++          textAlign: TextAlign.center,
++          style: AppTextStyles.almaraiRegular14
++              .copyWith(color: colors.textMuted, fontSize: 11.sp),
++        ),
++        SizedBox(height: 12.h),
++        OutlinedButton.icon(
++          onPressed: () => Navigator.of(context)
++              .push(MaterialPageRoute(builder: (_) => const WeeklyPlanScreen()))
++              // A plan set for today's weekday generates today's visits.
++              .then((_) => TodayRouteController.instance.refresh()),
++          icon: const Icon(Icons.calendar_month_outlined),
++          label: const Text('خطة الأسبوع'),
++        ),
++      ],
++    );
++  }
++}

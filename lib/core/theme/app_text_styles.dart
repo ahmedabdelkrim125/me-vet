@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 class AppTextStyles {
@@ -38,5 +39,11 @@ class AppTextStyles {
         fontFamily: 'Almarai',
         fontWeight: FontWeight.w400,
         fontSize: 14.sp,
+      );
+
+  static TextStyle get tajawalMedium16 => TextStyle(
+        fontFamily: 'Tajawal',
+        fontWeight: FontWeight.w700,
+        fontSize: 18.sp,
       );
 }

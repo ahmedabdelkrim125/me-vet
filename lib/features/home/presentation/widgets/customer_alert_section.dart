@@ -35,14 +35,14 @@ class CustomerAlertSection extends StatelessWidget {
             children: [
               HugeIcon(icon: icon, color: accentColor, size: 18.sp),
               SizedBox(width: 8.w),
-              Text(
-                title,
-                style: AppTextStyles.cairoMedium16.copyWith(
-                  color: context.colors.primary,
-                  fontSize: 14.sp,
-                ),
-              ),
-              const Spacer(),
+              Expanded(
+                  child: Text(title,
+                      style: AppTextStyles.cairoMedium16.copyWith(
+                        color: context.colors.primary,
+                        fontSize: 14.sp,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)),
               Text(
                 '${customers.length}',
                 style: AppTextStyles.cairoBold18.copyWith(

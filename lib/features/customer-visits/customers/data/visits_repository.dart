@@ -64,6 +64,12 @@ class VisitsRepository {
 
   SupabaseClient get _supabase => Supabase.instance.client;
 
+  /// Start of the (device-local) day. The device is expected to be on Cairo
+  /// time, the same time zone the server uses to build each day's route.
+  ///
+  /// NOTE: every DateTime sent to Supabase goes through `.toUtc()`. A local
+  /// DateTime serialises WITHOUT an offset, and Postgres reads that as UTC, which
+  /// used to shift every "today" window (and every status_updated_at) by 2-3h.
   DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
   Future<List<VisitRow>> getVisitsForDay(DateTime day) async {
@@ -72,8 +78,8 @@ class VisitsRepository {
     final rows = await _supabase
         .from('customer_visits')
         .select()
-        .gte('scheduled_at', start.toIso8601String())
-        .lt('scheduled_at', end.toIso8601String())
+        .gte('scheduled_at', start.toUtc().toIso8601String())
+        .lt('scheduled_at', end.toUtc().toIso8601String())
         .order('stop_order', ascending: true);
     return (rows as List)
         .map((row) => VisitRow.fromSupabaseRow(row as Map<String, dynamic>))
@@ -95,8 +101,8 @@ class VisitsRepository {
     final rows = await _supabase
         .from('customer_visits')
         .select()
-        .gte('scheduled_at', start.toIso8601String())
-        .lt('scheduled_at', end.toIso8601String());
+        .gte('scheduled_at', start.toUtc().toIso8601String())
+        .lt('scheduled_at', end.toUtc().toIso8601String());
     return (rows as List)
         .map((row) => VisitRow.fromSupabaseRow(row as Map<String, dynamic>))
         .toList();
@@ -136,7 +142,7 @@ class VisitsRepository {
           'rep_id': userId,
           'stop_order': i + 1,
           'status': RouteVisitStatus.pending.dbValue,
-          'scheduled_at': today.toIso8601String(),
+          'scheduled_at': today.toUtc().toIso8601String(),
         });
       }
     }
@@ -145,7 +151,7 @@ class VisitsRepository {
   Future<void> updateStatus(String visitId, RouteVisitStatus status) async {
     await _supabase.from('customer_visits').update({
       'status': status.dbValue,
-      'status_updated_at': DateTime.now().toIso8601String(),
+      'status_updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', visitId);
   }
 
@@ -159,11 +165,11 @@ class VisitsRepository {
         .from('customer_visits')
         .update({
           'status': status.dbValue,
-          'status_updated_at': DateTime.now().toIso8601String(),
+          'status_updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('customer_id', customerId)
-        .gte('scheduled_at', today.toIso8601String())
-        .lt('scheduled_at', tomorrow.toIso8601String());
+        .gte('scheduled_at', today.toUtc().toIso8601String())
+        .lt('scheduled_at', tomorrow.toUtc().toIso8601String());
   }
 
   Future<void> removeFromToday(String customerId) async {
@@ -173,8 +179,8 @@ class VisitsRepository {
         .from('customer_visits')
         .delete()
         .eq('customer_id', customerId)
-        .gte('scheduled_at', today.toIso8601String())
-        .lt('scheduled_at', tomorrow.toIso8601String());
+        .gte('scheduled_at', today.toUtc().toIso8601String())
+        .lt('scheduled_at', tomorrow.toUtc().toIso8601String());
   }
 
   Future<void> reorderToday(List<String> orderedCustomerIds) async {
@@ -190,8 +196,8 @@ class VisitsRepository {
         .from('customer_visits')
         .update({'stop_order': order})
         .eq('customer_id', customerId)
-        .gte('scheduled_at', today.toIso8601String())
-        .lt('scheduled_at', tomorrow.toIso8601String());
+        .gte('scheduled_at', today.toUtc().toIso8601String())
+        .lt('scheduled_at', tomorrow.toUtc().toIso8601String());
   }
 
   Future<DateTime?> lastVisitDateForCustomer(String customerId) async {
@@ -214,8 +220,8 @@ class VisitsRepository {
     final rows = await _supabase
         .from('customer_visits')
         .select()
-        .gte('scheduled_at', start.toIso8601String())
-        .lt('scheduled_at', end.toIso8601String())
+        .gte('scheduled_at', start.toUtc().toIso8601String())
+        .lt('scheduled_at', end.toUtc().toIso8601String())
         .order('scheduled_at', ascending: true)
         .order('stop_order', ascending: true);
     return (rows as List)
@@ -238,14 +244,14 @@ class VisitsRepository {
         .from('customer_visits')
         .select('id')
         .eq('customer_id', customerId)
-        .gte('scheduled_at', dayStart.toIso8601String())
-        .lt('scheduled_at', dayEnd.toIso8601String())
+        .gte('scheduled_at', dayStart.toUtc().toIso8601String())
+        .lt('scheduled_at', dayEnd.toUtc().toIso8601String())
         .maybeSingle();
 
     if (existing != null) {
       await _supabase
           .from('customer_visits')
-          .update({'scheduled_at': scheduledAt.toIso8601String()}).eq(
+          .update({'scheduled_at': scheduledAt.toUtc().toIso8601String()}).eq(
               'id', existing['id'] as String);
       return;
     }
@@ -255,14 +261,13 @@ class VisitsRepository {
       'rep_id': userId,
       'stop_order': stopOrder,
       'status': RouteVisitStatus.pending.dbValue,
-      'scheduled_at': scheduledAt.toIso8601String(),
+      'scheduled_at': scheduledAt.toUtc().toIso8601String(),
     });
   }
 
   Future<void> rescheduleVisit(String visitId, DateTime newDate) async {
-    await _supabase
-        .from('customer_visits')
-        .update({'scheduled_at': newDate.toIso8601String()}).eq('id', visitId);
+    await _supabase.from('customer_visits').update(
+        {'scheduled_at': newDate.toUtc().toIso8601String()}).eq('id', visitId);
   }
 
   Future<void> removeVisit(String visitId) async {
@@ -276,8 +281,8 @@ class VisitsRepository {
         .from('customer_visits')
         .select()
         .eq('status', RouteVisitStatus.pending.dbValue)
-        .gte('scheduled_at', start.toIso8601String())
-        .lt('scheduled_at', end.toIso8601String());
+        .gte('scheduled_at', start.toUtc().toIso8601String())
+        .lt('scheduled_at', end.toUtc().toIso8601String());
     return (rows as List)
         .map((row) => VisitRow.fromSupabaseRow(row as Map<String, dynamic>))
         .toList();
@@ -289,9 +294,8 @@ class VisitsRepository {
   ) async {
     final target = _startOfDay(targetDay).add(const Duration(hours: 9));
     for (final id in visitIds) {
-      await _supabase
-          .from('customer_visits')
-          .update({'scheduled_at': target.toIso8601String()}).eq('id', id);
+      await _supabase.from('customer_visits').update(
+          {'scheduled_at': target.toUtc().toIso8601String()}).eq('id', id);
     }
   }
 
@@ -322,11 +326,16 @@ class VisitsRepository {
         .toList();
   }
 
+  /// Visit time is no longer chosen by the rep; every planned day gets the
+  /// default slot (same as the column defaults in `customer_schedule`).
+  static const int defaultVisitHour = 9;
+  static const int defaultVisitMinute = 0;
+
   Future<void> addSchedule({
     required String customerId,
     required int weekday,
-    required int hour,
-    required int minute,
+    int hour = defaultVisitHour,
+    int minute = defaultVisitMinute,
   }) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;

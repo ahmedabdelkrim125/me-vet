@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/di/service_locator.dart';
 import 'core/notifications/push_notification_service.dart';
 import 'core/storage/secure_local_storage.dart';
+import 'core/theme/theme_controller.dart';
 import 'me_vet_app.dart';
 
 Future<void> main() async {
@@ -19,6 +20,8 @@ Future<void> main() async {
     statusBarIconBrightness: Brightness.light,
   ));
 
+  await ThemeController.instance.initialize();
+
   await dotenv.load(fileName: '.env');
 
   await Supabase.initialize(
@@ -28,6 +31,23 @@ Future<void> main() async {
       autoRefreshToken: true,
       localStorage: SecureLocalStorage(),
     ),
+  );
+
+  // Diagnostics: shows WHY a logout happened. Look for the "[Auth]" lines
+  // in `flutter run` / `adb logcat -s flutter`.
+  Supabase.instance.client.auth.onAuthStateChange.listen(
+    (state) => debugPrint(
+      '[Auth] event=${state.event.name}'
+      '${state.signOutReason != null ? ' reason=${state.signOutReason!.name}' : ''}',
+    ),
+    onError: (Object error) {
+      if (error is AuthException) {
+        debugPrint('[Auth] error code=${error.code} '
+            'status=${error.statusCode} message=${error.message}');
+      } else {
+        debugPrint('[Auth] error: $error');
+      }
+    },
   );
 
   setupServiceLocator();

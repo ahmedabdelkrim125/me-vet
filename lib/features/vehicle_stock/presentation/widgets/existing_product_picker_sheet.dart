@@ -91,8 +91,7 @@ class _ExistingProductPickerSheetState
                         return ListTile(
                           title: Text(product.name),
                           subtitle: Text(
-                            '${widget.catalog.categoryName(product.category)} — '
-                            '${widget.catalog.unitName(product.unit)}',
+                            widget.catalog.categoryName(product.category),
                           ),
                           onTap: () => Navigator.pop(context, product),
                         );

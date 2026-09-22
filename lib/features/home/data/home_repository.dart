@@ -1,13 +1,82 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 
+// import '../domain/models/weekly_financial_summary.dart';
+
+// class HomeRepository {
+//   HomeRepository(this._supabase);
+
+//   final SupabaseClient _supabase;
+
+//   WeeklyFinancialSummary? _cachedSummary;
+
+//   Future<WeeklyFinancialSummary> getWeeklyCollectionsSummary({
+//     bool forceRefresh = false,
+//   }) async {
+//     if (!forceRefresh && _cachedSummary != null) {
+//       return _cachedSummary!;
+//     }
+
+//     final now = DateTime.now();
+//     final today = DateTime(now.year, now.month, now.day);
+//     final currentWeekStart = today.subtract(const Duration(days: 6));
+//     final currentWeekEnd = today.add(const Duration(days: 1));
+//     final previousWeekStart =
+//         currentWeekStart.subtract(const Duration(days: 7));
+//     final previousWeekEnd = currentWeekStart;
+
+//     final rows = await _supabase
+//         .from('collections')
+//         .select('amount, collected_at')
+//         .gte('collected_at', previousWeekStart.toIso8601String())
+//         .lt('collected_at', currentWeekEnd.toIso8601String());
+
+//     double currentTotal = 0;
+//     double previousTotal = 0;
+
+//     for (final row in rows as List) {
+//       final amount = (row['amount'] as num).toDouble();
+//       final collectedAt = DateTime.parse(row['collected_at'] as String);
+
+//       if (!collectedAt.isBefore(currentWeekStart) &&
+//           collectedAt.isBefore(currentWeekEnd)) {
+//         currentTotal += amount;
+//       } else if (!collectedAt.isBefore(previousWeekStart) &&
+//           collectedAt.isBefore(previousWeekEnd)) {
+//         previousTotal += amount;
+//       }
+//     }
+
+//     final summary = WeeklyFinancialSummary(
+//       currentWeekCollections: currentTotal,
+//       previousWeekCollections: previousTotal,
+//     );
+
+//     _cachedSummary = summary;
+//     return summary;
+//   }
+
+//   void clearCache() {
+//     _cachedSummary = null;
+//   }
+// }
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 import '../domain/models/weekly_financial_summary.dart';
 
 class HomeRepository {
   HomeRepository(this._supabase);
 
   final SupabaseClient _supabase;
-
   WeeklyFinancialSummary? _cachedSummary;
+  bool _isTzInitialized = false;
+
+  void _ensureTzInitialized() {
+    if (!_isTzInitialized) {
+      tz_data.initializeTimeZones();
+      _isTzInitialized = true;
+    }
+  }
 
   Future<WeeklyFinancialSummary> getWeeklyCollectionsSummary({
     bool forceRefresh = false,
@@ -16,8 +85,12 @@ class HomeRepository {
       return _cachedSummary!;
     }
 
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    _ensureTzInitialized();
+    final location = tz.getLocation('Africa/Cairo');
+    final nowCairo = tz.TZDateTime.now(location);
+
+    final today =
+        tz.TZDateTime(location, nowCairo.year, nowCairo.month, nowCairo.day);
     final currentWeekStart = today.subtract(const Duration(days: 6));
     final currentWeekEnd = today.add(const Duration(days: 1));
     final previousWeekStart =
@@ -27,21 +100,22 @@ class HomeRepository {
     final rows = await _supabase
         .from('collections')
         .select('amount, collected_at')
-        .gte('collected_at', previousWeekStart.toIso8601String())
-        .lt('collected_at', currentWeekEnd.toIso8601String());
+        .gte('collected_at', previousWeekStart.toUtc().toIso8601String())
+        .lt('collected_at', currentWeekEnd.toUtc().toIso8601String());
 
     double currentTotal = 0;
     double previousTotal = 0;
 
     for (final row in rows as List) {
       final amount = (row['amount'] as num).toDouble();
-      final collectedAt = DateTime.parse(row['collected_at'] as String);
+      final collectedAtUtc =
+          DateTime.parse(row['collected_at'] as String).toUtc();
 
-      if (!collectedAt.isBefore(currentWeekStart) &&
-          collectedAt.isBefore(currentWeekEnd)) {
+      if (!collectedAtUtc.isBefore(currentWeekStart.toUtc()) &&
+          collectedAtUtc.isBefore(currentWeekEnd.toUtc())) {
         currentTotal += amount;
-      } else if (!collectedAt.isBefore(previousWeekStart) &&
-          collectedAt.isBefore(previousWeekEnd)) {
+      } else if (!collectedAtUtc.isBefore(previousWeekStart.toUtc()) &&
+          collectedAtUtc.isBefore(previousWeekEnd.toUtc())) {
         previousTotal += amount;
       }
     }

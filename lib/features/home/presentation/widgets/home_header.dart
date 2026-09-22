@@ -8,6 +8,7 @@ import 'package:mivet_app/core/utils/arabic_date_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../customer-visits/customers/presentation/controllers/today_route_controller.dart';
 import '../../../notification/domain/models/app_notification_model.dart';
 import '../../../notification/domain/notification_repository.dart';
 import '../../../notification/presentation/screens/notifications_screen.dart';
@@ -50,22 +51,15 @@ class _HomeHeaderState extends State<HomeHeader> {
       ),
       child: Row(
         children: [
-          Tooltip(
-            message: 'القائمة',
-            child: Material(
+          Container(
+            width: 54.w,
+            height: 54.w,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
               color: colors.background,
               borderRadius: BorderRadius.circular(18.r),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18.r),
-                onTap: () => Scaffold.of(context).openDrawer(),
-                child: Container(
-                  width: 54.w,
-                  height: 54.w,
-                  alignment: Alignment.center,
-                  child: Image.asset(AppImages.logoSplash, height: 38.h),
-                ),
-              ),
             ),
+            child: Image.asset(AppImages.logoSplash, height: 38.h),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -97,8 +91,10 @@ class _HomeHeaderState extends State<HomeHeader> {
           SizedBox(width: 8.w),
           _ActionButton(
             icon: HugeIcons.strokeRoundedRefresh,
-            onTap: () =>
-                context.read<HomeCubit>().loadWeeklySummary(forceRefresh: true),
+            onTap: () {
+              context.read<HomeCubit>().loadWeeklySummary(forceRefresh: true);
+              TodayRouteController.instance.refresh();
+            },
           ),
           SizedBox(width: 8.w),
           ValueListenableBuilder<List<AppNotificationModel>>(

@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/errors/app_exception.dart';
-import 'package:mivet_app/features/inventory/domain/models/stock_movement_model.dart';
-import 'package:mivet_app/features/inventory/domain/models/vehicle_stock_model.dart';
+import 'package:mivet_app/features/inventory/domain/models/vehicle_stock_added_today_model.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/deduct_vehicle_stock.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/create_vehicle_for_current_rep.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/get_stock_movements.dart';
@@ -9,7 +8,8 @@ import 'package:mivet_app/features/inventory/domain/usecases/get_vehicle_stock.d
 import 'package:mivet_app/features/inventory/domain/usecases/get_vehicles.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/load_vehicle_stock.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/return_vehicle_stock.dart';
-
+import 'package:mivet_app/features/inventory/domain/usecases/update_vehicle_stock_quantity.dart';
+import 'package:mivet_app/features/inventory/domain/usecases/get_vehicle_stock_added_today_report.dart';
 import 'vehicle_stock_state.dart';
 
 class VehicleStockCubit extends Cubit<VehicleStockState> {
@@ -20,6 +20,8 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
   final DeductVehicleStock _deductVehicleStock;
   final ReturnVehicleStock _returnVehicleStock;
   final CreateVehicleForCurrentRep _createVehicleForCurrentRep;
+  final UpdateVehicleStockQuantity _updateVehicleStockQuantity;
+  final GetVehicleStockAddedTodayReport _getVehicleStockAddedTodayReport;
 
   VehicleStockCubit({
     required GetVehicles getVehicles,
@@ -29,6 +31,8 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     required DeductVehicleStock deductVehicleStock,
     required ReturnVehicleStock returnVehicleStock,
     required CreateVehicleForCurrentRep createVehicleForCurrentRep,
+    required UpdateVehicleStockQuantity updateVehicleStockQuantity,
+    required GetVehicleStockAddedTodayReport getVehicleStockAddedTodayReport,
   })  : _getVehicles = getVehicles,
         _getVehicleStock = getVehicleStock,
         _getStockMovements = getStockMovements,
@@ -36,31 +40,24 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
         _deductVehicleStock = deductVehicleStock,
         _returnVehicleStock = returnVehicleStock,
         _createVehicleForCurrentRep = createVehicleForCurrentRep,
+        _updateVehicleStockQuantity = updateVehicleStockQuantity,
+        _getVehicleStockAddedTodayReport = getVehicleStockAddedTodayReport,
         super(const VehicleStockState());
 
   Future<void> loadVehicles() async {
     if (isClosed) return;
-
-    emit(state.copyWith(
-      status: VehicleStockStatus.loading,
-      clearError: true,
-    ));
-
+    emit(state.copyWith(status: VehicleStockStatus.loading, clearError: true));
     try {
       final vehicles = await _getVehicles();
-
       if (isClosed) return;
-
       final currentId = state.selectedVehicleId;
       final currentExists = currentId != null &&
           vehicles.any((vehicle) => vehicle.id == currentId);
-
       final selectedId = currentExists
           ? currentId
           : vehicles.isNotEmpty
               ? vehicles.first.id
               : null;
-
       if (selectedId == null) {
         emit(state.copyWith(
           status: VehicleStockStatus.loaded,
@@ -71,28 +68,23 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
         ));
         return;
       }
-
       emit(state.copyWith(
         status: VehicleStockStatus.loaded,
         vehicles: vehicles,
         selectedVehicleId: selectedId,
         clearError: true,
       ));
-
       await loadSelectedVehicleData();
     } catch (e) {
       if (isClosed) return;
-
       emit(state.copyWith(
-        status: VehicleStockStatus.error,
-        errorMessage: mapErrorToAppException(e).message,
-      ));
+          status: VehicleStockStatus.error,
+          errorMessage: mapErrorToAppException(e).message));
     }
   }
 
   Future<void> selectVehicle(String vehicleId) async {
     if (isClosed) return;
-
     emit(state.copyWith(
       selectedVehicleId: vehicleId,
       status: VehicleStockStatus.loadingStock,
@@ -101,7 +93,6 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
       vehicleStock: const [],
       movements: const [],
     ));
-
     await loadSelectedVehicleData();
   }
 
@@ -113,22 +104,17 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     final driver = driverName.trim();
     if (plate.isEmpty || driver.isEmpty) {
       emit(state.copyWith(
-        status: VehicleStockStatus.error,
-        errorMessage: 'أدخل رقم العربية واسم السائق',
-      ));
+          status: VehicleStockStatus.error,
+          errorMessage: 'أدخل رقم العربية واسم السائق'));
       return;
     }
-
     emit(state.copyWith(
-      status: VehicleStockStatus.loadingAction,
-      clearError: true,
-      clearSuccess: true,
-    ));
+        status: VehicleStockStatus.loadingAction,
+        clearError: true,
+        clearSuccess: true));
     try {
       final vehicle = await _createVehicleForCurrentRep(
-        plateNumber: plate,
-        driverName: driver,
-      );
+          plateNumber: plate, driverName: driver);
       if (isClosed) return;
       emit(state.copyWith(
         status: VehicleStockStatus.loaded,
@@ -142,43 +128,29 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     } catch (error) {
       if (isClosed) return;
       emit(state.copyWith(
-        status: VehicleStockStatus.error,
-        errorMessage: mapErrorToAppException(error).message,
-      ));
+          status: VehicleStockStatus.error,
+          errorMessage: mapErrorToAppException(error).message));
     }
   }
 
   Future<void> loadSelectedVehicleData() async {
     final vehicleId = state.selectedVehicleId;
-
     if (vehicleId == null || isClosed) return;
-
     emit(state.copyWith(
-      status: VehicleStockStatus.loadingStock,
-      clearError: true,
-    ));
-
+        status: VehicleStockStatus.loadingStock, clearError: true));
     try {
-      final List<VehicleStockModel> vehicleStock =
-          await _getVehicleStock(vehicleId: vehicleId);
-
-      final List<StockMovementModel> movements =
-          await _getStockMovements(vehicleId: vehicleId);
-
+      final vehicleStock = await _getVehicleStock(vehicleId: vehicleId);
+      final movements = await _getStockMovements(vehicleId: vehicleId);
       if (isClosed) return;
-
       emit(state.copyWith(
-        status: VehicleStockStatus.loaded,
-        vehicleStock: vehicleStock,
-        movements: movements,
-      ));
+          status: VehicleStockStatus.loaded,
+          vehicleStock: vehicleStock,
+          movements: movements));
     } catch (e) {
       if (isClosed) return;
-
       emit(state.copyWith(
-        status: VehicleStockStatus.error,
-        errorMessage: mapErrorToAppException(e).message,
-      ));
+          status: VehicleStockStatus.error,
+          errorMessage: mapErrorToAppException(e).message));
     }
   }
 
@@ -190,13 +162,10 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     String? note,
   }) async {
     if (isClosed) return;
-
     emit(state.copyWith(
-      status: VehicleStockStatus.loadingAction,
-      clearError: true,
-      clearSuccess: true,
-    ));
-
+        status: VehicleStockStatus.loadingAction,
+        clearError: true,
+        clearSuccess: true));
     try {
       await _loadVehicleStock(
         vehicleId: vehicleId,
@@ -205,22 +174,16 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
         minThreshold: minThreshold,
         note: note,
       );
-
       if (isClosed) return;
-
       emit(state.copyWith(
-        status: VehicleStockStatus.success,
-        successMessage: 'تم تحميل المخزون للعربية بنجاح',
-      ));
-
+          status: VehicleStockStatus.success,
+          successMessage: 'تم تحميل المخزون للعربية بنجاح'));
       await loadSelectedVehicleData();
     } catch (e) {
       if (isClosed) return;
-
       emit(state.copyWith(
-        status: VehicleStockStatus.error,
-        errorMessage: mapErrorToAppException(e).message,
-      ));
+          status: VehicleStockStatus.error,
+          errorMessage: mapErrorToAppException(e).message));
       rethrow;
     }
   }
@@ -233,7 +196,6 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     String? note,
   }) async {
     if (isClosed) return;
-
     try {
       await _deductVehicleStock(
         vehicleId: vehicleId,
@@ -242,18 +204,13 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
         referenceId: referenceId,
         note: note,
       );
-
       if (isClosed) return;
-
       await loadSelectedVehicleData();
     } catch (e) {
       if (isClosed) return;
-
       emit(state.copyWith(
-        status: VehicleStockStatus.error,
-        errorMessage: mapErrorToAppException(e).message,
-      ));
-
+          status: VehicleStockStatus.error,
+          errorMessage: mapErrorToAppException(e).message));
       rethrow;
     }
   }
@@ -266,7 +223,6 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     String? note,
   }) async {
     if (isClosed) return;
-
     try {
       await _returnVehicleStock(
         vehicleId: vehicleId,
@@ -275,20 +231,53 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
         referenceId: referenceId,
         note: note,
       );
-
       if (isClosed) return;
-
       await loadSelectedVehicleData();
     } catch (e) {
       if (isClosed) return;
-
       emit(state.copyWith(
-        status: VehicleStockStatus.error,
-        errorMessage: mapErrorToAppException(e).message,
-      ));
-
+          status: VehicleStockStatus.error,
+          errorMessage: mapErrorToAppException(e).message));
       rethrow;
     }
+  }
+
+  Future<void> updateStockQuantity({
+    required String vehicleId,
+    required String productId,
+    required int newQuantity,
+    String? note,
+  }) async {
+    if (isClosed) return;
+    emit(state.copyWith(
+        status: VehicleStockStatus.loadingAction,
+        clearError: true,
+        clearSuccess: true));
+    try {
+      await _updateVehicleStockQuantity(
+        vehicleId: vehicleId,
+        productId: productId,
+        newQuantity: newQuantity,
+        note: note,
+      );
+      if (isClosed) return;
+      emit(state.copyWith(
+          status: VehicleStockStatus.success,
+          successMessage: 'تم تعديل كمية المخزون بنجاح'));
+      await loadSelectedVehicleData();
+    } catch (e) {
+      if (isClosed) return;
+      emit(state.copyWith(
+          status: VehicleStockStatus.error,
+          errorMessage: mapErrorToAppException(e).message));
+      rethrow;
+    }
+  }
+
+  Future<List<VehicleStockAddedTodayModel>> getAddedTodayReport(
+    String vehicleId,
+  ) async {
+    return await _getVehicleStockAddedTodayReport(vehicleId);
   }
 
   Future<void> refresh() {
@@ -297,10 +286,6 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
 
   void clearMessages() {
     if (isClosed) return;
-
-    emit(state.copyWith(
-      clearError: true,
-      clearSuccess: true,
-    ));
+    emit(state.copyWith(clearError: true, clearSuccess: true));
   }
 }

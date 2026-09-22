@@ -421,6 +421,7 @@ class _InfoRow extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
@@ -429,15 +430,15 @@ class _InfoRow extends StatelessWidget {
               fontSize: 12.sp,
             ),
           ),
-          const Spacer(),
-          Text(
-            value,
-            style: AppTextStyles.cairoMedium16.copyWith(
-              color: highlight ? colors.primary : colors.text,
-              fontSize: highlight ? 14.sp : 12.sp,
-              fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
+          SizedBox(width: 8.w),
+          Expanded(
+              child: Text(value,
+                  style: AppTextStyles.cairoMedium16.copyWith(
+                    color: highlight ? colors.primary : colors.text,
+                    fontSize: highlight ? 14.sp : 12.sp,
+                    fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
+                  ),
+                  textAlign: TextAlign.end)),
         ],
       ),
     );

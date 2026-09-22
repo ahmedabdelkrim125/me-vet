@@ -1,0 +1,540 @@
+diff --git a/lib/features/customer-visits/customers/data/visits_repository.dart b/lib/features/customer-visits/customers/data/visits_repository.dart
+index c620beb..3b1994c 100644
+--- a/lib/features/customer-visits/customers/data/visits_repository.dart
++++ b/lib/features/customer-visits/customers/data/visits_repository.dart
+@@ -322,11 +322,16 @@ class VisitsRepository {
+         .toList();
+   }
+ 
++  /// Visit time is no longer chosen by the rep; every planned day gets the
++  /// default slot (same as the column defaults in `customer_schedule`).
++  static const int defaultVisitHour = 9;
++  static const int defaultVisitMinute = 0;
++
+   Future<void> addSchedule({
+     required String customerId,
+     required int weekday,
+-    required int hour,
+-    required int minute,
++    int hour = defaultVisitHour,
++    int minute = defaultVisitMinute,
+   }) async {
+     final userId = _supabase.auth.currentUser?.id;
+     if (userId == null) return;
+diff --git a/lib/features/customer-visits/customers/screens/weekly_plan_screen.dart b/lib/features/customer-visits/customers/screens/weekly_plan_screen.dart
+index 8aec86e..8353be6 100644
+--- a/lib/features/customer-visits/customers/screens/weekly_plan_screen.dart
++++ b/lib/features/customer-visits/customers/screens/weekly_plan_screen.dart
+@@ -72,17 +72,9 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
+             .firstWhere((s) => s.weekday == weekday);
+         await VisitsRepository.instance.removeSchedule(row.id);
+       } else {
+-        final time = await showTimePicker(
+-          context: context,
+-          initialTime: const TimeOfDay(hour: 9, minute: 0),
+-          helpText: 'ميعاد زيارة ${customer.name} التقريبي',
+-        );
+-        if (time == null) return;
+         await VisitsRepository.instance.addSchedule(
+           customerId: customer.id,
+           weekday: weekday,
+-          hour: time.hour,
+-          minute: time.minute,
+         );
+       }
+       await _load();
+diff --git a/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_schedule_sheet.dart b/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_schedule_sheet.dart
+index ee2eafb..81124d2 100644
+--- a/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_schedule_sheet.dart
++++ b/lib/features/customer-visits/customers/screens/widgets/customer_detail/customer_schedule_sheet.dart
+@@ -79,17 +79,9 @@ class _CustomerScheduleSheetState extends State<_CustomerScheduleSheet> {
+         final row = _schedule.firstWhere((s) => s.weekday == weekday);
+         await VisitsRepository.instance.removeSchedule(row.id);
+       } else {
+-        final time = await showTimePicker(
+-          context: context,
+-          initialTime: const TimeOfDay(hour: 9, minute: 0),
+-          helpText: 'ميعاد الزيارة التقريبي',
+-        );
+-        if (time == null) return;
+         await VisitsRepository.instance.addSchedule(
+           customerId: widget.customerId,
+           weekday: weekday,
+-          hour: time.hour,
+-          minute: time.minute,
+         );
+       }
+       await _load();
+@@ -98,12 +90,6 @@ class _CustomerScheduleSheetState extends State<_CustomerScheduleSheet> {
+     }
+   }
+ 
+-  String _timeLabel(ScheduleRow row) {
+-    final h = row.hour.toString().padLeft(2, '0');
+-    final m = row.minute.toString().padLeft(2, '0');
+-    return '$h:$m';
+-  }
+-
+   @override
+   Widget build(BuildContext context) {
+     final colors = context.colors;
+@@ -150,10 +136,6 @@ class _CustomerScheduleSheetState extends State<_CustomerScheduleSheet> {
+               _DayRow(
+                 name: _dbWeekdayNames[weekday],
+                 selected: _hasDay(weekday),
+-                timeLabel: _hasDay(weekday)
+-                    ? _timeLabel(
+-                        _schedule.firstWhere((s) => s.weekday == weekday))
+-                    : null,
+                 onTap: () => _toggleDay(weekday),
+               ),
+         ],
+@@ -165,13 +147,11 @@ class _CustomerScheduleSheetState extends State<_CustomerScheduleSheet> {
+ class _DayRow extends StatelessWidget {
+   final String name;
+   final bool selected;
+-  final String? timeLabel;
+   final VoidCallback onTap;
+ 
+   const _DayRow({
+     required this.name,
+     required this.selected,
+-    required this.timeLabel,
+     required this.onTap,
+   });
+ 
+@@ -210,13 +190,6 @@ class _DayRow extends StatelessWidget {
+                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                   ),
+                 ),
+-                const Spacer(),
+-                if (timeLabel != null)
+-                  Text(
+-                    timeLabel!,
+-                    style: AppTextStyles.almaraiRegular14
+-                        .copyWith(color: colors.primary, fontSize: 12.sp),
+-                  ),
+               ],
+             ),
+           ),
+diff --git a/lib/features/customer_account/domain/customer_statement.dart b/lib/features/customer_account/domain/customer_statement.dart
+new file mode 100644
+index 0000000..62d228c
+--- /dev/null
++++ b/lib/features/customer_account/domain/customer_statement.dart
+@@ -0,0 +1,88 @@
++import 'entities/customer_ledger.dart';
++import 'entities/customer_transaction.dart';
++
++/// A customer's account statement for a period of time.
++///
++/// Built from the ledger the backend already returns. `balanceAfter` is the
++/// backend's authoritative running balance, so nothing is recomputed except
++/// the opening balance of the period (which is simply the balance right
++/// before the first transaction of the period).
++class CustomerStatement {
++  final DateTime periodStart;
++  final DateTime periodEnd;
++  final double openingBalance;
++  final double closingBalance;
++  final double totalDebit;
++  final double totalCredit;
++
++  /// Oldest first (chronological), as an accounting statement is read.
++  final List<CustomerTransaction> transactions;
++
++  const CustomerStatement({
++    required this.periodStart,
++    required this.periodEnd,
++    required this.openingBalance,
++    required this.closingBalance,
++    required this.totalDebit,
++    required this.totalCredit,
++    required this.transactions,
++  });
++
++  /// Statement for the last [months] calendar months up to today.
++  factory CustomerStatement.lastMonths(
++    CustomerLedger ledger, {
++    int months = 6,
++    DateTime? now,
++  }) {
++    final today = now ?? DateTime.now();
++    final end = DateTime(today.year, today.month, today.day);
++    final start = _monthsBefore(end, months);
++
++    // `get_customer_ledger` returns newest first (ORDER BY ledger_sequence DESC).
++    final inPeriodNewestFirst = <CustomerTransaction>[];
++    CustomerTransaction? newestBeforePeriod;
++    for (final t in ledger.transactions) {
++      if (t.occurredAt.toLocal().isBefore(start)) {
++        newestBeforePeriod ??= t;
++      } else {
++        inPeriodNewestFirst.add(t);
++      }
++    }
++
++    final chronological = inPeriodNewestFirst.reversed.toList();
++
++    final double opening;
++    if (newestBeforePeriod != null) {
++      opening = newestBeforePeriod.balanceAfter;
++    } else if (chronological.isNotEmpty) {
++      final first = chronological.first;
++      opening = first.balanceAfter - first.debit + first.credit;
++    } else {
++      opening = ledger.currentBalance ?? 0;
++    }
++
++    final closing = ledger.currentBalance ??
++        (chronological.isNotEmpty ? chronological.last.balanceAfter : opening);
++
++    return CustomerStatement(
++      periodStart: start,
++      periodEnd: end,
++      openingBalance: opening,
++      closingBalance: closing,
++      totalDebit: chronological.fold(0.0, (sum, t) => sum + t.debit),
++      totalCredit: chronological.fold(0.0, (sum, t) => sum + t.credit),
++      transactions: chronological,
++    );
++  }
++
++  /// [date] minus [months] calendar months, clamping the day (31 Aug - 6
++  /// months = 28/29 Feb, not 3 Mar).
++  static DateTime _monthsBefore(DateTime date, int months) {
++    final total = date.year * 12 + (date.month - 1) - months;
++    final year = total ~/ 12;
++    final month = total % 12 + 1;
++    final lastDayOfMonth = DateTime(year, month + 1, 0).day;
++    final day = date.day > lastDayOfMonth ? lastDayOfMonth : date.day;
++    return DateTime(year, month, day);
++  }
++}
+diff --git a/lib/features/customer_account/presentation/screens/customer_account_screen.dart b/lib/features/customer_account/presentation/screens/customer_account_screen.dart
+index 5c2e7e2..887c902 100644
+--- a/lib/features/customer_account/presentation/screens/customer_account_screen.dart
++++ b/lib/features/customer_account/presentation/screens/customer_account_screen.dart
+@@ -5,15 +5,13 @@ import 'package:mivet_app/core/errors/app_toast.dart';
+ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+ import 'package:mivet_app/core/theme/app_text_styles.dart';
+ import 'package:mivet_app/core/utils/responsive_extension.dart';
+-import 'package:mivet_app/features/customer-visits/customers/data/customers_repository.dart';
+-import 'package:mivet_app/features/home/domain/models/quick_invoice_models.dart';
+-import 'package:mivet_app/features/home/presentation/widgets/quick_invoice_dialog.dart';
+ import '../../presentation/cubit/customer_account_cubit.dart';
+ import '../../presentation/cubit/customer_account_state.dart';
+ import '../widgets/account_summary_card.dart';
+ import '../widgets/collection_receipt_preview.dart';
+ import '../widgets/payment_dialog.dart';
+ import '../widgets/transaction_list.dart';
++import 'customer_statement_pdf_screen.dart';
+ import 'sales_return_screen.dart';
+ 
+ class CustomerAccountScreen extends StatelessWidget {
+@@ -201,8 +199,11 @@ class _ActionsBar extends StatelessWidget {
+         SizedBox(width: 10.w),
+         Expanded(
+           child: OutlinedButton(
+-            onPressed: () => _openNewInvoice(context),
+-            child: const Text('فاتورة جديدة'),
++            onPressed: () => _openStatement(context, cubit),
++            child: const Text(
++              'كشف حساب آخر 6 شهور',
++              textAlign: TextAlign.center,
++            ),
+           ),
+         ),
+       ],
+@@ -227,21 +228,14 @@ class _ActionsBar extends StatelessWidget {
+     }
+   }
+ 
+-  Future<void> _openNewInvoice(BuildContext context) async {
+-    try {
+-      final repository = CustomersRepository.instance;
+-      await repository.initialize();
+-      final customer = repository.getCustomerById(customerId);
+-      if (customer == null || !context.mounted) return;
+-      await Navigator.of(context).push(
+-        MaterialPageRoute(
+-          builder: (_) => QuickInvoiceDialog(
+-            initialCustomer: InvoiceCustomerModel(customer: customer),
+-          ),
++  void _openStatement(BuildContext context, CustomerAccountCubit cubit) {
++    Navigator.of(context).push(
++      MaterialPageRoute(
++        builder: (_) => BlocProvider.value(
++          value: cubit,
++          child: const CustomerStatementPdfScreen(),
+         ),
+-      );
+-    } catch (error) {
+-      if (context.mounted) showAppError(context, error);
+-    }
++      ),
++    );
+   }
+ }
+diff --git a/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart b/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart
+index 54ee1a2..c343822 100644
+--- a/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart
++++ b/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart
+@@ -4,23 +4,28 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+ import 'package:mivet_app/core/theme/app_text_styles.dart';
+ import 'package:printing/printing.dart';
+ 
++import '../../domain/customer_statement.dart';
+ import '../../domain/customer_statement_pdf_builder.dart';
+ import '../cubit/customer_account_cubit.dart';
+ import '../cubit/customer_account_state.dart';
+ 
+-/// Renders the full ledger already loaded by [CustomerAccountCubit] as a
+-/// PDF. A different document from the per-invoice PDF built by
+-/// InvoicePdfBuilder — this one covers every transaction type.
++/// Account statement of the customer for the last [months] months, shown as a
++/// PDF preview (share / print included).
++///
++/// Needs a [CustomerAccountCubit] above it in the tree.
+ class CustomerStatementPdfScreen extends StatelessWidget {
++  static const int months = 6;
++
+   const CustomerStatementPdfScreen({super.key});
+ 
+   @override
+   Widget build(BuildContext context) {
+     final colors = context.colors;
++
+     return Scaffold(
+       backgroundColor: colors.background,
+       appBar: AppBar(
+-        title: const Text('كشف حساب PDF'),
++        title: const Text('كشف حساب آخر 6 شهور'),
+         backgroundColor: colors.surface,
+         foregroundColor: colors.primary,
+       ),
+@@ -29,25 +34,53 @@ class CustomerStatementPdfScreen extends StatelessWidget {
+           if (state.isLoading) {
+             return const Center(child: CircularProgressIndicator());
+           }
++
+           final ledger = state.ledger;
+-          if (ledger == null || ledger.transactions.isEmpty) {
+-            return Center(
+-              child: Text('لا توجد معاملات لعرضها في كشف الحساب',
+-                  style: AppTextStyles.almaraiRegular14
+-                      .copyWith(color: colors.textMuted)),
++          if (ledger == null) {
++            return const _Message(
++              text: 'تعذر تحميل بيانات الحساب، جرّب مرة أخرى',
+             );
+           }
++
++          final statement = CustomerStatement.lastMonths(ledger, months: months);
++
++          if (statement.transactions.isEmpty) {
++            return const _Message(
++              text: 'لا توجد معاملات خلال آخر 6 شهور',
++            );
++          }
++
+           return PdfPreview(
+             build: (_) => CustomerStatementPdfBuilder.build(
+               customerName: state.customerName,
+-              ledger: ledger,
++              statement: statement,
+             ),
++            pdfFileName: 'customer_statement_6_months.pdf',
+             allowSharing: true,
+             allowPrinting: true,
+             canChangePageFormat: false,
++            canChangeOrientation: false,
++            canDebug: false,
+           );
+         },
+       ),
+     );
+   }
+ }
++
++class _Message extends StatelessWidget {
++  final String text;
++
++  const _Message({required this.text});
++
++  @override
++  Widget build(BuildContext context) {
++    return Center(
++      child: Text(
++        text,
++        style: AppTextStyles.cairoRegular14
++            .copyWith(color: context.colors.textMuted),
++      ),
++    );
++  }
++}
+diff --git a/lib/features/home/presentation/widgets/quick_invoice_dialog.dart b/lib/features/home/presentation/widgets/quick_invoice_dialog.dart
+index fab2141..87fcd08 100644
+--- a/lib/features/home/presentation/widgets/quick_invoice_dialog.dart
++++ b/lib/features/home/presentation/widgets/quick_invoice_dialog.dart
+@@ -38,10 +38,6 @@ InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
+   );
+ }
+ 
+-List<PastInvoiceSummaryModel> _statementFor(InvoiceCustomerModel invoice) {
+-  return const [];
+-}
+-
+ String _money(double value) {
+   final negative = value < 0;
+   final whole = value.abs().truncate();
+@@ -275,19 +271,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
+     }
+   }
+ 
+-  void _openStatement() {
+-    if (customer == null) return;
+-    showModalBottomSheet(
+-      context: context,
+-      isScrollControlled: true,
+-      backgroundColor: Colors.transparent,
+-      builder: (_) => _StatementSheet(
+-        invoice: customer!,
+-        entries: _statementFor(customer!),
+-      ),
+-    );
+-  }
+-
+   Future<void> _issueInvoice() async {
+     if (customer == null) {
+       _toast('الرجاء اختيار العميل أولاً');
+@@ -479,8 +462,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
+                       SizedBox(height: 14.h),
+                       _FinancialSummaryRow(invoice: customer!),
+                       SizedBox(height: 14.h),
+-                      _StatementTile(onTap: _openStatement),
+-                      SizedBox(height: 14.h),
+                       BlocBuilder<VehicleStockCubit, VehicleStockState>(
+                         bloc: _vehicleStockCubit,
+                         builder: (context, vehicleStockState) {
+@@ -1273,120 +1254,6 @@ class _FinancialCard extends StatelessWidget {
+   }
+ }
+ 
+-class _StatementTile extends StatelessWidget {
+-  final VoidCallback onTap;
+-  const _StatementTile({required this.onTap});
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    final colors = context.colors;
+-    return Material(
+-      color: colors.surface,
+-      borderRadius: BorderRadius.circular(14.r),
+-      child: InkWell(
+-        onTap: onTap,
+-        borderRadius: BorderRadius.circular(14.r),
+-        child: Container(
+-          padding: EdgeInsets.all(14.w),
+-          decoration: BoxDecoration(
+-            border: Border.all(color: colors.border),
+-            borderRadius: BorderRadius.circular(14.r),
+-          ),
+-          child: Row(
+-            children: [
+-              Icon(Icons.receipt_long_outlined,
+-                  color: colors.text, size: 20.sp),
+-              SizedBox(width: 10.w),
+-              Expanded(
+-                child: Text(
+-                  'كشف الحساب',
+-                  style: AppTextStyles.cairoMedium16
+-                      .copyWith(color: colors.text, fontSize: 13.sp),
+-                ),
+-              ),
+-              Icon(Icons.chevron_left_rounded,
+-                  color: colors.textMuted, size: 20.sp),
+-            ],
+-          ),
+-        ),
+-      ),
+-    );
+-  }
+-}
+-
+-class _StatementSheet extends StatelessWidget {
+-  final InvoiceCustomerModel invoice;
+-  final List<PastInvoiceSummaryModel> entries;
+-
+-  const _StatementSheet({required this.invoice, required this.entries});
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    final colors = context.colors;
+-    return _BottomSheetShell(
+-      title: 'كشف حساب: ${invoice.customer.name}',
+-      icon: Icons.receipt_long_outlined,
+-      child: Column(
+-        crossAxisAlignment: CrossAxisAlignment.stretch,
+-        children: entries
+-            .map(
+-              (e) => Container(
+-                margin: EdgeInsets.only(bottom: 10.h),
+-                padding: EdgeInsets.all(12.w),
+-                decoration: BoxDecoration(
+-                  color: colors.background,
+-                  borderRadius: BorderRadius.circular(12.r),
+-                ),
+-                child: Row(
+-                  children: [
+-                    Expanded(
+-                      child: Column(
+-                        crossAxisAlignment: CrossAxisAlignment.start,
+-                        children: [
+-                          Text(e.invoiceNumber,
+-                              style: AppTextStyles.cairoMedium16.copyWith(
+-                                  color: colors.text, fontSize: 12.sp)),
+-                          SizedBox(height: 2.h),
+-                          Text(_date(e.date),
+-                              style: AppTextStyles.almaraiRegular14.copyWith(
+-                                  color: colors.textMuted, fontSize: 11.sp)),
+-                        ],
+-                      ),
+-                    ),
+-                    Container(
+-                      padding:
+-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+-                      decoration: BoxDecoration(
+-                        color: (e.status == 'مدفوعة'
+-                                ? colors.primary
+-                                : colors.statOrange)
+-                            .withOpacity(0.12),
+-                        borderRadius: BorderRadius.circular(8.r),
+-                      ),
+-                      child: Text(
+-                        e.status,
+-                        style: AppTextStyles.almaraiRegular14.copyWith(
+-                          color: e.status == 'مدفوعة'
+-                              ? colors.primary
+-                              : colors.statOrange,
+-                          fontSize: 10.sp,
+-                        ),
+-                      ),
+-                    ),
+-                    SizedBox(width: 10.w),
+-                    Text(_money(e.total),
+-                        style: AppTextStyles.cairoBold18
+-                            .copyWith(color: colors.text, fontSize: 13.sp)),
+-                  ],
+-                ),
+-              ),
+-            )
+-            .toList(),
+-      ),
+-    );
+-  }
+-}
+-
+ class _ProductsSection extends StatelessWidget {
+   final List<InvoiceLineItemModel> items;
+   final int currentPage;

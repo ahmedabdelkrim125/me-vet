@@ -35,7 +35,13 @@ void showAppSuccess(BuildContext context, String message) {
   _showToast(context, message: message, type: _ToastType.success);
 }
 
-enum _ToastType { success, error }
+/// رسالة معلومة عادية (مش خطأ) — لون أزرق وأيقونة info. مناسبة لحالات زي
+/// "مفيش منتجات اتضافت النهاردة" اللي مش عطل في التطبيق.
+void showAppInfo(BuildContext context, String message) {
+  _showToast(context, message: message, type: _ToastType.info);
+}
+
+enum _ToastType { success, error, info }
 
 void _showToast(
   BuildContext context, {
@@ -130,11 +136,19 @@ class _AppToastState extends State<_AppToast>
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isError = widget.type == _ToastType.error;
-    final accent = isError
-        ? const Color(0xFFE0473F) // نفس statusNotReached لكن ثابتة هنا
-        : colors.primary;
-    final icon = isError ? Icons.error_rounded : Icons.check_circle_rounded;
+    final Color accent;
+    final IconData icon;
+    switch (widget.type) {
+      case _ToastType.error:
+        accent = const Color(0xFFE0473F); // نفس statusNotReached لكن ثابتة هنا
+        icon = Icons.error_rounded;
+      case _ToastType.success:
+        accent = colors.primary;
+        icon = Icons.check_circle_rounded;
+      case _ToastType.info:
+        accent = colors.statBlue;
+        icon = Icons.info_rounded;
+    }
 
     return Positioned(
       top: MediaQuery.of(context).padding.top + 10.h,

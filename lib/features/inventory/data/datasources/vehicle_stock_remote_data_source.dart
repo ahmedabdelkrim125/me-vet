@@ -38,7 +38,7 @@ class VehicleStockRemoteDataSource {
         .from('vehicle_stock')
         .select(
           'vehicle_id, product_id, quantity, min_threshold, '
-          'products(id, name, image_path, category, unit, retail_price, '
+          'products(id, name, image_path, category, retail_price, '
           'wholesale_price, min_stock_threshold, expiry_date, created_at, deleted_at)',
         )
         .eq('vehicle_id', vehicleId)
@@ -52,7 +52,6 @@ class VehicleStockRemoteDataSource {
   Future<List<Map<String, dynamic>>> getStockMovements({
     String? vehicleId,
   }) async {
-    // FIXED: Include product name in relational query
     var query = _supabase.from('stock_movements').select(
           'id, product_id, vehicle_id, type, quantity, created_by, '
           'created_at, reference_id, note, products(name)',
@@ -124,5 +123,63 @@ class VehicleStockRemoteDataSource {
         'p_note': note,
       },
     );
+  }
+
+  Future<void> updateVehicleStockQuantity({
+    required String vehicleId,
+    required String productId,
+    required int newQuantity,
+    String? note,
+  }) async {
+    await _supabase.rpc(
+      'update_vehicle_stock_quantity',
+      params: {
+        'p_vehicle_id': vehicleId,
+        'p_product_id': productId,
+        'p_new_quantity': newQuantity,
+        'p_note': note,
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getVehicleStockAddedTodayShareReport(
+    String vehicleId,
+  ) async {
+    final rawResult = await _supabase.rpc(
+      'get_vehicle_stock_added_today_share_report',
+      params: {'p_vehicle_id': vehicleId},
+    );
+
+    final Map<String, dynamic>? report = rawResult is List
+        ? (rawResult.isEmpty
+            ? null
+            : Map<String, dynamic>.from(rawResult.first as Map))
+        : (rawResult == null
+            ? null
+            : Map<String, dynamic>.from(rawResult as Map));
+
+    if (report == null) return const [];
+
+    final categories = (report['categories'] as List?) ?? const [];
+    final flattened = <Map<String, dynamic>>[];
+
+    for (final categoryRaw in categories) {
+      final category = Map<String, dynamic>.from(categoryRaw as Map);
+      final categoryName = category['name'] as String? ?? '';
+      final products = (category['products'] as List?) ?? const [];
+
+      for (final productRaw in products) {
+        final product = Map<String, dynamic>.from(productRaw as Map);
+        flattened.add({
+          'product_name': product['name'],
+          'category': categoryName,
+          'quantity_added': product['quantity_added'],
+          'current_quantity': product['current_quantity'],
+          'added_at': product['added_at'],
+        });
+      }
+    }
+
+    return flattened;
   }
 }

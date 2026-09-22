@@ -13,7 +13,6 @@ import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_cu
 import '../../../customer-visits/customers/data/customers_repository.dart';
 import '../../../customer-visits/customers/data/invoices_repository.dart';
 import '../../../customer-visits/customers/domain/models/invoice_line_input.dart';
-import '../../../inventory/data/products_repository.dart';
 import '../../../inventory/domain/models/product_model.dart';
 import '../../../inventory/presentation/cubit/vehicle_stock_state.dart';
 import '../../../invoices/domain/invoice_pdf_builder.dart';
@@ -35,12 +34,7 @@ InvoiceProductModel _invoiceProductFromInventory(ProductModel product) {
     id: product.id,
     name: product.name,
     price: product.basePrice,
-    unit: product.unit,
   );
-}
-
-List<PastInvoiceSummaryModel> _statementFor(InvoiceCustomerModel invoice) {
-  return const [];
 }
 
 String _money(double value) {
@@ -66,11 +60,17 @@ String _date(DateTime d) =>
 class _VehicleStockInfo {
   final bool known;
   final Map<String, int> quantities;
+
+  /// Products that are physically on THIS rep's vehicle right now (quantity > 0).
+  /// This is the only list the invoice product picker is allowed to show: the
+  /// `products` table is one shared catalog for every rep.
+  final List<ProductModel> products;
   final String? errorMessage;
 
   const _VehicleStockInfo({
     required this.known,
     required this.quantities,
+    this.products = const [],
     this.errorMessage,
   });
 
@@ -93,10 +93,20 @@ _VehicleStockInfo _resolveVehicleStockInfo(VehicleStockState state) {
   }
 
   final quantities = <String, int>{};
+  final products = <ProductModel>[];
   for (final stock in state.vehicleStock) {
-    quantities[stock.productId] = stock.quantity > 0 ? stock.quantity : 0;
+    final quantity = stock.quantity > 0 ? stock.quantity : 0;
+    quantities[stock.productId] = quantity;
+    final product = stock.product;
+    if (quantity > 0 && product != null && !product.isDeleted) {
+      products.add(product);
+    }
   }
-  return _VehicleStockInfo(known: true, quantities: quantities);
+  return _VehicleStockInfo(
+    known: true,
+    quantities: quantities,
+    products: products,
+  );
 }
 
 class QuickInvoiceDialog extends StatefulWidget {
@@ -245,21 +255,26 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
           'جاري تحميل بيانات مخزون العربية، حاول بعد قليل');
       return;
     }
-    List<ProductModel> products;
-    try {
-      products = await ProductsRepository.instance.getProducts();
-    } catch (error) {
-      if (mounted) showAppError(context, error);
-      return;
+    // This customer's prices may still be loading (they are fetched right after
+    // picking the customer): give them a moment, otherwise the picker would
+    // open with the list price only.
+    var waited = 0;
+    while (_loadingCustomerPrices && waited < 40 && mounted) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      waited++;
     }
     if (!mounted) return;
+
+    // The vehicle stock already comes with each product's data, so the picker
+    // opens instantly (no catalog download) and only ever lists the products
+    // of this rep's own vehicle.
     final added = await showModalBottomSheet<List<InvoiceLineItemModel>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _ProductPickerSheet(
         existing: lineItems,
-        products: products,
+        products: stockInfo.products,
         customerPrices: _customerPrices,
         stockByProductId: stockInfo.quantities,
       ),
@@ -274,19 +289,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
             : _currentPage.clamp(1, (lineItems.length / 15).ceil());
       });
     }
-  }
-
-  void _openStatement() {
-    if (customer == null) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _StatementSheet(
-        invoice: customer!,
-        entries: _statementFor(customer!),
-      ),
-    );
   }
 
   Future<void> _issueInvoice() async {
@@ -480,8 +482,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                       SizedBox(height: 14.h),
                       _FinancialSummaryRow(invoice: customer!),
                       SizedBox(height: 14.h),
-                      _StatementTile(onTap: _openStatement),
-                      SizedBox(height: 14.h),
                       BlocBuilder<VehicleStockCubit, VehicleStockState>(
                         bloc: _vehicleStockCubit,
                         builder: (context, vehicleStockState) {
@@ -628,13 +628,14 @@ class _Header extends StatelessWidget {
                     Icon(Icons.qr_code_2_rounded,
                         size: 13.sp, color: Colors.white70),
                     SizedBox(width: 4.w),
-                    Text(
-                      invoiceNumber,
-                      style: AppTextStyles.almaraiRegular14.copyWith(
-                        color: Colors.white70,
-                        fontSize: 12.sp,
-                      ),
-                    ),
+                    Flexible(
+                        child: Text(invoiceNumber,
+                            style: AppTextStyles.almaraiRegular14.copyWith(
+                              color: Colors.white70,
+                              fontSize: 12.sp,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis)),
                   ],
                 ),
               ],
@@ -661,13 +662,14 @@ class _RepChip extends StatelessWidget {
       children: [
         Icon(Icons.badge_outlined, size: 15.sp, color: colors.textMuted),
         SizedBox(width: 6.w),
-        Text(
-          'المندوب الحالي: $name',
-          style: AppTextStyles.almaraiRegular14.copyWith(
-            color: colors.textMuted,
-            fontSize: 12.sp,
-          ),
-        ),
+        Flexible(
+            child: Text('المندوب الحالي: $name',
+                style: AppTextStyles.almaraiRegular14.copyWith(
+                  color: colors.textMuted,
+                  fontSize: 12.sp,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis)),
       ],
     );
   }
@@ -713,14 +715,14 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Icon(icon, size: 16.sp, color: colors.primary),
         SizedBox(width: 8.w),
-        Text(
-          title,
-          style: AppTextStyles.cairoMedium16.copyWith(
-            color: colors.text,
-            fontSize: 13.sp,
-          ),
-        ),
-        const Spacer(),
+        Expanded(
+            child: Text(title,
+                style: AppTextStyles.cairoMedium16.copyWith(
+                  color: colors.text,
+                  fontSize: 13.sp,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis)),
         if (trailing != null) trailing!,
       ],
     );
@@ -842,11 +844,12 @@ class _CustomerInfo extends StatelessWidget {
           children: [
             Icon(Icons.call_outlined, size: 14.sp, color: colors.textMuted),
             SizedBox(width: 4.w),
-            Text(
-              invoice.customer.phone,
-              style: AppTextStyles.almaraiRegular14
-                  .copyWith(color: colors.textMuted, fontSize: 12.sp),
-            ),
+            Flexible(
+                child: Text(invoice.customer.phone,
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.textMuted, fontSize: 12.sp),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
           ],
         ),
       ],
@@ -1274,120 +1277,6 @@ class _FinancialCard extends StatelessWidget {
   }
 }
 
-class _StatementTile extends StatelessWidget {
-  final VoidCallback onTap;
-  const _StatementTile({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(14.r),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14.r),
-        child: Container(
-          padding: EdgeInsets.all(14.w),
-          decoration: BoxDecoration(
-            border: Border.all(color: colors.border),
-            borderRadius: BorderRadius.circular(14.r),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.receipt_long_outlined,
-                  color: colors.text, size: 20.sp),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Text(
-                  'كشف الحساب',
-                  style: AppTextStyles.cairoMedium16
-                      .copyWith(color: colors.text, fontSize: 13.sp),
-                ),
-              ),
-              Icon(Icons.chevron_left_rounded,
-                  color: colors.textMuted, size: 20.sp),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatementSheet extends StatelessWidget {
-  final InvoiceCustomerModel invoice;
-  final List<PastInvoiceSummaryModel> entries;
-
-  const _StatementSheet({required this.invoice, required this.entries});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return _BottomSheetShell(
-      title: 'كشف حساب: ${invoice.customer.name}',
-      icon: Icons.receipt_long_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: entries
-            .map(
-              (e) => Container(
-                margin: EdgeInsets.only(bottom: 10.h),
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: colors.background,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(e.invoiceNumber,
-                              style: AppTextStyles.cairoMedium16.copyWith(
-                                  color: colors.text, fontSize: 12.sp)),
-                          SizedBox(height: 2.h),
-                          Text(_date(e.date),
-                              style: AppTextStyles.almaraiRegular14.copyWith(
-                                  color: colors.textMuted, fontSize: 11.sp)),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: (e.status == 'مدفوعة'
-                                ? colors.primary
-                                : colors.statOrange)
-                            .withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Text(
-                        e.status,
-                        style: AppTextStyles.almaraiRegular14.copyWith(
-                          color: e.status == 'مدفوعة'
-                              ? colors.primary
-                              : colors.statOrange,
-                          fontSize: 10.sp,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 10.w),
-                    Text(_money(e.total),
-                        style: AppTextStyles.cairoBold18
-                            .copyWith(color: colors.text, fontSize: 13.sp)),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
-}
-
 class _ProductsSection extends StatelessWidget {
   final List<InvoiceLineItemModel> items;
   final int currentPage;
@@ -1567,14 +1456,14 @@ class _TotalsRow extends StatelessWidget {
         Text(label,
             style: AppTextStyles.almaraiRegular14
                 .copyWith(color: colors.textMuted, fontSize: 12.sp)),
-        const Spacer(),
-        Text(
-          value,
-          style: AppTextStyles.cairoMedium16.copyWith(
-            color: muted ? colors.statOrange : colors.text,
-            fontSize: 13.sp,
-          ),
-        ),
+        SizedBox(width: 8.w),
+        Expanded(
+            child: Text(value,
+                style: AppTextStyles.cairoMedium16.copyWith(
+                  color: muted ? colors.statOrange : colors.text,
+                  fontSize: 13.sp,
+                ),
+                textAlign: TextAlign.end)),
       ],
     );
   }
@@ -1805,6 +1694,27 @@ class _LineItemTile extends StatelessWidget {
   }
 }
 
+/// Lowercases and unifies Arabic letter variants so "اتكو" finds "إتكو",
+/// "موكس" finds "مُوكس", etc.
+String _normalizeArabic(String input) {
+  return input
+      .toLowerCase()
+      .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u0640]'), '')
+      .replaceAll(RegExp('[أإآ]'), 'ا')
+      .replaceAll('ى', 'ي')
+      .replaceAll('ة', 'ه')
+      .trim();
+}
+
+/// Product picker of the invoice.
+///
+///  * Lists ONLY the products on the rep's own vehicle (see
+///    [_VehicleStockInfo.products]).
+///  * Shows the price on every row — the customer's own last price when he
+///    bought the product before — so the rep can answer "بكام ده؟" without
+///    adding anything.
+///  * The "تم" button is pinned at the bottom; the list is lazy, so it stays
+///    fast with thousands of products.
 class _ProductPickerSheet extends StatefulWidget {
   final List<InvoiceLineItemModel> existing;
   final List<ProductModel> products;
@@ -1823,6 +1733,8 @@ class _ProductPickerSheet extends StatefulWidget {
 
 class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   late List<InvoiceLineItemModel> cart;
+  late final List<InvoiceProductModel> _allProducts;
+  late final Map<String, String> _searchKeys;
   String query = '';
 
   @override
@@ -1836,6 +1748,33 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
               previousCustomerPrice: e.previousCustomerPrice,
             ))
         .toList();
+
+    final products = widget.products.map(_invoiceProductFromInventory).toList();
+    // A line that is already on the invoice must stay editable even if its
+    // stock ran out in the meantime.
+    final knownIds = products.map((p) => p.id).toSet();
+    for (final line in widget.existing) {
+      if (!knownIds.contains(line.product.id)) products.add(line.product);
+    }
+    // Products this customer bought before come first, then A-Z.
+    products.sort((a, b) {
+      final aBought = widget.customerPrices.containsKey(a.id);
+      final bBought = widget.customerPrices.containsKey(b.id);
+      if (aBought != bBought) return aBought ? -1 : 1;
+      return a.name.compareTo(b.name);
+    });
+    _allProducts = products;
+    _searchKeys = {for (final p in products) p.id: _normalizeArabic(p.name)};
+  }
+
+  List<InvoiceProductModel> get _visibleProducts {
+    final words = _normalizeArabic(query).split(RegExp(r'\s+'))
+      ..removeWhere((w) => w.isEmpty);
+    if (words.isEmpty) return _allProducts;
+    return _allProducts.where((p) {
+      final key = _searchKeys[p.id] ?? '';
+      return words.every(key.contains);
+    }).toList();
   }
 
   int _quantityFor(InvoiceProductModel p) {
@@ -1845,6 +1784,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 
   int _availableStockFor(InvoiceProductModel p) =>
       widget.stockByProductId[p.id] ?? 0;
+
+  double get _cartTotal => cart.fold(0.0, (sum, line) => sum + line.total);
 
   void _setQuantity(InvoiceProductModel p, int qty) {
     final available = _availableStockFor(p);
@@ -1875,146 +1816,267 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final filtered = widget.products
-        .map(_invoiceProductFromInventory)
-        .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
-        .toList();
+    final visible = _visibleProducts;
 
-    return _BottomSheetShell(
-      title: 'إضافة أصناف للفاتورة',
-      icon: Icons.inventory_2_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            onChanged: (v) => setState(() => query = v),
-            style: TextStyle(color: colors.text),
-            decoration: InputDecoration(
-              hintText: 'ابحث عن منتج...',
-              hintStyle: TextStyle(color: colors.textMuted),
-              prefixIcon: Icon(Icons.search_rounded,
-                  size: 20.sp, color: colors.textMuted),
-              filled: true,
-              fillColor: colors.background,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding:
-                  EdgeInsets.symmetric(vertical: 12.h, horizontal: 12.w),
+    // Moves the whole sheet (including the pinned button) above the keyboard.
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
             ),
-          ),
-          SizedBox(height: 12.h),
-          ...filtered.map((p) {
-            final qty = _quantityFor(p);
-            final available = _availableStockFor(p);
-            final outOfStock = available <= 0;
-            return Padding(
-              padding: EdgeInsets.only(bottom: 10.h),
-              child: Container(
-                padding: EdgeInsets.all(10.w),
-                decoration: BoxDecoration(
-                  color: qty > 0
-                      ? colors.primary.withOpacity(0.08)
-                      : colors.background,
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(
-                    color: qty > 0
-                        ? colors.primary.withOpacity(0.35)
-                        : Colors.transparent,
+            child: Column(
+              children: [
+                SizedBox(height: 10.h),
+                Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: colors.border,
+                    borderRadius: BorderRadius.circular(4.r),
                   ),
                 ),
-                child: Opacity(
-                  opacity: outOfStock ? 0.5 : 1,
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 8.w, 4.h),
                   child: Row(
                     children: [
+                      Icon(Icons.inventory_2_outlined,
+                          color: colors.primary, size: 18.sp),
+                      SizedBox(width: 8.w),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(p.name,
-                                style: AppTextStyles.cairoMedium16.copyWith(
-                                    color: colors.text, fontSize: 12.5.sp)),
-                            SizedBox(height: 2.h),
-                            Text(
-                              outOfStock
-                                  ? 'غير متاح في مخزون العربية'
-                                  : 'المتاح بالعربية: $available',
-                              style: AppTextStyles.almaraiRegular14.copyWith(
-                                color: outOfStock
-                                    ? colors.statusNotReached
-                                    : colors.textMuted,
-                                fontSize: 10.5.sp,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          'منتجات عربيتك',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.cairoBold18
+                              .copyWith(color: colors.text, fontSize: 15.sp),
                         ),
                       ),
-                      if (outOfStock)
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 12.w, vertical: 8.h),
-                          decoration: BoxDecoration(
-                            color: colors.textMuted.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Text('غير متاح',
-                              style: AppTextStyles.cairoMedium16.copyWith(
-                                  color: colors.textMuted, fontSize: 11.sp)),
-                        )
-                      else if (qty == 0)
-                        Material(
-                          color: colors.primary,
-                          borderRadius: BorderRadius.circular(10.r),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(10.r),
-                            onTap: () => _setQuantity(p, 1),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w, vertical: 8.h),
-                              child: Text('إضافة',
-                                  style: AppTextStyles.cairoMedium16.copyWith(
-                                      color: Colors.white, fontSize: 11.sp)),
-                            ),
-                          ),
-                        )
-                      else
-                        Row(
-                          children: [
-                            _StepButton(
-                                icon: Icons.remove_rounded,
-                                onTap: () => _setQuantity(p, qty - 1)),
-                            Container(
-                              width: 28.w,
-                              alignment: Alignment.center,
-                              child: Text('$qty',
-                                  style: AppTextStyles.cairoMedium16.copyWith(
-                                      color: colors.text, fontSize: 12.sp)),
-                            ),
-                            _StepButton(
-                              icon: Icons.add_rounded,
-                              onTap: qty >= available
-                                  ? () {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'الكمية المتاحة في العربية أقل من المطلوب')),
-                                      );
-                                    }
-                                  : () => _setQuantity(p, qty + 1),
-                            ),
-                          ],
-                        ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close_rounded,
+                            size: 20.sp, color: colors.textMuted),
+                      ),
                     ],
                   ),
                 ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 10.h),
+                  child: TextField(
+                    onChanged: (v) => setState(() => query = v),
+                    style: TextStyle(color: colors.text),
+                    decoration: InputDecoration(
+                      hintText: 'ابحث عن منتج لمعرفة سعره...',
+                      hintStyle: TextStyle(color: colors.textMuted),
+                      prefixIcon: Icon(Icons.search_rounded,
+                          size: 20.sp, color: colors.textMuted),
+                      filled: true,
+                      fillColor: colors.background,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                          vertical: 12.h, horizontal: 12.w),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: visible.isEmpty
+                      ? _PickerEmptyState(hasStock: _allProducts.isNotEmpty)
+                      : ListView.builder(
+                          controller: scrollController,
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+                          itemCount: visible.length,
+                          itemBuilder: (context, index) =>
+                              _buildProductRow(context, visible[index]),
+                        ),
+                ),
+                _buildFooter(context),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProductRow(BuildContext context, InvoiceProductModel p) {
+    final colors = context.colors;
+    final qty = _quantityFor(p);
+    final available = _availableStockFor(p);
+    final outOfStock = available <= 0 && qty == 0;
+    final previous = widget.customerPrices[p.id]?.lastPrice;
+    final price = previous ?? p.price;
+    final differsFromList =
+        previous != null && (previous - p.price).abs() > 0.005;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Container(
+        padding: EdgeInsets.all(10.w),
+        decoration: BoxDecoration(
+          color: qty > 0 ? colors.primary.withOpacity(0.08) : colors.background,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color:
+                qty > 0 ? colors.primary.withOpacity(0.35) : Colors.transparent,
+          ),
+        ),
+        child: Opacity(
+          opacity: outOfStock ? 0.5 : 1,
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.cairoMedium16
+                          .copyWith(color: colors.text, fontSize: 12.5.sp),
+                    ),
+                    SizedBox(height: 4.h),
+                    Wrap(
+                      spacing: 8.w,
+                      runSpacing: 2.h,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 8.w, vertical: 3.h),
+                          decoration: BoxDecoration(
+                            color: (previous != null
+                                    ? colors.primary
+                                    : colors.textMuted)
+                                .withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Text(
+                            '${previous != null ? 'سعر العميل' : 'سعر البيع'}: ${_money(price)}',
+                            style: AppTextStyles.cairoMedium16.copyWith(
+                              color: previous != null
+                                  ? colors.primary
+                                  : colors.text,
+                              fontSize: 11.5.sp,
+                            ),
+                          ),
+                        ),
+                        if (differsFromList)
+                          Text(
+                            'العادي: ${_money(p.price)}',
+                            style: AppTextStyles.almaraiRegular14.copyWith(
+                              color: colors.textMuted,
+                              fontSize: 10.5.sp,
+                            ),
+                          ),
+                      ],
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      outOfStock
+                          ? 'غير متاح في مخزون العربية'
+                          : 'المتاح بالعربية: $available',
+                      style: AppTextStyles.almaraiRegular14.copyWith(
+                        color: outOfStock
+                            ? colors.statusNotReached
+                            : colors.textMuted,
+                        fontSize: 10.5.sp,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            );
-          }),
-          SizedBox(height: 6.h),
-          SizedBox(
-            width: double.infinity,
+              SizedBox(width: 8.w),
+              if (outOfStock)
+                Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: colors.textMuted.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Text('غير متاح',
+                      style: AppTextStyles.cairoMedium16
+                          .copyWith(color: colors.textMuted, fontSize: 11.sp)),
+                )
+              else if (qty == 0)
+                Material(
+                  color: colors.primary,
+                  borderRadius: BorderRadius.circular(10.r),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10.r),
+                    onTap: () => _setQuantity(p, 1),
+                    child: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                      child: Text('إضافة',
+                          style: AppTextStyles.cairoMedium16
+                              .copyWith(color: Colors.white, fontSize: 11.sp)),
+                    ),
+                  ),
+                )
+              else
+                Row(
+                  children: [
+                    _StepButton(
+                        icon: Icons.remove_rounded,
+                        onTap: () => _setQuantity(p, qty - 1)),
+                    Container(
+                      width: 28.w,
+                      alignment: Alignment.center,
+                      child: Text('$qty',
+                          style: AppTextStyles.cairoMedium16
+                              .copyWith(color: colors.text, fontSize: 12.sp)),
+                    ),
+                    _StepButton(
+                      icon: Icons.add_rounded,
+                      onTap: qty >= available
+                          ? () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'الكمية المتاحة في العربية أقل من المطلوب')),
+                              );
+                            }
+                          : () => _setQuantity(p, qty + 1),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Always visible, no matter how long the list is.
+  Widget _buildFooter(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        16.w,
+        10.h,
+        16.w,
+        12.h + MediaQuery.paddingOf(context).bottom,
+      ),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(top: BorderSide(color: colors.border)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context, cart),
               style: ElevatedButton.styleFrom(
@@ -2030,7 +2092,47 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
               ),
             ),
           ),
+          if (cart.isNotEmpty) ...[
+            SizedBox(width: 12.w),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('الإجمالي',
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.textMuted, fontSize: 10.sp)),
+                Text(_money(_cartTotal),
+                    style: AppTextStyles.cairoBold18
+                        .copyWith(color: colors.text, fontSize: 13.sp)),
+              ],
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _PickerEmptyState extends StatelessWidget {
+  /// false: nothing is on the vehicle at all. true: the search found nothing.
+  final bool hasStock;
+
+  const _PickerEmptyState({required this.hasStock});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Text(
+          hasStock
+              ? 'مفيش منتج بالاسم ده في عربيتك'
+              : 'مفيش منتجات في مخزون عربيتك دلوقتي',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.almaraiRegular14
+              .copyWith(color: colors.textMuted, fontSize: 12.sp),
+        ),
       ),
     );
   }

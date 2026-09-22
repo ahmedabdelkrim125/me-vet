@@ -7,9 +7,7 @@ import '../../home/presentation/home_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../../vehicle_stock/presentation/screens/vehicle_stock_screen.dart';
 import 'widgets/app_bottom_nav_bar.dart';
-import 'widgets/app_side_menu_drawer.dart';
 import 'widgets/app_side_nav_bar.dart';
-import 'widgets/detached_settings_button.dart';
 import 'widgets/nav_items.dart';
 import 'widgets/tab_placeholder.dart';
 
@@ -127,29 +125,37 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildMobileLayout(BuildContext context) {
-    final settingsIndex = appNavItems.length - 1;
+    final mediaQuery = MediaQuery.of(context);
+    final keyboardOpen = mediaQuery.viewInsets.bottom > 0;
+
+    // Push the page content above the floating dock so nothing is hidden
+    // behind it (pages already use SafeArea, which reads this padding).
+    final bodyMediaQuery = keyboardOpen
+        ? mediaQuery
+        : mediaQuery.copyWith(
+            padding: mediaQuery.padding.copyWith(
+              bottom: AppBottomNavBar.totalHeight(context) + 8.h,
+            ),
+          );
 
     return Scaffold(
-      drawer: AppSideMenuDrawer(
-        selectedIndex: _selectedIndex,
-        onTabChange: _onTabChange,
-      ),
+      backgroundColor: context.colors.background,
       body: Stack(
         children: [
-          Positioned.fill(child: _animatedBody()),
-          Positioned(
-            left: 16.w,
-            bottom: 76.h,
-            child: DetachedSettingsButton(
-              isSelected: _selectedIndex == settingsIndex,
-              onTap: () => _onTabChange(settingsIndex),
-            ),
+          Positioned.fill(
+            child: MediaQuery(data: bodyMediaQuery, child: _animatedBody()),
           ),
+          if (!keyboardOpen)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: AppBottomNavBar(
+                selectedIndex: _selectedIndex,
+                onTabChange: _onTabChange,
+              ),
+            ),
         ],
-      ),
-      bottomNavigationBar: AppBottomNavBar(
-        selectedIndex: _selectedIndex,
-        onTabChange: _onTabChange,
       ),
     );
   }

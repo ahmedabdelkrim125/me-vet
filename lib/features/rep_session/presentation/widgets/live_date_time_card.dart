@@ -50,11 +50,12 @@ class _LiveDateTimeCardState extends State<LiveDateTimeCard> {
                 Icon(CupertinoIcons.calendar,
                     size: 16.sp, color: AppColors.primaryGreen),
                 SizedBox(width: 8.w),
-                Text(
-                  arabicDateLabel(now),
-                  style: AppTextStyles.cairoMedium16
-                      .copyWith(color: colors.text, fontSize: 13.sp),
-                ),
+                Flexible(
+                    child: Text(arabicDateLabel(now),
+                        style: AppTextStyles.cairoMedium16
+                            .copyWith(color: colors.text, fontSize: 13.sp),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis)),
               ],
             ),
           ),

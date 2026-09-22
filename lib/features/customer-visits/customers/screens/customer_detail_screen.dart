@@ -139,7 +139,6 @@ import '../domain/models/customer_model.dart';
 import '../presentation/cubit/customer_analysis_cubit.dart';
 import '../presentation/cubit/customer_analysis_state.dart';
 import '../presentation/screens/widgets/customer_detail/customer_quick_actions_bar.dart';
-import 'widgets/customer_detail/customer_account_statement_section.dart';
 import 'widgets/customer_detail/customer_detail_header.dart';
 import 'widgets/customer_detail/customer_financial_info_card.dart';
 import 'widgets/customer_detail/customer_notes_section.dart';
@@ -245,15 +244,6 @@ class CustomerDetailScreen extends StatelessWidget {
                             SizedBox(height: 16.h),
                             CustomerVisitHistorySection(
                                 customerId: currentCustomer.id),
-                            SizedBox(height: 16.h),
-                            CustomerAccountStatementSection(
-                              customerId: currentCustomer.id,
-                              recentInvoices: analysis.recentInvoices,
-                              allInvoices: analysis.allInvoices,
-                              customerName: currentCustomer.name,
-                              currentBalance: currentCustomer.currentBalance,
-                              isLoading: analysis.isLoading,
-                            ),
                           ],
                         ),
                       ),

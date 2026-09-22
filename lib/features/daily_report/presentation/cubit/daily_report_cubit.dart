@@ -1,57 +1,108 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/mock_daily_report_repository.dart';
+import '../../domain/daily_report_repository.dart';
 import '../../domain/models/report_period_type.dart';
 import 'daily_report_state.dart';
 
 class DailyReportCubit extends Cubit<DailyReportState> {
-  DailyReportCubit({MockDailyReportRepository? repository})
-      : _repository = repository ?? MockDailyReportRepository.instance,
-        super(const DailyReportInitial());
+  final DailyReportRepository _repository;
+  final String? _ownerSelectedRepId;
+  ReportPeriodType _currentPeriod = ReportPeriodType.daily;
 
-  final MockDailyReportRepository _repository;
+  DailyReportCubit(this._repository, {String? ownerSelectedRepId})
+      : _ownerSelectedRepId = ownerSelectedRepId,
+        super(const DailyReportInitial());
 
   Future<void> load() async {
     emit(const DailyReportLoading());
-    try {
-      final timeline = await _repository.getTimeline();
-
-      final daily =
-          await _repository.buildReport(period: ReportPeriodType.daily);
-      final weekly = timeline.isWeeklyReportUnlocked
-          ? await _repository.buildReport(period: ReportPeriodType.weekly)
-          : null;
-      final monthly = timeline.isMonthlyReportUnlocked
-          ? await _repository.buildReport(period: ReportPeriodType.monthly)
-          : null;
-
-      final chartHistory = await _repository.buildChartHistory(days: 30);
-
-      emit(DailyReportLoaded(
-        timeline: timeline,
-        dailyReport: daily,
-        weeklyReport: weekly,
-        monthlyReport: monthly,
-        selectedPeriod: ReportPeriodType.daily,
-        chartHistory: chartHistory,
-      ));
-    } catch (e) {
-      emit(DailyReportError('تعذر تحميل التقرير: $e'));
-    }
+    await _fetchReport(_currentPeriod);
   }
 
-  Future<void> refresh() => load();
+  Future<void> refresh() async {
+    await _fetchReport(_currentPeriod);
+  }
 
-  void selectPeriod(ReportPeriodType period) {
-    final current = state;
-    if (current is! DailyReportLoaded) return;
+  Future<void> selectPeriod(ReportPeriodType period) async {
+    _currentPeriod = period;
+    emit(const DailyReportLoading());
+    await _fetchReport(period);
+  }
 
-    final isUnlocked = switch (period) {
-      ReportPeriodType.daily => true,
-      ReportPeriodType.weekly => current.timeline.isWeeklyReportUnlocked,
-      ReportPeriodType.monthly => current.timeline.isMonthlyReportUnlocked,
-    };
-    if (!isUnlocked) return;
+//   Future<void> _fetchReport(ReportPeriodType period) async {
+//     try {
+//       final now = DateTime.now();
+//       DateTime from;
+//       DateTime to;
 
-    emit(current.copyWith(selectedPeriod: period));
+//       switch (period) {
+//         case ReportPeriodType.daily:
+//           from = DateTime(now.year, now.month, now.day);
+//           to = from.add(const Duration(days: 1));
+//           break;
+//         case ReportPeriodType.weekly:
+//           final daysSinceSaturday = (now.weekday + 1) % 7;
+//           from = DateTime(now.year, now.month, now.day)
+//               .subtract(Duration(days: daysSinceSaturday));
+//           to = from.add(const Duration(days: 7));
+//           break;
+//         case ReportPeriodType.monthly:
+//           from = DateTime(now.year, now.month, 1);
+//           to = DateTime(now.year, now.month + 1, 1);
+//           break;
+//       }
+
+//       final report = await _repository.getDailyReport(
+//         from: from,
+//         to: to,
+//         repId: _ownerSelectedRepId,
+//       );
+
+//       emit(DailyReportLoaded(report: report, selectedPeriod: period));
+//     } catch (e) {
+//       emit(DailyReportError(e.toString()));
+//     }
+//   }
+// }
+  Future<void> _fetchReport(ReportPeriodType period) async {
+    try {
+      final now = DateTime.now();
+      DateTime from;
+      DateTime to;
+
+      switch (period) {
+        case ReportPeriodType.daily:
+          from = DateTime(now.year, now.month, now.day);
+          to = from.add(const Duration(days: 1));
+          break;
+        case ReportPeriodType.weekly:
+          final daysSinceSaturday = (now.weekday + 1) % 7;
+          from = DateTime(now.year, now.month, now.day)
+              .subtract(Duration(days: daysSinceSaturday));
+          to = from.add(const Duration(days: 7));
+          break;
+        case ReportPeriodType.monthly:
+          from = DateTime(now.year, now.month, 1);
+          to = DateTime(now.year, now.month + 1, 1);
+          break;
+      }
+
+      // --- STEP 3: LOG THE CURRENT REPORT PERIOD ---
+      debugPrint('\n=== DAILY_REPORT_DEBUG_CUBIT ===');
+      debugPrint('CURRENT NOW: $now');
+      debugPrint('CURRENT PERIOD: $period');
+      debugPrint('FROM (Local): $from');
+      debugPrint('TO (Local): $to');
+      debugPrint('================================\n');
+
+      final report = await _repository.getDailyReport(
+        from: from,
+        to: to,
+        repId: _ownerSelectedRepId,
+      );
+
+      emit(DailyReportLoaded(report: report, selectedPeriod: period));
+    } catch (e) {
+      emit(DailyReportError(e.toString()));
+    }
   }
 }

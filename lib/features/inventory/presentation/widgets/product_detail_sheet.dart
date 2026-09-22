@@ -6,6 +6,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/core/widgets/custom_alert_dialog.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/products_repository.dart';
 import '../../domain/models/product_catalog.dart';
 import '../../domain/models/product_model.dart';
@@ -59,7 +60,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   }
 
   Future<void> _confirmDelete() async {
-    await showDialog(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => CustomAlertDialog(
         title: 'حذف المنتج',
@@ -68,23 +69,51 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
         primaryButtonText: 'حذف',
         secondaryButtonText: 'إلغاء',
         primaryButtonColor: dialogContext.colors.statusNotReached,
-        onPrimaryPressed: () => _performDelete(dialogContext),
-        onSecondaryPressed: () => Navigator.of(dialogContext).pop(),
+        onPrimaryPressed: () => Navigator.of(dialogContext).pop(true),
+        onSecondaryPressed: () => Navigator.of(dialogContext).pop(false),
       ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      showAppError(context, Exception('يجب تسجيل الدخول لإتمام هذا الإجراء'));
+      return;
+    }
+
+    final email = user.email;
+    if (email == null) {
+      showAppError(
+        context,
+        Exception('لا يمكن التحقق من كلمة المرور لهذا الحساب'),
+      );
+      return;
+    }
+
+    final verified = await _showPasswordConfirmationDialog(email);
+    if (verified != true || !mounted) return;
+
+    await _performDelete();
+  }
+
+  Future<bool?> _showPasswordConfirmationDialog(String email) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _PasswordConfirmationDialog(email: email),
     );
   }
 
-  Future<void> _performDelete(BuildContext dialogContext) async {
+  Future<void> _performDelete() async {
     if (_deleting) return;
     setState(() => _deleting = true);
     try {
       await ProductsRepository.instance.deleteProduct(_product.id);
-      if (dialogContext.mounted) Navigator.of(dialogContext).pop();
       if (!mounted) return;
-      showAppSuccess(context, 'تم حذف الصنف بنجاح');
+      showAppSuccess(context, 'تم حذف الصنف نهائيًا بنجاح');
       Navigator.of(context).pop(true);
     } catch (error) {
-      if (dialogContext.mounted) Navigator.of(dialogContext).pop();
       if (mounted) {
         setState(() => _deleting = false);
         showAppError(context, error);
@@ -97,7 +126,6 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     final product = _product;
     final hasImage = product.imagePath != null && product.imagePath!.isNotEmpty;
     final categoryName = widget.catalog.categoryName(product.category);
-    final unitName = widget.catalog.unitName(product.unit);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -171,13 +199,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                   label: 'سعر الجملة',
                   value: '${product.wholesalePrice.toStringAsFixed(0)} ج.م'),
               _DetailRow(
-                  icon: Icons.straighten_rounded,
-                  label: 'وحدة القياس',
-                  value: unitName),
-              _DetailRow(
                   icon: Icons.warning_amber_rounded,
                   label: 'الحد الأدنى للمخزون',
-                  value: '${product.minStockThreshold} $unitName'),
+                  value: '${product.minStockThreshold}'),
               _DetailRow(
                   icon: Icons.calendar_today_outlined,
                   label: 'تاريخ الإضافة',
@@ -279,18 +303,143 @@ class _DetailRow extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16.sp, color: context.colors.textMuted),
           SizedBox(width: 8.w),
           Text(label,
               style: AppTextStyles.almaraiRegular14
                   .copyWith(color: context.colors.textMuted, fontSize: 11.sp)),
-          const Spacer(),
-          Text(value,
-              style: AppTextStyles.cairoMedium16
-                  .copyWith(color: context.colors.text, fontSize: 12.sp)),
+          SizedBox(width: 8.w),
+          Expanded(
+              child: Text(value,
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(color: context.colors.text, fontSize: 12.sp),
+                  textAlign: TextAlign.end)),
         ],
       ),
+    );
+  }
+}
+
+/// Asks the user for their account password before a destructive action.
+///
+/// The [TextEditingController] lives in this [State] on purpose: the framework
+/// disposes it only after the dialog route has finished its closing animation.
+/// (Disposing it right after `await showDialog(...)` returns is too early —
+/// the dialog is still on screen while it fades out and rebuilds, which throws
+/// "A TextEditingController was used after being disposed".)
+class _PasswordConfirmationDialog extends StatefulWidget {
+  final String email;
+
+  const _PasswordConfirmationDialog({required this.email});
+
+  @override
+  State<_PasswordConfirmationDialog> createState() =>
+      _PasswordConfirmationDialogState();
+}
+
+class _PasswordConfirmationDialogState
+    extends State<_PasswordConfirmationDialog> {
+  final _controller = TextEditingController();
+  bool _obscure = true;
+  bool _verifying = false;
+  String? _errorText;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _verifying = true;
+      _errorText = null;
+    });
+
+    try {
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: widget.email,
+        password: _controller.text,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } on AuthRetryableFetchException catch (error) {
+      // No / bad network — not a wrong password.
+      if (!mounted) return;
+      setState(() => _verifying = false);
+      showAppError(context, error);
+    } on AuthException {
+      if (!mounted) return;
+      setState(() {
+        _verifying = false;
+        _errorText = 'كلمة المرور غير صحيحة';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _verifying = false);
+      showAppError(context, error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSubmit = _controller.text.trim().isNotEmpty && !_verifying;
+
+    return AlertDialog(
+      title: const Text('تأكيد حذف المنتج'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'للحذف النهائي، أدخل كلمة مرور حسابك',
+            style: AppTextStyles.almaraiRegular14.copyWith(
+              color: context.colors.textMuted,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          TextField(
+            controller: _controller,
+            obscureText: _obscure,
+            autofocus: true,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'كلمة المرور',
+              errorText: _errorText,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+                onPressed: _verifying
+                    ? null
+                    : () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _verifying ? null : () => Navigator.of(context).pop(false),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          onPressed: canSubmit ? _submit : null,
+          child: _verifying
+              ? SizedBox(
+                  width: 16.sp,
+                  height: 16.sp,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('تأكيد الحذف'),
+        ),
+      ],
     );
   }
 }

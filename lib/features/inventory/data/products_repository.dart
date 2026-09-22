@@ -5,6 +5,24 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/models/product_catalog_item.dart';
 import '../domain/models/product_model.dart';
 
+class DuplicateCatalogItemException implements Exception {
+  final String message;
+
+  DuplicateCatalogItemException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+class CategoryInUseException implements Exception {
+  final String message;
+
+  CategoryInUseException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 class ProductsRepository {
   ProductsRepository._();
 
@@ -14,13 +32,11 @@ class ProductsRepository {
 
   static const productImageBucket = 'product-images';
   static const _productFields =
-      'id, name, image_path, category, unit, retail_price, wholesale_price, '
+      'id, name, image_path, category, retail_price, wholesale_price, '
       'min_stock_threshold, expiry_date, created_at, deleted_at';
 
   Future<List<ProductCatalogItem>> getCategories() =>
       _getCatalog('product_categories');
-
-  Future<List<ProductCatalogItem>> getUnits() => _getCatalog('product_units');
 
   Future<List<ProductCatalogItem>> _getCatalog(String table) async {
     final rows = await _supabase.from(table).select('code, name').order('name');
@@ -30,26 +46,75 @@ class ProductsRepository {
         .toList();
   }
 
-  Future<ProductCatalogItem> createCategory(String name) =>
-      _createCatalog('product_categories', name, 'category');
-
-  Future<ProductCatalogItem> createUnit(String name) =>
-      _createCatalog('product_units', name, 'unit');
+  Future<ProductCatalogItem> createCategory(String name) => _createCatalog(
+        'product_categories',
+        name,
+        'category',
+        duplicateMessage: 'هذا التصنيف موجود بالفعل',
+      );
 
   Future<ProductCatalogItem> _createCatalog(
     String table,
     String name,
-    String prefix,
-  ) async {
+    String prefix, {
+    required String duplicateMessage,
+  }) async {
     final cleanName = name.trim();
     if (cleanName.isEmpty) throw ArgumentError('الاسم مطلوب');
     final code = '${prefix}_${DateTime.now().microsecondsSinceEpoch}';
-    final row = await _supabase
-        .from(table)
-        .insert({'code': code, 'name': cleanName})
-        .select('code, name')
-        .single();
-    return ProductCatalogItem.fromMap(Map<String, dynamic>.from(row));
+    try {
+      final row = await _supabase
+          .from(table)
+          .insert({'code': code, 'name': cleanName})
+          .select('code, name')
+          .single();
+      return ProductCatalogItem.fromMap(Map<String, dynamic>.from(row));
+    } on PostgrestException catch (error) {
+      if (error.code == '23505') {
+        throw DuplicateCatalogItemException(duplicateMessage);
+      }
+      rethrow;
+    }
+  }
+
+  Future<ProductCatalogItem> updateCategory(String code, String name) async {
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) throw ArgumentError('الاسم مطلوب');
+    try {
+      final row = await _supabase
+          .from('product_categories')
+          .update({'name': cleanName})
+          .eq('code', code)
+          .select('code, name')
+          .single();
+      return ProductCatalogItem.fromMap(Map<String, dynamic>.from(row));
+    } on PostgrestException catch (error) {
+      if (error.code == '23505') {
+        throw DuplicateCatalogItemException('هذا التصنيف موجود بالفعل');
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCategory(
+    String code, {
+    String? reassignProductsTo,
+  }) async {
+    if (reassignProductsTo != null && reassignProductsTo != code) {
+      await _supabase
+          .from('products')
+          .update({'category': reassignProductsTo}).eq('category', code);
+    }
+    try {
+      await _supabase.from('product_categories').delete().eq('code', code);
+    } on PostgrestException catch (error) {
+      if (error.code == '23503') {
+        throw CategoryInUseException(
+          'لا يمكن حذف التصنيف لأنه مرتبط بمنتجات موجودة',
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<String> uploadProductImage(String localPath) async {
@@ -111,7 +176,6 @@ class ProductsRepository {
   Future<ProductModel> createProduct({
     required String name,
     required String category,
-    required String unit,
     required double retailPrice,
     required double wholesalePrice,
     required int minStockThreshold,
@@ -123,7 +187,6 @@ class ProductsRepository {
         .insert({
           'name': name,
           'category': category,
-          'unit': unit,
           'retail_price': retailPrice,
           'wholesale_price': wholesalePrice,
           'min_stock_threshold': minStockThreshold,
@@ -142,7 +205,6 @@ class ProductsRepository {
         .update({
           'name': product.name,
           'category': product.category,
-          'unit': product.unit,
           'retail_price': product.retailPrice,
           'wholesale_price': product.wholesalePrice,
           'min_stock_threshold': product.minStockThreshold,
@@ -159,8 +221,11 @@ class ProductsRepository {
   }
 
   Future<void> deleteProduct(String id) async {
-    await _supabase.from('products').update(
-        {'deleted_at': DateTime.now().toUtc().toIso8601String()}).eq('id', id);
+    final result =
+        await _supabase.from('products').delete().eq('id', id).select('id');
+    if ((result as List).isEmpty) {
+      throw Exception('لم يتم العثور على الصنف لحذفه');
+    }
   }
 
   ProductModel _fromRow(Map<String, dynamic> row) => ProductModel.fromMap(row);

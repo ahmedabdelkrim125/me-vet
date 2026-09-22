@@ -92,7 +92,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
           builder: (context, state) {
             final isSubmitting =
                 state.actionStatus == CustomerAccountActionStatus.submitting;
-            return Column(
+            return SingleChildScrollView(
+                child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -141,7 +142,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                       : const Text('تأكيد التحصيل'),
                 ),
               ],
-            );
+            ));
           },
         ),
       ),
