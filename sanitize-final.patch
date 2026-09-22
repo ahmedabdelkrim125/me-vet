@@ -1,0 +1,84 @@
+diff --git a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
+index c5a287c..0d3fa67 100644
+--- a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
++++ b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_report_builder.dart
+@@ -14,6 +14,17 @@ import 'package:mivet_app/core/utils/pdf_page_background.dart';
+ class VehicleStockReportBuilder {
+   VehicleStockReportBuilder._();
+ 
++  /// Some product/category names picked up invisible Unicode characters
++  /// (zero-width joiners/spaces, BOM, bidi override marks) — almost always
++  /// from pasting text in from WhatsApp or another app. The PDF font has no
++  /// glyph for them, and it turns out that is enough to make the pdf
++  /// package's page-splitting logic loop forever instead of laying the text
++  /// out — `TooManyPagesException`, with no useful stack trace. Stripping
++  /// these before they ever reach `pw.Text` makes that failure impossible,
++  /// regardless of what ends up in a product name in the future.
++  static String _sanitize(String text) =>
++      text.replaceAll(RegExp(r'[\u200B-\u200F\u202A-\u202E\uFEFF]'), '');
++
+   static final _navy = PdfColor.fromInt(AppColors.primary.value);
+   static final _green = PdfColor.fromInt(AppColors.primaryGreen.value);
+   static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
+@@ -205,7 +216,7 @@ class VehicleStockReportBuilder {
+   ) {
+     final grouped = <String, List<VehicleStockAddedTodayModel>>{};
+     for (final item in stock) {
+-      final categoryName = catalog.categoryName(item.category);
++      final categoryName = _sanitize(catalog.categoryName(item.category));
+       grouped.putIfAbsent(categoryName, () => []).add(item);
+     }
+     final widgets = <pw.Widget>[];
+@@ -226,7 +237,7 @@ class VehicleStockReportBuilder {
+     for (final item in stock) {
+       final product = item.product;
+       if (product == null) continue;
+-      final categoryName = catalog.categoryName(product.category);
++      final categoryName = _sanitize(catalog.categoryName(product.category));
+       grouped.putIfAbsent(categoryName, () => []).add(item);
+     }
+     return grouped;
+@@ -260,7 +271,7 @@ class VehicleStockReportBuilder {
+   static pw.Widget _buildTitle(String title, pw.Font boldFont) {
+     return pw.Center(
+       child: pw.Text(
+-        title,
++        _sanitize(title),
+         style: pw.TextStyle(font: boldFont, fontSize: 20, color: _navy),
+       ),
+     );
+@@ -278,13 +289,13 @@ class VehicleStockReportBuilder {
+         pw.Column(
+           crossAxisAlignment: pw.CrossAxisAlignment.start,
+           children: [
+-            pw.Text('اسم المندوب : $representativeName',
++            pw.Text('اسم المندوب : ${_sanitize(representativeName)}',
+                 style: pw.TextStyle(font: boldFont, fontSize: 11)),
+             pw.SizedBox(height: 4),
+-            pw.Text('رقم العربية : ${vehicle.plateNumber}',
++            pw.Text('رقم العربية : ${_sanitize(vehicle.plateNumber)}',
+                 style: pw.TextStyle(font: boldFont, fontSize: 11)),
+             pw.SizedBox(height: 4),
+-            pw.Text('السائق : ${vehicle.driverName}',
++            pw.Text('السائق : ${_sanitize(vehicle.driverName)}',
+                 style: pw.TextStyle(font: boldFont, fontSize: 11)),
+           ],
+         ),
+@@ -325,7 +336,7 @@ class VehicleStockReportBuilder {
+         _stockStatusLabel(item),
+         '${item.minThreshold}',
+         '${item.quantity}',
+-        item.product!.name,
++        _sanitize(item.product!.name),
+         '${i + 1}',
+       ]);
+     }
+@@ -361,7 +372,7 @@ class VehicleStockReportBuilder {
+         '${item.currentQuantity}',
+         timeFormatted,
+         '${item.quantityAdded}',
+-        item.productName,
++        _sanitize(item.productName),
+         '${i + 1}',
+       ]);
+     }
