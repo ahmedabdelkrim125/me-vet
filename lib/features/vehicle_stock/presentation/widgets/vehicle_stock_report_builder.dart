@@ -242,7 +242,8 @@ class VehicleStockReportBuilder {
         final label =
             isFirstPart ? section.category : '${section.category} (تابع)';
         currentPage.add(
-          _ReportSection(label, section.headers, chunkRows, section.columnWidths),
+          _ReportSection(
+              label, section.headers, chunkRows, section.columnWidths),
         );
         currentRowCount += chunkRows.length;
         isFirstPart = false;

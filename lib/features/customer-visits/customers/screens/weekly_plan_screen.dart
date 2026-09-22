@@ -94,7 +94,8 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
 
     final q = _search.trim();
     if (q.isNotEmpty) {
-      result = result.where((c) => c.name.contains(q) || c.phone.contains(q))
+      result = result
+          .where((c) => c.name.contains(q) || c.phone.contains(q))
           .toList();
     }
     return result;
