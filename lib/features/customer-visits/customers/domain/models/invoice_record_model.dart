@@ -21,6 +21,10 @@ class InvoiceRecordModel {
   final double paidAmount;
   final InvoiceStatus status;
 
+  /// 'admin' لو الأونر هو اللي عمل الفاتورة (زي فاتورة تاريخية)، 'rep' لو
+  /// المندوب. null لفواتير قديمة اتعملت قبل إضافة العمود ده.
+  final String? creatorType;
+
   const InvoiceRecordModel({
     required this.id,
     required this.code,
@@ -28,7 +32,10 @@ class InvoiceRecordModel {
     required this.amount,
     this.paidAmount = 0,
     required this.status,
+    this.creatorType,
   });
+
+  bool get isFromAdmin => creatorType == 'admin';
 
   double get remaining => amount - paidAmount;
 
@@ -39,6 +46,7 @@ class InvoiceRecordModel {
         'amount': amount,
         'paidAmount': paidAmount,
         'status': status.name,
+        if (creatorType != null) 'creatorType': creatorType,
       };
 
   factory InvoiceRecordModel.fromJson(Map<String, dynamic> json) {
@@ -54,6 +62,7 @@ class InvoiceRecordModel {
         (value) => value.name == json['status'],
         orElse: () => InvoiceStatus.deferred,
       ),
+      creatorType: json['creatorType'] as String?,
     );
   }
 
@@ -65,6 +74,7 @@ class InvoiceRecordModel {
       amount: (row['total_amount'] as num).toDouble(),
       paidAmount: (row['paid_now'] as num?)?.toDouble() ?? 0,
       status: _statusFromDb(row['status'] as String?),
+      creatorType: row['creator_type'] as String?,
     );
   }
 }

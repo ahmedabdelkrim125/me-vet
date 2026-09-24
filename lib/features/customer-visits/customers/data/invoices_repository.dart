@@ -29,12 +29,15 @@ class InvoiceFullDetail {
   final DateTime date;
   final double subtotal;
   final double discountPercent;
+  final double discountAmount;
   final double totalAmount;
   final double paidNow;
   final String saleType;
   final String statusLabel;
   final String? notes;
   final List<InvoiceItemRow> items;
+  final String? creatorType;
+  final String? creatorName;
 
   const InvoiceFullDetail({
     required this.id,
@@ -43,15 +46,20 @@ class InvoiceFullDetail {
     required this.date,
     required this.subtotal,
     required this.discountPercent,
+    required this.discountAmount,
     required this.totalAmount,
     required this.paidNow,
     required this.saleType,
     required this.statusLabel,
     required this.notes,
     required this.items,
+    this.creatorType,
+    this.creatorName,
   });
 
   double get remaining => totalAmount - paidNow;
+
+  bool get isFromAdmin => creatorType == 'admin';
 }
 
 class ProductPurchaseStat {
@@ -99,18 +107,18 @@ class InvoicesRepository {
   Future<InvoiceRecordModel> issueInvoice({
     required String customerId,
     required List<InvoiceLineInput> items,
-    required double discountPercent,
+    required double discountAmount,
     required bool isCashSale,
     required double paidNow,
     PaymentMethod? paymentMethod,
     String? notes,
   }) async {
     final row = await _supabase.rpc(
-      'issue_invoice_v2',
+      'issue_invoice_v4',
       params: {
         'p_customer_id': customerId,
         'p_items': items.map((item) => item.toRpcJson()).toList(),
-        'p_discount_percent': discountPercent,
+        'p_discount_amount': discountAmount,
         'p_sale_type': isCashSale ? 'cash' : 'credit',
         'p_paid_now': paidNow,
         'p_payment_method': paymentMethod?.backendValue,
@@ -126,16 +134,16 @@ class InvoicesRepository {
   Future<void> editInvoice({
     required String invoiceId,
     required List<InvoiceItemDraft> items,
-    required double discountPercent,
+    required double discountAmount,
     required String reason,
     String? notes,
   }) async {
     await _supabase.rpc(
-      'edit_invoice',
+      'edit_invoice_v2',
       params: {
         'p_invoice_id': invoiceId,
         'p_items': items.map((item) => item.toRpcJson()).toList(),
-        'p_discount_percent': discountPercent,
+        'p_discount_amount': discountAmount,
         'p_notes': notes,
         'p_reason': reason,
       },
@@ -198,6 +206,17 @@ class InvoicesRepository {
 
     final invoiceId = invoice['id'] as String;
 
+    String? creatorName;
+    final createdBy = invoice['created_by'] as String?;
+    if (createdBy != null) {
+      final creatorRow = await _supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', createdBy)
+          .maybeSingle();
+      creatorName = creatorRow?['name'] as String?;
+    }
+
     final itemRows = await _supabase
         .from('invoice_items')
         .select(
@@ -224,7 +243,8 @@ class InvoicesRepository {
       customerId: invoice['customer_id'] as String,
       date: DateTime.parse(invoice['invoice_date'] as String),
       subtotal: (invoice['subtotal'] as num).toDouble(),
-      discountPercent: (invoice['discount_percent'] as num).toDouble(),
+      discountPercent: (invoice['discount_percent'] as num?)?.toDouble() ?? 0,
+      discountAmount: (invoice['discount_amount'] as num?)?.toDouble() ?? 0,
       totalAmount: (invoice['total_amount'] as num).toDouble(),
       paidNow: (invoice['paid_now'] as num).toDouble(),
       saleType: invoice['sale_type'] == 'cash' ? 'نقدي' : 'آجل',
@@ -233,6 +253,8 @@ class InvoicesRepository {
       ),
       notes: invoice['notes'] as String?,
       items: items,
+      creatorType: invoice['creator_type'] as String?,
+      creatorName: creatorName,
     );
   }
 

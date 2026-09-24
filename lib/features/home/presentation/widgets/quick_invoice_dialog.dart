@@ -20,8 +20,7 @@ import '../../../invoices/domain/invoice_draft.dart';
 import '../../domain/models/quick_invoice_models.dart';
 import '../../../customer_account/domain/entities/payment_method.dart';
 import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
-
-const _currentRepName = 'أحمد عبدالكريم';
+import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
 
 List<InvoiceCustomerModel> _customersFromRepository() {
   return CustomersRepository.instance.customers
@@ -60,10 +59,6 @@ String _date(DateTime d) =>
 class _VehicleStockInfo {
   final bool known;
   final Map<String, int> quantities;
-
-  /// Products that are physically on THIS rep's vehicle right now (quantity > 0).
-  /// This is the only list the invoice product picker is allowed to show: the
-  /// `products` table is one shared catalog for every rep.
   final List<ProductModel> products;
   final String? errorMessage;
 
@@ -131,7 +126,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   int _customerPricesRequestId = 0;
   int _currentPage = 1;
   bool _loadingCustomerPrices = false;
-  double discountPercent = 0;
+  final discountController = TextEditingController(text: '0');
   final notesController = TextEditingController();
   final paidNowController = TextEditingController(text: '0');
   bool _isIssuing = false;
@@ -152,13 +147,15 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
   @override
   void dispose() {
+    discountController.dispose();
     notesController.dispose();
     paidNowController.dispose();
     super.dispose();
   }
 
   double get subtotal => lineItems.fold(0, (sum, item) => sum + item.total);
-  double get discountAmount => subtotal * (discountPercent / 100);
+  double get discountAmount =>
+      double.tryParse(discountController.text.trim()) ?? 0;
   double get grandTotal => subtotal - discountAmount;
 
   double get previousBalance => customer?.customer.currentBalance ?? 0;
@@ -255,9 +252,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
           'جاري تحميل بيانات مخزون العربية، حاول بعد قليل');
       return;
     }
-    // This customer's prices may still be loading (they are fetched right after
-    // picking the customer): give them a moment, otherwise the picker would
-    // open with the list price only.
     var waited = 0;
     while (_loadingCustomerPrices && waited < 40 && mounted) {
       await Future.delayed(const Duration(milliseconds: 100));
@@ -265,9 +259,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     }
     if (!mounted) return;
 
-    // The vehicle stock already comes with each product's data, so the picker
-    // opens instantly (no catalog download) and only ever lists the products
-    // of this rep's own vehicle.
     final added = await showModalBottomSheet<List<InvoiceLineItemModel>>(
       context: context,
       isScrollControlled: true,
@@ -298,6 +289,14 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     }
     if (lineItems.isEmpty) {
       _toast('أضف منتجات للفاتورة');
+      return;
+    }
+    if (discountAmount < 0) {
+      _toast('قيمة الخصم غير صحيحة');
+      return;
+    }
+    if (discountAmount > subtotal) {
+      _toast('قيمة الخصم أكبر من إجمالي الفاتورة');
       return;
     }
     final total = grandTotal;
@@ -349,7 +348,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                   quantity: item.quantity,
                 ))
             .toList(),
-        discountPercent: discountPercent,
+        discountAmount: discountAmount,
         isCashSale: !isDeferredSale,
         paidNow: paid,
         paymentMethod: paid > 0 ? _paymentMethod : null,
@@ -411,7 +410,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
         invoiceNumber: invoiceNumber,
         date: invoiceDate,
         customerName: customer?.customer.name ?? '',
-        repName: _currentRepName,
+        repName: context.read<AuthCubit>().state.user?.name ?? 'غير معروف',
         items: lineItems
             .map((item) => InvoicePdfLineItem(
                   name: item.product.name,
@@ -457,7 +456,10 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _RepChip(name: _currentRepName),
+                    _RepChip(
+                      name: context.watch<AuthCubit>().state.user?.name ??
+                          'غير معروف',
+                    ),
                     SizedBox(height: 14.h),
                     _SectionCard(
                       child: customer == null
@@ -521,9 +523,8 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                               onRemove: (item) =>
                                   setState(() => lineItems.remove(item)),
                               subtotal: subtotal,
-                              discountPercent: discountPercent,
-                              onDiscountChanged: (v) =>
-                                  setState(() => discountPercent = v),
+                              discountController: discountController,
+                              onDiscountChanged: (_) => setState(() {}),
                               discountAmount: discountAmount,
                               grandTotal: grandTotal,
                             ),
@@ -1114,6 +1115,7 @@ class _StaticField extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1289,8 +1291,8 @@ class _ProductsSection extends StatelessWidget {
   final void Function(InvoiceLineItemModel, int) onQuantityChanged;
   final void Function(InvoiceLineItemModel) onRemove;
   final double subtotal;
-  final double discountPercent;
-  final ValueChanged<double> onDiscountChanged;
+  final TextEditingController discountController;
+  final ValueChanged<String> onDiscountChanged;
   final double discountAmount;
   final double grandTotal;
 
@@ -1306,7 +1308,7 @@ class _ProductsSection extends StatelessWidget {
     required this.onQuantityChanged,
     required this.onRemove,
     required this.subtotal,
-    required this.discountPercent,
+    required this.discountController,
     required this.onDiscountChanged,
     required this.discountAmount,
     required this.grandTotal,
@@ -1398,18 +1400,36 @@ class _ProductsSection extends StatelessWidget {
           Row(
             children: [
               Text(
-                'خصم %',
+                'قيمة الخصم',
                 style: AppTextStyles.almaraiRegular14
                     .copyWith(color: colors.textMuted, fontSize: 12.sp),
               ),
               const Spacer(),
-              _DiscountStepper(
-                  value: discountPercent, onChanged: onDiscountChanged),
+              SizedBox(
+                height: 36.h,
+                width: 120.w,
+                child: TextFormField(
+                  controller: discountController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                  onChanged: onDiscountChanged,
+                  textAlign: TextAlign.end,
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(color: colors.text, fontSize: 13.sp),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
             ],
           ),
           SizedBox(height: 8.h),
           _TotalsRow(
-              label: 'قيمة الخصم',
+              label: 'الخصم المطبق',
               value: '- ${_money(discountAmount)}',
               muted: true),
           SizedBox(height: 10.h),
@@ -1523,36 +1543,6 @@ class _InvoicePagination extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-class _DiscountStepper extends StatelessWidget {
-  final double value;
-  final ValueChanged<double> onChanged;
-  const _DiscountStepper({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Row(
-      children: [
-        _StepButton(
-            icon: Icons.remove_rounded,
-            onTap: () => onChanged((value - 5).clamp(0, 50))),
-        Container(
-          width: 44.w,
-          alignment: Alignment.center,
-          child: Text(
-            '${value.toStringAsFixed(0)}%',
-            style: AppTextStyles.cairoMedium16
-                .copyWith(color: colors.text, fontSize: 13.sp),
-          ),
-        ),
-        _StepButton(
-            icon: Icons.add_rounded,
-            onTap: () => onChanged((value + 5).clamp(0, 50))),
-      ],
     );
   }
 }
@@ -1694,8 +1684,6 @@ class _LineItemTile extends StatelessWidget {
   }
 }
 
-/// Lowercases and unifies Arabic letter variants so "اتكو" finds "إتكو",
-/// "موكس" finds "مُوكس", etc.
 String _normalizeArabic(String input) {
   return input
       .toLowerCase()
@@ -1706,15 +1694,6 @@ String _normalizeArabic(String input) {
       .trim();
 }
 
-/// Product picker of the invoice.
-///
-///  * Lists ONLY the products on the rep's own vehicle (see
-///    [_VehicleStockInfo.products]).
-///  * Shows the price on every row — the customer's own last price when he
-///    bought the product before — so the rep can answer "بكام ده؟" without
-///    adding anything.
-///  * The "تم" button is pinned at the bottom; the list is lazy, so it stays
-///    fast with thousands of products.
 class _ProductPickerSheet extends StatefulWidget {
   final List<InvoiceLineItemModel> existing;
   final List<ProductModel> products;
@@ -1750,13 +1729,10 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
         .toList();
 
     final products = widget.products.map(_invoiceProductFromInventory).toList();
-    // A line that is already on the invoice must stay editable even if its
-    // stock ran out in the meantime.
     final knownIds = products.map((p) => p.id).toSet();
     for (final line in widget.existing) {
       if (!knownIds.contains(line.product.id)) products.add(line.product);
     }
-    // Products this customer bought before come first, then A-Z.
     products.sort((a, b) {
       final aBought = widget.customerPrices.containsKey(a.id);
       final bBought = widget.customerPrices.containsKey(b.id);
@@ -1818,7 +1794,6 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     final colors = context.colors;
     final visible = _visibleProducts;
 
-    // Moves the whole sheet (including the pinned button) above the keyboard.
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: DraggableScrollableSheet(
@@ -2060,7 +2035,6 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     );
   }
 
-  /// Always visible, no matter how long the list is.
   Widget _buildFooter(BuildContext context) {
     final colors = context.colors;
     return Container(
@@ -2114,7 +2088,6 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 }
 
 class _PickerEmptyState extends StatelessWidget {
-  /// false: nothing is on the vehicle at all. true: the search found nothing.
   final bool hasStock;
 
   const _PickerEmptyState({required this.hasStock});

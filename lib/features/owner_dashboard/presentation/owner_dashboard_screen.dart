@@ -11,6 +11,9 @@ import '../../auth/presentation/cubit/auth_cubit.dart';
 import '../data/owner_service.dart';
 import 'cubit/owner_dashboard_cubit.dart';
 import 'cubit/owner_dashboard_state.dart';
+import 'admin_customers_screen.dart';
+import 'owner_change_password_screen.dart';
+import 'rep_performance_screen.dart';
 import 'widgets/add_rep_dialog.dart';
 import 'widgets/rep_list_tile.dart';
 
@@ -124,6 +127,21 @@ class _OwnerDashboardView extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            tooltip: 'إدارة العملاء',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AdminCustomersScreen()),
+            ),
+            icon: const Icon(Icons.groups_outlined, color: Colors.white),
+          ),
+          IconButton(
+            tooltip: 'تغيير كلمة المرور',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (_) => const OwnerChangePasswordScreen()),
+            ),
+            icon: const Icon(Icons.lock_outline_rounded, color: Colors.white),
+          ),
+          IconButton(
             onPressed: () => _signOut(context),
             icon: const Icon(Icons.logout_rounded, color: Colors.white),
           ),
@@ -187,6 +205,11 @@ class _OwnerDashboardView extends StatelessWidget {
                             onEdit: () => _editRep(context, rep),
                             onDeactivate: () => _deactivateRep(context, rep),
                             onReactivate: () => _reactivateRep(context, rep),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => RepPerformanceScreen(rep: rep),
+                              ),
+                            ),
                           );
                         },
                       ),
