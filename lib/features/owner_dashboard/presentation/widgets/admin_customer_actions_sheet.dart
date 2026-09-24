@@ -10,9 +10,7 @@ import '../admin_historical_invoice_screen.dart';
 import 'admin_add_old_debt_dialog.dart';
 import 'admin_delete_customer_dialog.dart';
 
-/// الإجراءات الإدارية المتاحة على عميل واحد: مديونية قديمة، فاتورة تاريخية،
-/// أو حذف نهائي. بترجع `true` للشاشة اللي فتحتها لو العميل اتحذف فعلًا،
-/// عشان تحدّث القايمة.
+
 class AdminCustomerActionsSheet extends StatelessWidget {
   final CustomerModel customer;
 

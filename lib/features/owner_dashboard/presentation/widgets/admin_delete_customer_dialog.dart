@@ -5,9 +5,6 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 import '../../../customer-visits/customers/domain/models/customer_model.dart';
 
-/// حذف العميل نهائي وما يترجعش — بيتمسح معاه كل فواتيره وزياراته
-/// وتحصيلاته. بنطلب من الأونر يكتب اسم العميل بالظبط قبل ما نفعّل زرار
-/// الحذف، عشان ميحصلش حذف بالغلط.
 class AdminDeleteCustomerDialog extends StatefulWidget {
   final CustomerModel customer;
 
