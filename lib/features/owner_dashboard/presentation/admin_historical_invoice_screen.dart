@@ -1,23 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-
 import '../../customer-visits/customers/domain/models/customer_model.dart';
-import '../../customer-visits/customers/domain/models/invoice_line_input.dart';
 import '../../customer_account/domain/entities/payment_method.dart';
 import '../../inventory/data/products_repository.dart';
 import '../../inventory/domain/models/product_model.dart';
-import '../data/admin_actions_service.dart';
 
-/// فاتورة بتاريخ قديم بيسجلها الأونر لتوثيق مديونية أو بيع حصل قبل التطبيق.
-///
-/// بتفرق عن فاتورة المندوب العادية في حاجتين مهمين:
-///  * بتختار من كتالوج المنتجات كله (مش من مخزون عربية معينة)، لأنها مش
-///    بتخصم من أي مخزون حالي أصلًا.
-///  * لازم تاريخ، وبتتسجل في `invoices` بـ creator_type = admin عشان
-///    المندوب صاحب العميل يعرف إنها فاتورة إدارية لو شافها.
 class AdminHistoricalInvoiceScreen extends StatefulWidget {
   final CustomerModel customer;
 
@@ -83,9 +74,9 @@ class _AdminHistoricalInvoiceScreenState
   }
 
   double get _subtotal => _lines.fold(0, (sum, l) => sum + l.total);
-  double get _discountPercent =>
+  double get _discountAmount =>
       double.tryParse(_discountController.text.trim()) ?? 0;
-  double get _total => _subtotal * (1 - _discountPercent.clamp(0, 100) / 100);
+  double get _total => _subtotal - _discountAmount;
   double get _paidNow => double.tryParse(_paidNowController.text.trim()) ?? 0;
 
   Future<void> _pickDate() async {
@@ -179,6 +170,14 @@ class _AdminHistoricalInvoiceScreenState
       showAppInfo(context, 'ضيف صنف واحد على الأقل قبل الحفظ');
       return;
     }
+    if (_discountAmount < 0) {
+      showAppInfo(context, 'قيمة الخصم غير صحيحة');
+      return;
+    }
+    if (_discountAmount > _subtotal) {
+      showAppInfo(context, 'قيمة الخصم أكبر من إجمالي الفاتورة');
+      return;
+    }
     if (_paidNow > _total) {
       showAppInfo(context, 'المدفوع أكبر من إجمالي الفاتورة');
       return;
@@ -186,23 +185,29 @@ class _AdminHistoricalInvoiceScreenState
 
     setState(() => _submitting = true);
     try {
-      await AdminActionsService().issueHistoricalInvoice(
-        customerId: widget.customer.id,
-        items: _lines
-            .map((l) => InvoiceLineInput(
-                  productId: l.product.id,
-                  productName: l.product.name,
-                  unitPrice: l.unitPrice,
-                  quantity: l.quantity,
-                ))
-            .toList(),
-        invoiceDate: _invoiceDate,
-        discountPercent: _discountPercent,
-        isCashSale: _isCashSale,
-        paidNow: _paidNow,
-        paymentMethod: _paidNow > 0 ? _paymentMethod : null,
-        notes: _notesController.text,
+      await Supabase.instance.client.rpc(
+        'admin_issue_historical_invoice_v2',
+        params: {
+          'p_customer_id': widget.customer.id,
+          'p_items': _lines
+              .map((l) => {
+                    'product_id': l.product.id,
+                    'product_name': l.product.name,
+                    'unit_price': l.unitPrice,
+                    'quantity': l.quantity,
+                  })
+              .toList(),
+          'p_invoice_date': _invoiceDate.toIso8601String(),
+          'p_discount_amount': _discountAmount,
+          'p_sale_type': _isCashSale ? 'cash' : 'credit',
+          'p_paid_now': _paidNow,
+          'p_payment_method': _paidNow > 0 ? _paymentMethod.backendValue : null,
+          'p_notes': _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+        },
       );
+
       if (!mounted) return;
       showAppInfo(context, 'اتسجلت الفاتورة التاريخية بنجاح');
       Navigator.of(context).pop();
@@ -290,7 +295,8 @@ class _AdminHistoricalInvoiceScreenState
                       const TextInputType.numberWithOptions(decimal: true),
                   textDirection: TextDirection.ltr,
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(labelText: 'نسبة الخصم %'),
+                  decoration:
+                      const InputDecoration(labelText: 'قيمة الخصم (ج.م)'),
                 ),
                 SizedBox(height: 12.h),
                 TextField(
@@ -326,7 +332,7 @@ class _AdminHistoricalInvoiceScreenState
                 SizedBox(height: 18.h),
                 _TotalsCard(
                     subtotal: _subtotal,
-                    discountPercent: _discountPercent,
+                    discountAmount: _discountAmount,
                     total: _total),
               ],
             ),
@@ -452,12 +458,12 @@ class _LineRow extends StatelessWidget {
 
 class _TotalsCard extends StatelessWidget {
   final double subtotal;
-  final double discountPercent;
+  final double discountAmount;
   final double total;
 
   const _TotalsCard(
       {required this.subtotal,
-      required this.discountPercent,
+      required this.discountAmount,
       required this.total});
 
   @override
@@ -491,7 +497,7 @@ class _TotalsCard extends StatelessWidget {
       child: Column(
         children: [
           row('الإجمالي قبل الخصم', '${subtotal.toStringAsFixed(0)} ج.م'),
-          row('الخصم', '$discountPercent%'),
+          row('الخصم', '${discountAmount.toStringAsFixed(0)} ج.م'),
           const Divider(),
           row('الإجمالي النهائي', '${total.toStringAsFixed(0)} ج.م',
               bold: true),
