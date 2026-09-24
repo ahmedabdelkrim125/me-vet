@@ -113,7 +113,8 @@ class _AdminAddOldDebtDialogState extends State<AdminAddOldDebtDialog> {
             SizedBox(height: 10.h),
             Text(
               _error!,
-              style: TextStyle(color: AppColors.statusNotReached, fontSize: 13.sp),
+              style:
+                  TextStyle(color: AppColors.statusNotReached, fontSize: 13.sp),
               textAlign: TextAlign.center,
             ),
           ],
@@ -126,7 +127,8 @@ class _AdminAddOldDebtDialogState extends State<AdminAddOldDebtDialog> {
         ),
         ElevatedButton(
           onPressed: _loading ? null : _submit,
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen),
+          style:
+              ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen),
           child: _loading
               ? SizedBox(
                   width: 18.w,

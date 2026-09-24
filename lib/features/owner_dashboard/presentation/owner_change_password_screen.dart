@@ -18,8 +18,7 @@ class OwnerChangePasswordScreen extends StatefulWidget {
       _OwnerChangePasswordScreenState();
 }
 
-class _OwnerChangePasswordScreenState
-    extends State<OwnerChangePasswordScreen> {
+class _OwnerChangePasswordScreenState extends State<OwnerChangePasswordScreen> {
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscureNew = true;
@@ -39,7 +38,8 @@ class _OwnerChangePasswordScreenState
     final confirm = _confirmPasswordController.text;
 
     if (newPassword.length < 6) {
-      setState(() => _error = 'كلمة المرور لازم تكون 6 حروف أو أرقام على الأقل');
+      setState(
+          () => _error = 'كلمة المرور لازم تكون 6 حروف أو أرقام على الأقل');
       return;
     }
     if (newPassword != confirm) {

@@ -69,8 +69,8 @@ class _RepPerformanceScreenState extends State<RepPerformanceScreen> {
               ? Center(
                   child: Text(
                     'لا توجد بيانات كافية لهذا المندوب بعد',
-                    style: AppTextStyles.almaraiRegular14
-                        .copyWith(color: AppColors.navInactive, fontSize: 13.sp),
+                    style: AppTextStyles.almaraiRegular14.copyWith(
+                        color: AppColors.navInactive, fontSize: 13.sp),
                   ),
                 )
               : RefreshIndicator(
@@ -93,7 +93,8 @@ class _RepPerformanceScreenState extends State<RepPerformanceScreen> {
                       SizedBox(height: 18.h),
                       const _SectionTitle('الفواتير والمبيعات'),
                       _StatsGrid(items: [
-                        _Stat('عملاء لهم فواتير', '${stats.customersWithInvoices}'),
+                        _Stat('عملاء لهم فواتير',
+                            '${stats.customersWithInvoices}'),
                         _Stat('عدد الفواتير', '${stats.invoiceCount}'),
                         _Stat('إجمالي المبيعات', _money(stats.totalSales)),
                         _Stat('عدد الوحدات المباعة', '${stats.totalUnitsSold}'),
@@ -104,7 +105,8 @@ class _RepPerformanceScreenState extends State<RepPerformanceScreen> {
                       SizedBox(height: 18.h),
                       const _SectionTitle('التحصيلات والمرتجعات'),
                       _StatsGrid(items: [
-                        _Stat('إجمالي التحصيلات', _money(stats.totalCollections)),
+                        _Stat(
+                            'إجمالي التحصيلات', _money(stats.totalCollections)),
                         _Stat('عدد المرتجعات', '${stats.returnCount}'),
                         _Stat('قيمة المرتجعات', _money(stats.totalReturns)),
                         _Stat('إجمالي المصروفات', _money(stats.totalExpenses)),
@@ -113,9 +115,11 @@ class _RepPerformanceScreenState extends State<RepPerformanceScreen> {
                       const _SectionTitle('الحالة'),
                       _StatsGrid(items: [
                         _Stat('حالة الحساب', stats.isActive ? 'نشط' : 'معطل'),
-                        _Stat('آخر دخول', stats.lastLoginAt == null
-                            ? '—'
-                            : _dateTime(stats.lastLoginAt!)),
+                        _Stat(
+                            'آخر دخول',
+                            stats.lastLoginAt == null
+                                ? '—'
+                                : _dateTime(stats.lastLoginAt!)),
                       ]),
                     ],
                   ),

@@ -18,8 +18,7 @@ class AdminDeleteCustomerDialog extends StatefulWidget {
       _AdminDeleteCustomerDialogState();
 }
 
-class _AdminDeleteCustomerDialogState
-    extends State<AdminDeleteCustomerDialog> {
+class _AdminDeleteCustomerDialogState extends State<AdminDeleteCustomerDialog> {
   final _confirmController = TextEditingController();
   bool _matches = false;
 

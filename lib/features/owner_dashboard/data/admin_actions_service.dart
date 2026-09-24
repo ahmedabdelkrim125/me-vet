@@ -100,8 +100,8 @@ class AdminActionsService {
     try {
       final rows = await _supabase.from('customers').select().order('name');
       return (rows as List)
-          .map((row) =>
-              CustomerModel.fromSupabaseRow(Map<String, dynamic>.from(row as Map)))
+          .map((row) => CustomerModel.fromSupabaseRow(
+              Map<String, dynamic>.from(row as Map)))
           .toList();
     } catch (e) {
       throw mapErrorToAppException(e);
@@ -156,7 +156,8 @@ class AdminActionsService {
         'p_discount_percent': discountPercent,
         'p_sale_type': isCashSale ? 'cash' : 'credit',
         'p_paid_now': paidNow,
-        if (paymentMethod != null) 'p_payment_method': paymentMethod.backendValue,
+        if (paymentMethod != null)
+          'p_payment_method': paymentMethod.backendValue,
         if (notes != null && notes.trim().isNotEmpty) 'p_notes': notes.trim(),
       });
     } catch (e) {

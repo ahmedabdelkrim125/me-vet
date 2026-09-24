@@ -207,8 +207,7 @@ class _OwnerDashboardView extends StatelessWidget {
                             onReactivate: () => _reactivateRep(context, rep),
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    RepPerformanceScreen(rep: rep),
+                                builder: (_) => RepPerformanceScreen(rep: rep),
                               ),
                             ),
                           );
