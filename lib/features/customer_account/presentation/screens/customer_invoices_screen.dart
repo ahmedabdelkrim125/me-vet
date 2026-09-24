@@ -255,10 +255,30 @@ class _InvoiceRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    invoice.code,
-                    style: AppTextStyles.cairoMedium16
-                        .copyWith(color: colors.text, fontSize: 12.sp),
+                  Row(
+                    children: [
+                      Text(
+                        invoice.code,
+                        style: AppTextStyles.cairoMedium16
+                            .copyWith(color: colors.text, fontSize: 12.sp),
+                      ),
+                      if (invoice.isFromAdmin) ...[
+                        SizedBox(width: 6.w),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 6.w, vertical: 2.h),
+                          decoration: BoxDecoration(
+                            color: colors.primary.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(6.r),
+                          ),
+                          child: Text(
+                            'من الإدارة',
+                            style: AppTextStyles.almaraiRegular14.copyWith(
+                                color: colors.primary, fontSize: 9.sp),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   SizedBox(height: 2.h),
                   Text(

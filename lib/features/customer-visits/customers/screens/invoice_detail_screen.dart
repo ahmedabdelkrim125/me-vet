@@ -98,7 +98,13 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
   }
 
   Future<Uint8List> _buildPdf(InvoiceFullDetail detail) async {
-    final repName = await _resolveRepName();
+    // اسم الشخص اللي عمل الفاتورة فعليًا، مش الشخص اللي بيشوفها دلوقتي.
+    // بيرجع لاسم الجلسة الحالية بس لو الفاتورة قديمة من قبل ما كان
+    // بيتسجل مين عملها.
+    final actualCreatorName = detail.creatorName?.trim();
+    final repName = (actualCreatorName != null && actualCreatorName.isNotEmpty)
+        ? '$actualCreatorName${detail.isFromAdmin ? ' (إدارة)' : ''}'
+        : await _resolveRepName();
     return InvoicePdfBuilder.build(
       InvoicePdfData(
         invoiceNumber: detail.code,
@@ -255,6 +261,31 @@ class _DetailBody extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
       children: [
+        if (detail.isFromAdmin) ...[
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+            decoration: BoxDecoration(
+              color: colors.primary.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.verified_user_outlined,
+                    color: colors.primary, size: 15.sp),
+                SizedBox(width: 6.w),
+                Text(
+                  detail.creatorName == null || detail.creatorName!.isEmpty
+                      ? 'فاتورة من الإدارة'
+                      : 'فاتورة من الإدارة — ${detail.creatorName}',
+                  style: AppTextStyles.almaraiRegular14
+                      .copyWith(color: colors.primary, fontSize: 11.sp),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 12.h),
+        ],
         _InfoCard(
           children: [
             _InfoRow(

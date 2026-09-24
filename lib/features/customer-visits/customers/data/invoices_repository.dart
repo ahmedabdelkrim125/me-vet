@@ -36,6 +36,13 @@ class InvoiceFullDetail {
   final String? notes;
   final List<InvoiceItemRow> items;
 
+  /// 'admin' لو الأونر هو اللي عمل الفاتورة، 'rep' لو المندوب.
+  final String? creatorType;
+
+  /// اسم الشخص اللي عمل الفاتورة فعليًا (مش بالضرورة الشخص اللي فاتح
+  /// الشاشة دلوقتي)، لو قدرنا نحدده.
+  final String? creatorName;
+
   const InvoiceFullDetail({
     required this.id,
     required this.code,
@@ -49,9 +56,13 @@ class InvoiceFullDetail {
     required this.statusLabel,
     required this.notes,
     required this.items,
+    this.creatorType,
+    this.creatorName,
   });
 
   double get remaining => totalAmount - paidNow;
+
+  bool get isFromAdmin => creatorType == 'admin';
 }
 
 class ProductPurchaseStat {
@@ -198,6 +209,19 @@ class InvoicesRepository {
 
     final invoiceId = invoice['id'] as String;
 
+    // مين اللي عمل الفاتورة فعليًا — مش الشخص اللي فاتح الشاشة دلوقتي.
+    // مهم لو مندوب بيشوف فاتورة عملها الأونر، أو العكس.
+    String? creatorName;
+    final createdBy = invoice['created_by'] as String?;
+    if (createdBy != null) {
+      final creatorRow = await _supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', createdBy)
+          .maybeSingle();
+      creatorName = creatorRow?['name'] as String?;
+    }
+
     final itemRows = await _supabase
         .from('invoice_items')
         .select(
@@ -233,6 +257,8 @@ class InvoicesRepository {
       ),
       notes: invoice['notes'] as String?,
       items: items,
+      creatorType: invoice['creator_type'] as String?,
+      creatorName: creatorName,
     );
   }
 

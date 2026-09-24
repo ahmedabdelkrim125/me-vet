@@ -20,8 +20,7 @@ import '../../../invoices/domain/invoice_draft.dart';
 import '../../domain/models/quick_invoice_models.dart';
 import '../../../customer_account/domain/entities/payment_method.dart';
 import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
-
-const _currentRepName = 'أحمد عبدالكريم';
+import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
 
 List<InvoiceCustomerModel> _customersFromRepository() {
   return CustomersRepository.instance.customers
@@ -411,7 +410,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
         invoiceNumber: invoiceNumber,
         date: invoiceDate,
         customerName: customer?.customer.name ?? '',
-        repName: _currentRepName,
+        repName: context.read<AuthCubit>().state.user?.name ?? 'غير معروف',
         items: lineItems
             .map((item) => InvoicePdfLineItem(
                   name: item.product.name,
@@ -457,7 +456,10 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _RepChip(name: _currentRepName),
+                    _RepChip(
+                      name: context.watch<AuthCubit>().state.user?.name ??
+                          'غير معروف',
+                    ),
                     SizedBox(height: 14.h),
                     _SectionCard(
                       child: customer == null

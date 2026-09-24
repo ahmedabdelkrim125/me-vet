@@ -1,0 +1,1963 @@
+diff --git a/lib/features/customer-visits/customers/data/invoices_repository.dart b/lib/features/customer-visits/customers/data/invoices_repository.dart
+index 9b7a240..05ae0da 100644
+--- a/lib/features/customer-visits/customers/data/invoices_repository.dart
++++ b/lib/features/customer-visits/customers/data/invoices_repository.dart
+@@ -36,6 +36,13 @@ class InvoiceFullDetail {
+   final String? notes;
+   final List<InvoiceItemRow> items;
+ 
++  /// 'admin' لو الأونر هو اللي عمل الفاتورة، 'rep' لو المندوب.
++  final String? creatorType;
++
++  /// اسم الشخص اللي عمل الفاتورة فعليًا (مش بالضرورة الشخص اللي فاتح
++  /// الشاشة دلوقتي)، لو قدرنا نحدده.
++  final String? creatorName;
++
+   const InvoiceFullDetail({
+     required this.id,
+     required this.code,
+@@ -49,9 +56,13 @@ class InvoiceFullDetail {
+     required this.statusLabel,
+     required this.notes,
+     required this.items,
++    this.creatorType,
++    this.creatorName,
+   });
+ 
+   double get remaining => totalAmount - paidNow;
++
++  bool get isFromAdmin => creatorType == 'admin';
+ }
+ 
+ class ProductPurchaseStat {
+@@ -198,6 +209,19 @@ class InvoicesRepository {
+ 
+     final invoiceId = invoice['id'] as String;
+ 
++    // مين اللي عمل الفاتورة فعليًا — مش الشخص اللي فاتح الشاشة دلوقتي.
++    // مهم لو مندوب بيشوف فاتورة عملها الأونر، أو العكس.
++    String? creatorName;
++    final createdBy = invoice['created_by'] as String?;
++    if (createdBy != null) {
++      final creatorRow = await _supabase
++          .from('profiles')
++          .select('name')
++          .eq('id', createdBy)
++          .maybeSingle();
++      creatorName = creatorRow?['name'] as String?;
++    }
++
+     final itemRows = await _supabase
+         .from('invoice_items')
+         .select(
+@@ -233,6 +257,8 @@ class InvoicesRepository {
+       ),
+       notes: invoice['notes'] as String?,
+       items: items,
++      creatorType: invoice['creator_type'] as String?,
++      creatorName: creatorName,
+     );
+   }
+ 
+diff --git a/lib/features/customer-visits/customers/domain/models/invoice_record_model.dart b/lib/features/customer-visits/customers/domain/models/invoice_record_model.dart
+index 973ed48..3e0aae2 100644
+--- a/lib/features/customer-visits/customers/domain/models/invoice_record_model.dart
++++ b/lib/features/customer-visits/customers/domain/models/invoice_record_model.dart
+@@ -21,6 +21,10 @@ class InvoiceRecordModel {
+   final double paidAmount;
+   final InvoiceStatus status;
+ 
++  /// 'admin' لو الأونر هو اللي عمل الفاتورة (زي فاتورة تاريخية)، 'rep' لو
++  /// المندوب. null لفواتير قديمة اتعملت قبل إضافة العمود ده.
++  final String? creatorType;
++
+   const InvoiceRecordModel({
+     required this.id,
+     required this.code,
+@@ -28,8 +32,11 @@ class InvoiceRecordModel {
+     required this.amount,
+     this.paidAmount = 0,
+     required this.status,
++    this.creatorType,
+   });
+ 
++  bool get isFromAdmin => creatorType == 'admin';
++
+   double get remaining => amount - paidAmount;
+ 
+   Map<String, dynamic> toJson() => {
+@@ -39,6 +46,7 @@ class InvoiceRecordModel {
+         'amount': amount,
+         'paidAmount': paidAmount,
+         'status': status.name,
++        if (creatorType != null) 'creatorType': creatorType,
+       };
+ 
+   factory InvoiceRecordModel.fromJson(Map<String, dynamic> json) {
+@@ -54,6 +62,7 @@ class InvoiceRecordModel {
+         (value) => value.name == json['status'],
+         orElse: () => InvoiceStatus.deferred,
+       ),
++      creatorType: json['creatorType'] as String?,
+     );
+   }
+ 
+@@ -65,6 +74,7 @@ class InvoiceRecordModel {
+       amount: (row['total_amount'] as num).toDouble(),
+       paidAmount: (row['paid_now'] as num?)?.toDouble() ?? 0,
+       status: _statusFromDb(row['status'] as String?),
++      creatorType: row['creator_type'] as String?,
+     );
+   }
+ }
+diff --git a/lib/features/customer-visits/customers/screens/invoice_detail_screen.dart b/lib/features/customer-visits/customers/screens/invoice_detail_screen.dart
+index 80b28e6..dd99223 100644
+--- a/lib/features/customer-visits/customers/screens/invoice_detail_screen.dart
++++ b/lib/features/customer-visits/customers/screens/invoice_detail_screen.dart
+@@ -98,7 +98,13 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
+   }
+ 
+   Future<Uint8List> _buildPdf(InvoiceFullDetail detail) async {
+-    final repName = await _resolveRepName();
++    // اسم الشخص اللي عمل الفاتورة فعليًا، مش الشخص اللي بيشوفها دلوقتي.
++    // بيرجع لاسم الجلسة الحالية بس لو الفاتورة قديمة من قبل ما كان
++    // بيتسجل مين عملها.
++    final actualCreatorName = detail.creatorName?.trim();
++    final repName = (actualCreatorName != null && actualCreatorName.isNotEmpty)
++        ? '$actualCreatorName${detail.isFromAdmin ? ' (إدارة)' : ''}'
++        : await _resolveRepName();
+     return InvoicePdfBuilder.build(
+       InvoicePdfData(
+         invoiceNumber: detail.code,
+@@ -255,6 +261,31 @@ class _DetailBody extends StatelessWidget {
+     return ListView(
+       padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
+       children: [
++        if (detail.isFromAdmin) ...[
++          Container(
++            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
++            decoration: BoxDecoration(
++              color: colors.primary.withOpacity(0.10),
++              borderRadius: BorderRadius.circular(10.r),
++            ),
++            child: Row(
++              mainAxisSize: MainAxisSize.min,
++              children: [
++                Icon(Icons.verified_user_outlined,
++                    color: colors.primary, size: 15.sp),
++                SizedBox(width: 6.w),
++                Text(
++                  detail.creatorName == null || detail.creatorName!.isEmpty
++                      ? 'فاتورة من الإدارة'
++                      : 'فاتورة من الإدارة — ${detail.creatorName}',
++                  style: AppTextStyles.almaraiRegular14
++                      .copyWith(color: colors.primary, fontSize: 11.sp),
++                ),
++              ],
++            ),
++          ),
++          SizedBox(height: 12.h),
++        ],
+         _InfoCard(
+           children: [
+             _InfoRow(
+diff --git a/lib/features/customer_account/presentation/screens/customer_invoices_screen.dart b/lib/features/customer_account/presentation/screens/customer_invoices_screen.dart
+index f6dfc5d..f76fea1 100644
+--- a/lib/features/customer_account/presentation/screens/customer_invoices_screen.dart
++++ b/lib/features/customer_account/presentation/screens/customer_invoices_screen.dart
+@@ -255,10 +255,30 @@ class _InvoiceRow extends StatelessWidget {
+               child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+-                  Text(
+-                    invoice.code,
+-                    style: AppTextStyles.cairoMedium16
+-                        .copyWith(color: colors.text, fontSize: 12.sp),
++                  Row(
++                    children: [
++                      Text(
++                        invoice.code,
++                        style: AppTextStyles.cairoMedium16
++                            .copyWith(color: colors.text, fontSize: 12.sp),
++                      ),
++                      if (invoice.isFromAdmin) ...[
++                        SizedBox(width: 6.w),
++                        Container(
++                          padding: EdgeInsets.symmetric(
++                              horizontal: 6.w, vertical: 2.h),
++                          decoration: BoxDecoration(
++                            color: colors.primary.withOpacity(0.12),
++                            borderRadius: BorderRadius.circular(6.r),
++                          ),
++                          child: Text(
++                            'من الإدارة',
++                            style: AppTextStyles.almaraiRegular14.copyWith(
++                                color: colors.primary, fontSize: 9.sp),
++                          ),
++                        ),
++                      ],
++                    ],
+                   ),
+                   SizedBox(height: 2.h),
+                   Text(
+diff --git a/lib/features/owner_dashboard/data/admin_actions_service.dart b/lib/features/owner_dashboard/data/admin_actions_service.dart
+new file mode 100644
+index 0000000..91ce47b
+--- /dev/null
++++ b/lib/features/owner_dashboard/data/admin_actions_service.dart
+@@ -0,0 +1,178 @@
++import 'package:supabase_flutter/supabase_flutter.dart';
++
++import '../../../core/errors/app_exception.dart';
++import '../../customer-visits/customers/domain/models/customer_model.dart';
++import '../../customer-visits/customers/domain/models/invoice_line_input.dart';
++import '../../customer_account/domain/entities/payment_method.dart';
++
++/// أداء مندوب واحد — نتيجة `get_rep_performance_stats`.
++class RepPerformanceStats {
++  final String repId;
++  final String repName;
++  final String phone;
++  final bool isActive;
++  final DateTime? lastLoginAt;
++  final int assignedCustomers;
++  final int visitedCustomers;
++  final int visitCount;
++  final int completedVisits;
++  final int soldVisits;
++  final int noOrderVisits;
++  final int notReachedVisits;
++  final int pendingVisits;
++  final int customersWithInvoices;
++  final int invoiceCount;
++  final double totalSales;
++  final int totalUnitsSold;
++  final double totalCollections;
++  final int returnCount;
++  final double totalReturns;
++  final double totalExpenses;
++  final double outstandingInvoiceAmount;
++
++  const RepPerformanceStats({
++    required this.repId,
++    required this.repName,
++    required this.phone,
++    required this.isActive,
++    this.lastLoginAt,
++    required this.assignedCustomers,
++    required this.visitedCustomers,
++    required this.visitCount,
++    required this.completedVisits,
++    required this.soldVisits,
++    required this.noOrderVisits,
++    required this.notReachedVisits,
++    required this.pendingVisits,
++    required this.customersWithInvoices,
++    required this.invoiceCount,
++    required this.totalSales,
++    required this.totalUnitsSold,
++    required this.totalCollections,
++    required this.returnCount,
++    required this.totalReturns,
++    required this.totalExpenses,
++    required this.outstandingInvoiceAmount,
++  });
++
++  factory RepPerformanceStats.fromJson(Map<String, dynamic> json) {
++    int i(String key) => (json[key] as num?)?.toInt() ?? 0;
++    double d(String key) => (json[key] as num?)?.toDouble() ?? 0;
++
++    return RepPerformanceStats(
++      repId: json['rep_id'] as String,
++      repName: json['rep_name'] as String? ?? '',
++      phone: json['phone'] as String? ?? '',
++      isActive: json['is_active'] as bool? ?? true,
++      lastLoginAt: json['last_login_at'] == null
++          ? null
++          : DateTime.parse(json['last_login_at'] as String),
++      assignedCustomers: i('assigned_customers'),
++      visitedCustomers: i('visited_customers'),
++      visitCount: i('visit_count'),
++      completedVisits: i('completed_visits'),
++      soldVisits: i('sold_visits'),
++      noOrderVisits: i('no_order_visits'),
++      notReachedVisits: i('not_reached_visits'),
++      pendingVisits: i('pending_visits'),
++      customersWithInvoices: i('customers_with_invoices'),
++      invoiceCount: i('invoice_count'),
++      totalSales: d('total_sales'),
++      totalUnitsSold: i('total_units_sold'),
++      totalCollections: d('total_collections'),
++      returnCount: i('return_count'),
++      totalReturns: d('total_returns'),
++      totalExpenses: d('total_expenses'),
++      outstandingInvoiceAmount: d('outstanding_invoice_amount'),
++    );
++  }
++}
++
++/// كل نداءات Supabase الخاصة بصلاحيات الأونر الإضافية: مديونية قديمة،
++/// فاتورة تاريخية، حذف عميل نهائي، وتقارير أداء المناديب.
++///
++/// إدارة بيانات المندوب نفسها (اسم/هاتف/PIN/تفعيل) موجودة بالفعل في
++/// [OwnerService] عن طريق Edge Function `manage-rep` ومش متكررة هنا.
++class AdminActionsService {
++  SupabaseClient get _supabase => Supabase.instance.client;
++
++  Future<List<CustomerModel>> getAllCustomers() async {
++    try {
++      final rows = await _supabase.from('customers').select().order('name');
++      return (rows as List)
++          .map((row) =>
++              CustomerModel.fromSupabaseRow(Map<String, dynamic>.from(row as Map)))
++          .toList();
++    } catch (e) {
++      throw mapErrorToAppException(e);
++    }
++  }
++
++  Future<List<RepPerformanceStats>> getRepPerformanceStats() async {
++    try {
++      final rows = await _supabase.rpc('get_rep_performance_stats');
++      return (rows as List)
++          .map((row) => RepPerformanceStats.fromJson(
++              Map<String, dynamic>.from(row as Map)))
++          .toList();
++    } catch (e) {
++      throw mapErrorToAppException(e);
++    }
++  }
++
++  Future<void> addOldDebt({
++    required String customerId,
++    required double amount,
++    required DateTime effectiveAt,
++    String? notes,
++  }) async {
++    try {
++      await _supabase.rpc('admin_add_old_debt', params: {
++        'p_customer_id': customerId,
++        'p_amount': amount,
++        'p_effective_at': effectiveAt.toUtc().toIso8601String(),
++        if (notes != null && notes.trim().isNotEmpty) 'p_notes': notes.trim(),
++      });
++    } catch (e) {
++      throw mapErrorToAppException(e);
++    }
++  }
++
++  Future<void> issueHistoricalInvoice({
++    required String customerId,
++    required List<InvoiceLineInput> items,
++    required DateTime invoiceDate,
++    double discountPercent = 0,
++    required bool isCashSale,
++    double paidNow = 0,
++    PaymentMethod? paymentMethod,
++    String? notes,
++  }) async {
++    try {
++      await _supabase.rpc('admin_issue_historical_invoice', params: {
++        'p_customer_id': customerId,
++        'p_items': items.map((item) => item.toRpcJson()).toList(),
++        'p_invoice_date': invoiceDate.toUtc().toIso8601String(),
++        'p_discount_percent': discountPercent,
++        'p_sale_type': isCashSale ? 'cash' : 'credit',
++        'p_paid_now': paidNow,
++        if (paymentMethod != null) 'p_payment_method': paymentMethod.backendValue,
++        if (notes != null && notes.trim().isNotEmpty) 'p_notes': notes.trim(),
++      });
++    } catch (e) {
++      throw mapErrorToAppException(e);
++    }
++  }
++
++  /// حذف نهائي لا يمكن التراجع عنه — كل فواتير العميل وزياراته وتحصيلاته
++  /// وكل ما هو مرتبط به بيتمسح فعليًا من قاعدة البيانات.
++  Future<void> deleteCustomerPermanently(String customerId) async {
++    try {
++      await _supabase.rpc('admin_delete_customer', params: {
++        'p_customer_id': customerId,
++      });
++    } catch (e) {
++      throw mapErrorToAppException(e);
++    }
++  }
++}
+diff --git a/lib/features/owner_dashboard/presentation/admin_customers_screen.dart b/lib/features/owner_dashboard/presentation/admin_customers_screen.dart
+new file mode 100644
+index 0000000..92cd565
+--- /dev/null
++++ b/lib/features/owner_dashboard/presentation/admin_customers_screen.dart
+@@ -0,0 +1,165 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/errors/app_toast.dart';
++import 'package:mivet_app/core/theme/app_colors.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../customer-visits/customers/domain/models/customer_model.dart';
++import '../data/admin_actions_service.dart';
++import 'widgets/admin_customer_actions_sheet.dart';
++
++/// كل عملاء التطبيق (مش عملاء مندوب واحد بس)، عشان الأونر يقدر يختار عميل
++/// ويضيفله مديونية قديمة، أو يعمل له فاتورة تاريخية، أو يحذفه نهائيًا.
++class AdminCustomersScreen extends StatefulWidget {
++  const AdminCustomersScreen({super.key});
++
++  @override
++  State<AdminCustomersScreen> createState() => _AdminCustomersScreenState();
++}
++
++class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
++  final _service = AdminActionsService();
++  final _searchController = TextEditingController();
++  List<CustomerModel> _all = [];
++  bool _loading = true;
++  String _query = '';
++
++  @override
++  void initState() {
++    super.initState();
++    _load();
++  }
++
++  @override
++  void dispose() {
++    _searchController.dispose();
++    super.dispose();
++  }
++
++  Future<void> _load() async {
++    setState(() => _loading = true);
++    try {
++      final customers = await _service.getAllCustomers();
++      if (!mounted) return;
++      setState(() {
++        _all = customers;
++        _loading = false;
++      });
++    } catch (e) {
++      if (!mounted) return;
++      setState(() => _loading = false);
++      showAppError(context, e);
++    }
++  }
++
++  List<CustomerModel> get _filtered {
++    final q = _query.trim();
++    if (q.isEmpty) return _all;
++    return _all
++        .where((c) => c.name.contains(q) || c.phone.contains(q))
++        .toList();
++  }
++
++  Future<void> _openActions(CustomerModel customer) async {
++    final deleted = await showModalBottomSheet<bool>(
++      context: context,
++      isScrollControlled: true,
++      backgroundColor: Colors.transparent,
++      builder: (_) => AdminCustomerActionsSheet(customer: customer),
++    );
++    if (deleted == true) _load();
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final customers = _filtered;
++
++    return Scaffold(
++      backgroundColor: AppColors.backgroundLight,
++      appBar: AppBar(
++        backgroundColor: AppColors.primary,
++        title: Text(
++          'إدارة العملاء',
++          style: AppTextStyles.cairoBold18
++              .copyWith(color: Colors.white, fontSize: 17.sp),
++        ),
++      ),
++      body: Column(
++        children: [
++          Padding(
++            padding: EdgeInsets.all(14.w),
++            child: TextField(
++              controller: _searchController,
++              onChanged: (v) => setState(() => _query = v),
++              decoration: InputDecoration(
++                hintText: 'ابحث بالاسم أو رقم الهاتف',
++                prefixIcon: const Icon(Icons.search_rounded),
++                filled: true,
++                fillColor: Colors.white,
++                border: OutlineInputBorder(
++                  borderRadius: BorderRadius.circular(12.r),
++                  borderSide: BorderSide(color: AppColors.cardBorder),
++                ),
++              ),
++            ),
++          ),
++          Expanded(
++            child: _loading
++                ? const Center(child: CircularProgressIndicator())
++                : customers.isEmpty
++                    ? Center(
++                        child: Text(
++                          _query.isEmpty ? 'لا يوجد عملاء' : 'مفيش عميل بالاسم ده',
++                          style: AppTextStyles.almaraiRegular14.copyWith(
++                              color: AppColors.navInactive, fontSize: 13.sp),
++                        ),
++                      )
++                    : RefreshIndicator(
++                        onRefresh: _load,
++                        child: ListView.builder(
++                          padding: EdgeInsets.symmetric(horizontal: 14.w),
++                          itemCount: customers.length,
++                          itemBuilder: (context, index) {
++                            final c = customers[index];
++                            final hasDebt = c.currentBalance > 0;
++                            return Container(
++                              margin: EdgeInsets.only(bottom: 10.h),
++                              decoration: BoxDecoration(
++                                color: Colors.white,
++                                borderRadius: BorderRadius.circular(14.r),
++                                border: Border.all(color: AppColors.cardBorder),
++                              ),
++                              child: ListTile(
++                                onTap: () => _openActions(c),
++                                title: Text(
++                                  c.name,
++                                  style: AppTextStyles.cairoMedium16
++                                      .copyWith(fontSize: 13.5.sp),
++                                ),
++                                subtitle: Text(
++                                  c.phone.isEmpty ? c.area : '${c.phone} • ${c.area}',
++                                  style: AppTextStyles.almaraiRegular14.copyWith(
++                                      color: AppColors.navInactive, fontSize: 11.sp),
++                                ),
++                                trailing: hasDebt
++                                    ? Text(
++                                        '${c.currentBalance.toStringAsFixed(0)} ج.م',
++                                        style: TextStyle(
++                                          color: AppColors.statusNotReached,
++                                          fontWeight: FontWeight.bold,
++                                          fontSize: 12.sp,
++                                        ),
++                                      )
++                                    : Icon(Icons.chevron_left_rounded,
++                                        color: AppColors.navInactive),
++                              ),
++                            );
++                          },
++                        ),
++                      ),
++          ),
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/features/owner_dashboard/presentation/admin_historical_invoice_screen.dart b/lib/features/owner_dashboard/presentation/admin_historical_invoice_screen.dart
+new file mode 100644
+index 0000000..ea5c776
+--- /dev/null
++++ b/lib/features/owner_dashboard/presentation/admin_historical_invoice_screen.dart
+@@ -0,0 +1,550 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/errors/app_toast.dart';
++import 'package:mivet_app/core/theme/app_colors.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../customer-visits/customers/domain/models/customer_model.dart';
++import '../../customer-visits/customers/domain/models/invoice_line_input.dart';
++import '../../customer_account/domain/entities/payment_method.dart';
++import '../../inventory/data/products_repository.dart';
++import '../../inventory/domain/models/product_model.dart';
++import '../data/admin_actions_service.dart';
++
++/// فاتورة بتاريخ قديم بيسجلها الأونر لتوثيق مديونية أو بيع حصل قبل التطبيق.
++///
++/// بتفرق عن فاتورة المندوب العادية في حاجتين مهمين:
++///  * بتختار من كتالوج المنتجات كله (مش من مخزون عربية معينة)، لأنها مش
++///    بتخصم من أي مخزون حالي أصلًا.
++///  * لازم تاريخ، وبتتسجل في `invoices` بـ creator_type = admin عشان
++///    المندوب صاحب العميل يعرف إنها فاتورة إدارية لو شافها.
++class AdminHistoricalInvoiceScreen extends StatefulWidget {
++  final CustomerModel customer;
++
++  const AdminHistoricalInvoiceScreen({super.key, required this.customer});
++
++  @override
++  State<AdminHistoricalInvoiceScreen> createState() =>
++      _AdminHistoricalInvoiceScreenState();
++}
++
++class _LineItem {
++  final ProductModel product;
++  int quantity;
++  double unitPrice;
++
++  _LineItem({required this.product, required this.quantity, required this.unitPrice});
++
++  double get total => quantity * unitPrice;
++}
++
++class _AdminHistoricalInvoiceScreenState
++    extends State<AdminHistoricalInvoiceScreen> {
++  final _discountController = TextEditingController(text: '0');
++  final _paidNowController = TextEditingController(text: '0');
++  final _notesController = TextEditingController();
++
++  DateTime _invoiceDate = DateTime.now();
++  bool _isCashSale = false;
++  PaymentMethod _paymentMethod = PaymentMethod.cash;
++  final List<_LineItem> _lines = [];
++  List<ProductModel> _catalog = [];
++  bool _loadingCatalog = true;
++  bool _submitting = false;
++
++  @override
++  void initState() {
++    super.initState();
++    _loadCatalog();
++  }
++
++  @override
++  void dispose() {
++    _discountController.dispose();
++    _paidNowController.dispose();
++    _notesController.dispose();
++    super.dispose();
++  }
++
++  Future<void> _loadCatalog() async {
++    try {
++      final products = await ProductsRepository.instance.getProducts();
++      if (!mounted) return;
++      setState(() {
++        _catalog = products;
++        _loadingCatalog = false;
++      });
++    } catch (e) {
++      if (!mounted) return;
++      setState(() => _loadingCatalog = false);
++      showAppError(context, e);
++    }
++  }
++
++  double get _subtotal => _lines.fold(0, (sum, l) => sum + l.total);
++  double get _discountPercent =>
++      double.tryParse(_discountController.text.trim()) ?? 0;
++  double get _total => _subtotal * (1 - _discountPercent.clamp(0, 100) / 100);
++  double get _paidNow => double.tryParse(_paidNowController.text.trim()) ?? 0;
++
++  Future<void> _pickDate() async {
++    final picked = await showDatePicker(
++      context: context,
++      initialDate: _invoiceDate,
++      firstDate: DateTime(2015),
++      lastDate: DateTime.now(),
++    );
++    if (picked != null) setState(() => _invoiceDate = picked);
++  }
++
++  Future<void> _addProduct() async {
++    final product = await showModalBottomSheet<ProductModel>(
++      context: context,
++      isScrollControlled: true,
++      backgroundColor: Colors.transparent,
++      builder: (_) => _ProductPickerSheet(catalog: _catalog),
++    );
++    if (product == null) return;
++
++    final existing = _lines.indexWhere((l) => l.product.id == product.id);
++    if (existing != -1) {
++      setState(() => _lines[existing].quantity += 1);
++      return;
++    }
++
++    final line = _LineItem(product: product, quantity: 1, unitPrice: product.basePrice);
++    final edited = await _editLine(line);
++    if (edited == true) setState(() => _lines.add(line));
++  }
++
++  Future<bool?> _editLine(_LineItem line) {
++    final qtyController = TextEditingController(text: '${line.quantity}');
++    final priceController = TextEditingController(text: line.unitPrice.toStringAsFixed(2));
++
++    return showDialog<bool>(
++      context: context,
++      builder: (_) => AlertDialog(
++        title: Text(line.product.name, style: AppTextStyles.cairoMedium16.copyWith(fontSize: 14.sp)),
++        content: Row(
++          children: [
++            Expanded(
++              child: TextField(
++                controller: qtyController,
++                keyboardType: TextInputType.number,
++                textDirection: TextDirection.ltr,
++                decoration: const InputDecoration(labelText: 'الكمية'),
++              ),
++            ),
++            SizedBox(width: 10.w),
++            Expanded(
++              child: TextField(
++                controller: priceController,
++                keyboardType: const TextInputType.numberWithOptions(decimal: true),
++                textDirection: TextDirection.ltr,
++                decoration: const InputDecoration(labelText: 'السعر'),
++              ),
++            ),
++          ],
++        ),
++        actions: [
++          TextButton(
++            onPressed: () => Navigator.pop(context, false),
++            child: const Text('إلغاء'),
++          ),
++          ElevatedButton(
++            onPressed: () {
++              final qty = int.tryParse(qtyController.text.trim()) ?? 0;
++              final price = double.tryParse(priceController.text.trim()) ?? 0;
++              if (qty <= 0 || price < 0) return;
++              line.quantity = qty;
++              line.unitPrice = price;
++              Navigator.pop(context, true);
++            },
++            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen),
++            child: const Text('حفظ', style: TextStyle(color: Colors.white)),
++          ),
++        ],
++      ),
++    );
++  }
++
++  Future<void> _submit() async {
++    if (_lines.isEmpty) {
++      showAppInfo(context, 'ضيف صنف واحد على الأقل قبل الحفظ');
++      return;
++    }
++    if (_paidNow > _total) {
++      showAppInfo(context, 'المدفوع أكبر من إجمالي الفاتورة');
++      return;
++    }
++
++    setState(() => _submitting = true);
++    try {
++      await AdminActionsService().issueHistoricalInvoice(
++        customerId: widget.customer.id,
++        items: _lines
++            .map((l) => InvoiceLineInput(
++                  productId: l.product.id,
++                  productName: l.product.name,
++                  unitPrice: l.unitPrice,
++                  quantity: l.quantity,
++                ))
++            .toList(),
++        invoiceDate: _invoiceDate,
++        discountPercent: _discountPercent,
++        isCashSale: _isCashSale,
++        paidNow: _paidNow,
++        paymentMethod: _paidNow > 0 ? _paymentMethod : null,
++        notes: _notesController.text,
++      );
++      if (!mounted) return;
++      showAppInfo(context, 'اتسجلت الفاتورة التاريخية بنجاح');
++      Navigator.of(context).pop();
++    } catch (e) {
++      if (!mounted) return;
++      setState(() => _submitting = false);
++      showAppError(context, e);
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return Scaffold(
++      backgroundColor: AppColors.backgroundLight,
++      appBar: AppBar(
++        backgroundColor: AppColors.primary,
++        title: Text(
++          'فاتورة تاريخية — ${widget.customer.name}',
++          style: AppTextStyles.cairoBold18
++              .copyWith(color: Colors.white, fontSize: 15.sp),
++        ),
++      ),
++      body: _loadingCatalog
++          ? const Center(child: CircularProgressIndicator())
++          : ListView(
++              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 100.h),
++              children: [
++                InkWell(
++                  onTap: _pickDate,
++                  child: InputDecorator(
++                    decoration: const InputDecoration(labelText: 'تاريخ الفاتورة'),
++                    child: Text(
++                      '${_invoiceDate.year}/${_invoiceDate.month.toString().padLeft(2, '0')}/${_invoiceDate.day.toString().padLeft(2, '0')}',
++                    ),
++                  ),
++                ),
++                SizedBox(height: 14.h),
++                Row(
++                  children: [
++                    Expanded(
++                      child: _SaleTypeButton(
++                        label: 'آجل',
++                        selected: !_isCashSale,
++                        onTap: () => setState(() => _isCashSale = false),
++                      ),
++                    ),
++                    SizedBox(width: 10.w),
++                    Expanded(
++                      child: _SaleTypeButton(
++                        label: 'نقدي',
++                        selected: _isCashSale,
++                        onTap: () => setState(() => _isCashSale = true),
++                      ),
++                    ),
++                  ],
++                ),
++                SizedBox(height: 18.h),
++                Row(
++                  children: [
++                    Text('الأصناف (${_lines.length})',
++                        style: AppTextStyles.cairoBold18
++                            .copyWith(color: AppColors.primary, fontSize: 14.sp)),
++                    const Spacer(),
++                    TextButton.icon(
++                      onPressed: _addProduct,
++                      icon: const Icon(Icons.add_rounded),
++                      label: const Text('إضافة منتج'),
++                    ),
++                  ],
++                ),
++                for (final line in _lines) _LineRow(
++                  line: line,
++                  onTap: () async {
++                    final changed = await _editLine(line);
++                    if (changed == true) setState(() {});
++                  },
++                  onRemove: () => setState(() => _lines.remove(line)),
++                ),
++                SizedBox(height: 14.h),
++                TextField(
++                  controller: _discountController,
++                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
++                  textDirection: TextDirection.ltr,
++                  onChanged: (_) => setState(() {}),
++                  decoration: const InputDecoration(labelText: 'نسبة الخصم %'),
++                ),
++                SizedBox(height: 12.h),
++                TextField(
++                  controller: _paidNowController,
++                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
++                  textDirection: TextDirection.ltr,
++                  onChanged: (_) => setState(() {}),
++                  decoration: const InputDecoration(labelText: 'المدفوع الآن (ج.م)'),
++                ),
++                if (_paidNow > 0) ...[
++                  SizedBox(height: 12.h),
++                  DropdownButtonFormField<PaymentMethod>(
++                    value: _paymentMethod,
++                    decoration: const InputDecoration(labelText: 'طريقة الدفع'),
++                    items: PaymentMethod.values
++                        .map((m) => DropdownMenuItem(value: m, child: Text(m.displayLabel)))
++                        .toList(),
++                    onChanged: (v) {
++                      if (v != null) setState(() => _paymentMethod = v);
++                    },
++                  ),
++                ],
++                SizedBox(height: 12.h),
++                TextField(
++                  controller: _notesController,
++                  maxLines: 2,
++                  decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
++                ),
++                SizedBox(height: 18.h),
++                _TotalsCard(subtotal: _subtotal, discountPercent: _discountPercent, total: _total),
++              ],
++            ),
++      bottomNavigationBar: SafeArea(
++        child: Padding(
++          padding: EdgeInsets.all(14.w),
++          child: ElevatedButton(
++            onPressed: _submitting ? null : _submit,
++            style: ElevatedButton.styleFrom(
++              backgroundColor: AppColors.primaryGreen,
++              padding: EdgeInsets.symmetric(vertical: 14.h),
++              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
++            ),
++            child: _submitting
++                ? SizedBox(
++                    width: 20.w,
++                    height: 20.w,
++                    child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
++                  )
++                : Text('حفظ الفاتورة التاريخية',
++                    style: AppTextStyles.cairoMedium16.copyWith(color: Colors.white, fontSize: 14.sp)),
++          ),
++        ),
++      ),
++    );
++  }
++}
++
++class _SaleTypeButton extends StatelessWidget {
++  final String label;
++  final bool selected;
++  final VoidCallback onTap;
++
++  const _SaleTypeButton({required this.label, required this.selected, required this.onTap});
++
++  @override
++  Widget build(BuildContext context) {
++    return Material(
++      color: selected ? AppColors.primaryGreen : Colors.white,
++      borderRadius: BorderRadius.circular(12.r),
++      child: InkWell(
++        borderRadius: BorderRadius.circular(12.r),
++        onTap: onTap,
++        child: Container(
++          padding: EdgeInsets.symmetric(vertical: 12.h),
++          alignment: Alignment.center,
++          decoration: BoxDecoration(
++            borderRadius: BorderRadius.circular(12.r),
++            border: Border.all(color: selected ? AppColors.primaryGreen : AppColors.cardBorder),
++          ),
++          child: Text(
++            label,
++            style: AppTextStyles.cairoMedium16.copyWith(
++              color: selected ? Colors.white : AppColors.primary,
++              fontSize: 13.sp,
++            ),
++          ),
++        ),
++      ),
++    );
++  }
++}
++
++class _LineRow extends StatelessWidget {
++  final _LineItem line;
++  final VoidCallback onTap;
++  final VoidCallback onRemove;
++
++  const _LineRow({required this.line, required this.onTap, required this.onRemove});
++
++  @override
++  Widget build(BuildContext context) {
++    return Container(
++      margin: EdgeInsets.only(top: 8.h),
++      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
++      decoration: BoxDecoration(
++        color: Colors.white,
++        borderRadius: BorderRadius.circular(12.r),
++        border: Border.all(color: AppColors.cardBorder),
++      ),
++      child: InkWell(
++        onTap: onTap,
++        child: Row(
++          children: [
++            Expanded(
++              child: Column(
++                crossAxisAlignment: CrossAxisAlignment.start,
++                children: [
++                  Text(line.product.name,
++                      maxLines: 1,
++                      overflow: TextOverflow.ellipsis,
++                      style: AppTextStyles.cairoMedium16.copyWith(fontSize: 12.5.sp)),
++                  SizedBox(height: 2.h),
++                  Text('${line.quantity} × ${line.unitPrice.toStringAsFixed(2)} ج.م',
++                      style: AppTextStyles.almaraiRegular14
++                          .copyWith(color: AppColors.navInactive, fontSize: 11.sp)),
++                ],
++              ),
++            ),
++            Text('${line.total.toStringAsFixed(0)} ج.م',
++                style: AppTextStyles.cairoMedium16
++                    .copyWith(color: AppColors.primary, fontSize: 12.5.sp)),
++            IconButton(
++              onPressed: onRemove,
++              icon: Icon(Icons.close_rounded, color: AppColors.statusNotReached, size: 18.sp),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _TotalsCard extends StatelessWidget {
++  final double subtotal;
++  final double discountPercent;
++  final double total;
++
++  const _TotalsCard({required this.subtotal, required this.discountPercent, required this.total});
++
++  @override
++  Widget build(BuildContext context) {
++    Widget row(String label, String value, {bool bold = false}) {
++      return Padding(
++        padding: EdgeInsets.symmetric(vertical: 3.h),
++        child: Row(
++          mainAxisAlignment: MainAxisAlignment.spaceBetween,
++          children: [
++            Text(label,
++                style: AppTextStyles.almaraiRegular14
++                    .copyWith(color: AppColors.navInactive, fontSize: 12.sp)),
++            Text(value,
++                style: bold
++                    ? AppTextStyles.cairoBold18.copyWith(color: AppColors.primary, fontSize: 15.sp)
++                    : AppTextStyles.cairoMedium16.copyWith(fontSize: 12.sp)),
++          ],
++        ),
++      );
++    }
++
++    return Container(
++      padding: EdgeInsets.all(14.w),
++      decoration: BoxDecoration(
++        color: Colors.white,
++        borderRadius: BorderRadius.circular(14.r),
++        border: Border.all(color: AppColors.cardBorder),
++      ),
++      child: Column(
++        children: [
++          row('الإجمالي قبل الخصم', '${subtotal.toStringAsFixed(0)} ج.م'),
++          row('الخصم', '$discountPercent%'),
++          const Divider(),
++          row('الإجمالي النهائي', '${total.toStringAsFixed(0)} ج.م', bold: true),
++        ],
++      ),
++    );
++  }
++}
++
++class _ProductPickerSheet extends StatefulWidget {
++  final List<ProductModel> catalog;
++
++  const _ProductPickerSheet({required this.catalog});
++
++  @override
++  State<_ProductPickerSheet> createState() => _ProductPickerSheetState();
++}
++
++class _ProductPickerSheetState extends State<_ProductPickerSheet> {
++  String _query = '';
++
++  @override
++  Widget build(BuildContext context) {
++    final visible = _query.trim().isEmpty
++        ? widget.catalog
++        : widget.catalog.where((p) => p.name.contains(_query.trim())).toList();
++
++    return DraggableScrollableSheet(
++      initialChildSize: 0.85,
++      maxChildSize: 0.95,
++      minChildSize: 0.5,
++      builder: (context, scrollController) {
++        return Container(
++          decoration: BoxDecoration(
++            color: Colors.white,
++            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
++          ),
++          child: Column(
++            children: [
++              SizedBox(height: 10.h),
++              Container(
++                width: 40.w,
++                height: 4.h,
++                decoration: BoxDecoration(
++                  color: AppColors.cardBorder,
++                  borderRadius: BorderRadius.circular(4.r),
++                ),
++              ),
++              Padding(
++                padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 10.h),
++                child: TextField(
++                  onChanged: (v) => setState(() => _query = v),
++                  decoration: InputDecoration(
++                    hintText: 'ابحث عن منتج...',
++                    prefixIcon: const Icon(Icons.search_rounded),
++                    filled: true,
++                    fillColor: AppColors.backgroundLight,
++                    border: OutlineInputBorder(
++                      borderRadius: BorderRadius.circular(12.r),
++                      borderSide: BorderSide.none,
++                    ),
++                  ),
++                ),
++              ),
++              Expanded(
++                child: ListView.builder(
++                  controller: scrollController,
++                  padding: EdgeInsets.symmetric(horizontal: 16.w),
++                  itemCount: visible.length,
++                  itemBuilder: (context, index) {
++                    final p = visible[index];
++                    return ListTile(
++                      title: Text(p.name, style: AppTextStyles.cairoMedium16.copyWith(fontSize: 13.sp)),
++                      trailing: Text('${p.basePrice.toStringAsFixed(0)} ج.م',
++                          style: TextStyle(color: AppColors.primary)),
++                      onTap: () => Navigator.pop(context, p),
++                    );
++                  },
++                ),
++              ),
++            ],
++          ),
++        );
++      },
++    );
++  }
++}
+diff --git a/lib/features/owner_dashboard/presentation/owner_change_password_screen.dart b/lib/features/owner_dashboard/presentation/owner_change_password_screen.dart
+new file mode 100644
+index 0000000..a5616e3
+--- /dev/null
++++ b/lib/features/owner_dashboard/presentation/owner_change_password_screen.dart
+@@ -0,0 +1,152 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/errors/app_exception.dart';
++import 'package:mivet_app/core/errors/app_toast.dart';
++import 'package:mivet_app/core/theme/app_colors.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++import 'package:supabase_flutter/supabase_flutter.dart';
++
++/// الأونر يقدر يغيّر كلمة مروره بنفسه من هنا، بدل ما يرجع للمطور في كل مرة.
++///
++/// الجلسة الحالية نفسها هي إثبات الهوية، فـSupabase Auth مش بيطلب كلمة
++/// المرور القديمة لتغييرها — بس بنطلب تأكيد الكلمة الجديدة مرتين هنا.
++class OwnerChangePasswordScreen extends StatefulWidget {
++  const OwnerChangePasswordScreen({super.key});
++
++  @override
++  State<OwnerChangePasswordScreen> createState() =>
++      _OwnerChangePasswordScreenState();
++}
++
++class _OwnerChangePasswordScreenState
++    extends State<OwnerChangePasswordScreen> {
++  final _newPasswordController = TextEditingController();
++  final _confirmPasswordController = TextEditingController();
++  bool _obscureNew = true;
++  bool _obscureConfirm = true;
++  bool _loading = false;
++  String? _error;
++
++  @override
++  void dispose() {
++    _newPasswordController.dispose();
++    _confirmPasswordController.dispose();
++    super.dispose();
++  }
++
++  Future<void> _submit() async {
++    final newPassword = _newPasswordController.text;
++    final confirm = _confirmPasswordController.text;
++
++    if (newPassword.length < 6) {
++      setState(() => _error = 'كلمة المرور لازم تكون 6 حروف أو أرقام على الأقل');
++      return;
++    }
++    if (newPassword != confirm) {
++      setState(() => _error = 'كلمة المرور وتأكيدها مش متطابقين');
++      return;
++    }
++
++    setState(() {
++      _loading = true;
++      _error = null;
++    });
++
++    try {
++      await Supabase.instance.client.auth
++          .updateUser(UserAttributes(password: newPassword));
++      if (!mounted) return;
++      showAppInfo(context, 'اتغيّرت كلمة المرور بنجاح');
++      Navigator.of(context).pop();
++    } catch (e) {
++      if (!mounted) return;
++      setState(() {
++        _loading = false;
++        _error = mapErrorToAppException(e).message;
++      });
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return Scaffold(
++      backgroundColor: AppColors.backgroundLight,
++      appBar: AppBar(
++        backgroundColor: AppColors.primary,
++        title: Text(
++          'تغيير كلمة المرور',
++          style: AppTextStyles.cairoBold18
++              .copyWith(color: Colors.white, fontSize: 17.sp),
++        ),
++      ),
++      body: SingleChildScrollView(
++        padding: EdgeInsets.all(20.w),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.stretch,
++          children: [
++            TextField(
++              controller: _newPasswordController,
++              obscureText: _obscureNew,
++              textDirection: TextDirection.ltr,
++              decoration: InputDecoration(
++                labelText: 'كلمة المرور الجديدة',
++                suffixIcon: IconButton(
++                  icon: Icon(_obscureNew
++                      ? Icons.visibility_off_outlined
++                      : Icons.visibility_outlined),
++                  onPressed: () => setState(() => _obscureNew = !_obscureNew),
++                ),
++              ),
++            ),
++            SizedBox(height: 14.h),
++            TextField(
++              controller: _confirmPasswordController,
++              obscureText: _obscureConfirm,
++              textDirection: TextDirection.ltr,
++              onSubmitted: (_) => _submit(),
++              decoration: InputDecoration(
++                labelText: 'تأكيد كلمة المرور الجديدة',
++                suffixIcon: IconButton(
++                  icon: Icon(_obscureConfirm
++                      ? Icons.visibility_off_outlined
++                      : Icons.visibility_outlined),
++                  onPressed: () =>
++                      setState(() => _obscureConfirm = !_obscureConfirm),
++                ),
++              ),
++            ),
++            if (_error != null) ...[
++              SizedBox(height: 12.h),
++              Text(
++                _error!,
++                textAlign: TextAlign.center,
++                style: TextStyle(
++                    color: AppColors.statusNotReached, fontSize: 13.sp),
++              ),
++            ],
++            SizedBox(height: 24.h),
++            ElevatedButton(
++              onPressed: _loading ? null : _submit,
++              style: ElevatedButton.styleFrom(
++                backgroundColor: AppColors.primaryGreen,
++                padding: EdgeInsets.symmetric(vertical: 14.h),
++                shape: RoundedRectangleBorder(
++                    borderRadius: BorderRadius.circular(12.r)),
++              ),
++              child: _loading
++                  ? SizedBox(
++                      width: 20.w,
++                      height: 20.w,
++                      child: const CircularProgressIndicator(
++                          strokeWidth: 2, color: Colors.white),
++                    )
++                  : Text('حفظ',
++                      style: AppTextStyles.cairoMedium16
++                          .copyWith(color: Colors.white, fontSize: 15.sp)),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
+diff --git a/lib/features/owner_dashboard/presentation/owner_dashboard_screen.dart b/lib/features/owner_dashboard/presentation/owner_dashboard_screen.dart
+index 9ef8b37..28582ff 100644
+--- a/lib/features/owner_dashboard/presentation/owner_dashboard_screen.dart
++++ b/lib/features/owner_dashboard/presentation/owner_dashboard_screen.dart
+@@ -11,6 +11,9 @@ import '../../auth/presentation/cubit/auth_cubit.dart';
+ import '../data/owner_service.dart';
+ import 'cubit/owner_dashboard_cubit.dart';
+ import 'cubit/owner_dashboard_state.dart';
++import 'admin_customers_screen.dart';
++import 'owner_change_password_screen.dart';
++import 'rep_performance_screen.dart';
+ import 'widgets/add_rep_dialog.dart';
+ import 'widgets/rep_list_tile.dart';
+ 
+@@ -123,6 +126,21 @@ class _OwnerDashboardView extends StatelessWidget {
+               .copyWith(color: Colors.white, fontSize: 17.sp),
+         ),
+         actions: [
++          IconButton(
++            tooltip: 'إدارة العملاء',
++            onPressed: () => Navigator.of(context).push(
++              MaterialPageRoute(builder: (_) => const AdminCustomersScreen()),
++            ),
++            icon: const Icon(Icons.groups_outlined, color: Colors.white),
++          ),
++          IconButton(
++            tooltip: 'تغيير كلمة المرور',
++            onPressed: () => Navigator.of(context).push(
++              MaterialPageRoute(
++                  builder: (_) => const OwnerChangePasswordScreen()),
++            ),
++            icon: const Icon(Icons.lock_outline_rounded, color: Colors.white),
++          ),
+           IconButton(
+             onPressed: () => _signOut(context),
+             icon: const Icon(Icons.logout_rounded, color: Colors.white),
+@@ -187,6 +205,12 @@ class _OwnerDashboardView extends StatelessWidget {
+                             onEdit: () => _editRep(context, rep),
+                             onDeactivate: () => _deactivateRep(context, rep),
+                             onReactivate: () => _reactivateRep(context, rep),
++                            onTap: () => Navigator.of(context).push(
++                              MaterialPageRoute(
++                                builder: (_) =>
++                                    RepPerformanceScreen(rep: rep),
++                              ),
++                            ),
+                           );
+                         },
+                       ),
+diff --git a/lib/features/owner_dashboard/presentation/rep_performance_screen.dart b/lib/features/owner_dashboard/presentation/rep_performance_screen.dart
+new file mode 100644
+index 0000000..f443cb9
+--- /dev/null
++++ b/lib/features/owner_dashboard/presentation/rep_performance_screen.dart
+@@ -0,0 +1,203 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/errors/app_toast.dart';
++import 'package:mivet_app/core/theme/app_colors.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../auth/domain/models/user_profile.dart';
++import '../data/admin_actions_service.dart';
++
++/// أداء مندوب واحد بالتفصيل: زياراته، فواتيره، مبيعاته، تحصيلاته، ومرتجعاته.
++///
++/// البيانات كلها بتيجي من RPC واحدة (`get_rep_performance_stats`) بترجع
++/// صف لكل المناديب مرة واحدة، فبنجيبها كاملة ونفلتر على المندوب المطلوب —
++/// أبسط من عمل RPC تاني لمندوب واحد، والفرق في الأداء غير محسوس هنا.
++class RepPerformanceScreen extends StatefulWidget {
++  final UserProfile rep;
++
++  const RepPerformanceScreen({super.key, required this.rep});
++
++  @override
++  State<RepPerformanceScreen> createState() => _RepPerformanceScreenState();
++}
++
++class _RepPerformanceScreenState extends State<RepPerformanceScreen> {
++  final _service = AdminActionsService();
++  RepPerformanceStats? _stats;
++  bool _loading = true;
++
++  @override
++  void initState() {
++    super.initState();
++    _load();
++  }
++
++  Future<void> _load() async {
++    setState(() => _loading = true);
++    try {
++      final all = await _service.getRepPerformanceStats();
++      final mine = all.where((s) => s.repId == widget.rep.id);
++      if (!mounted) return;
++      setState(() {
++        _stats = mine.isEmpty ? null : mine.first;
++        _loading = false;
++      });
++    } catch (e) {
++      if (!mounted) return;
++      setState(() => _loading = false);
++      showAppError(context, e);
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final stats = _stats;
++
++    return Scaffold(
++      backgroundColor: AppColors.backgroundLight,
++      appBar: AppBar(
++        backgroundColor: AppColors.primary,
++        title: Text(
++          widget.rep.name,
++          style: AppTextStyles.cairoBold18
++              .copyWith(color: Colors.white, fontSize: 17.sp),
++        ),
++      ),
++      body: _loading
++          ? const Center(child: CircularProgressIndicator())
++          : stats == null
++              ? Center(
++                  child: Text(
++                    'لا توجد بيانات كافية لهذا المندوب بعد',
++                    style: AppTextStyles.almaraiRegular14
++                        .copyWith(color: AppColors.navInactive, fontSize: 13.sp),
++                  ),
++                )
++              : RefreshIndicator(
++                  onRefresh: _load,
++                  child: ListView(
++                    padding: EdgeInsets.all(16.w),
++                    children: [
++                      _SectionTitle('الزيارات'),
++                      _StatsGrid(items: [
++                        _Stat('عملاء مسندين', '${stats.assignedCustomers}'),
++                        _Stat('عملاء تمت زيارتهم', '${stats.visitedCustomers}'),
++                        _Stat('إجمالي الزيارات', '${stats.visitCount}'),
++                        _Stat('تمت', '${stats.completedVisits}'),
++                        _Stat('بيع', '${stats.soldVisits}'),
++                        _Stat('بدون طلب', '${stats.noOrderVisits}'),
++                        _Stat('لم يوصل', '${stats.notReachedVisits}',
++                            isWarning: stats.notReachedVisits > 0),
++                        _Stat('متبقية', '${stats.pendingVisits}'),
++                      ]),
++                      SizedBox(height: 18.h),
++                      _SectionTitle('الفواتير والمبيعات'),
++                      _StatsGrid(items: [
++                        _Stat('عملاء لهم فواتير', '${stats.customersWithInvoices}'),
++                        _Stat('عدد الفواتير', '${stats.invoiceCount}'),
++                        _Stat('إجمالي المبيعات', _money(stats.totalSales)),
++                        _Stat('عدد الوحدات المباعة', '${stats.totalUnitsSold}'),
++                        _Stat('مديونية ناتجة عن فواتيره',
++                            _money(stats.outstandingInvoiceAmount),
++                            isWarning: stats.outstandingInvoiceAmount > 0),
++                      ]),
++                      SizedBox(height: 18.h),
++                      _SectionTitle('التحصيلات والمرتجعات'),
++                      _StatsGrid(items: [
++                        _Stat('إجمالي التحصيلات', _money(stats.totalCollections)),
++                        _Stat('عدد المرتجعات', '${stats.returnCount}'),
++                        _Stat('قيمة المرتجعات', _money(stats.totalReturns)),
++                        _Stat('إجمالي المصروفات', _money(stats.totalExpenses)),
++                      ]),
++                      SizedBox(height: 18.h),
++                      _SectionTitle('الحالة'),
++                      _StatsGrid(items: [
++                        _Stat('حالة الحساب', stats.isActive ? 'نشط' : 'معطل'),
++                        _Stat('آخر دخول', stats.lastLoginAt == null
++                            ? '—'
++                            : _dateTime(stats.lastLoginAt!)),
++                      ]),
++                    ],
++                  ),
++                ),
++    );
++  }
++
++  static String _money(double v) =>
++      '${v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2)} ج.م';
++
++  static String _dateTime(DateTime d) {
++    final local = d.toLocal();
++    final date =
++        '${local.year}/${local.month.toString().padLeft(2, '0')}/${local.day.toString().padLeft(2, '0')}';
++    final hour12 = local.hour % 12 == 0 ? 12 : local.hour % 12;
++    final minute = local.minute.toString().padLeft(2, '0');
++    return '$date - ${hour12.toString().padLeft(2, '0')}:$minute ${local.hour < 12 ? 'ص' : 'م'}';
++  }
++}
++
++class _SectionTitle extends StatelessWidget {
++  final String title;
++  const _SectionTitle(this.title);
++
++  @override
++  Widget build(BuildContext context) {
++    return Padding(
++      padding: EdgeInsets.only(bottom: 10.h),
++      child: Text(
++        title,
++        style: AppTextStyles.cairoBold18
++            .copyWith(color: AppColors.primary, fontSize: 15.sp),
++      ),
++    );
++  }
++}
++
++class _Stat {
++  final String label;
++  final String value;
++  final bool isWarning;
++  const _Stat(this.label, this.value, {this.isWarning = false});
++}
++
++class _StatsGrid extends StatelessWidget {
++  final List<_Stat> items;
++  const _StatsGrid({required this.items});
++
++  @override
++  Widget build(BuildContext context) {
++    return Wrap(
++      spacing: 10.w,
++      runSpacing: 10.h,
++      children: items.map((s) {
++        final color =
++            s.isWarning ? AppColors.statusNotReached : AppColors.primary;
++        return Container(
++          width: (MediaQuery.of(context).size.width - 32.w - 10.w) / 2,
++          padding: EdgeInsets.all(12.w),
++          decoration: BoxDecoration(
++            color: Colors.white,
++            borderRadius: BorderRadius.circular(14.r),
++            border: Border.all(color: AppColors.cardBorder),
++          ),
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              Text(
++                s.label,
++                style: AppTextStyles.almaraiRegular14
++                    .copyWith(color: AppColors.navInactive, fontSize: 11.sp),
++              ),
++              SizedBox(height: 4.h),
++              Text(
++                s.value,
++                style: AppTextStyles.cairoBold18
++                    .copyWith(color: color, fontSize: 16.sp),
++              ),
++            ],
++          ),
++        );
++      }).toList(),
++    );
++  }
++}
+diff --git a/lib/features/owner_dashboard/presentation/widgets/admin_add_old_debt_dialog.dart b/lib/features/owner_dashboard/presentation/widgets/admin_add_old_debt_dialog.dart
+new file mode 100644
+index 0000000..839081f
+--- /dev/null
++++ b/lib/features/owner_dashboard/presentation/widgets/admin_add_old_debt_dialog.dart
+@@ -0,0 +1,142 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/errors/app_exception.dart';
++import 'package:mivet_app/core/theme/app_colors.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../../customer-visits/customers/domain/models/customer_model.dart';
++import '../../data/admin_actions_service.dart';
++
++/// تسجيل مديونية قديمة كانت على العميل قبل ما يتعمل له حساب على التطبيق.
++/// بتدخل في نفس سجل حركة الحساب (ledger) اللي المندوب شايفه أصلًا، فمفيش
++/// أي فرق بالنسبة له غير إن الرصيد بقى فيه المديونية القديمة دي.
++class AdminAddOldDebtDialog extends StatefulWidget {
++  final CustomerModel customer;
++
++  const AdminAddOldDebtDialog({super.key, required this.customer});
++
++  @override
++  State<AdminAddOldDebtDialog> createState() => _AdminAddOldDebtDialogState();
++}
++
++class _AdminAddOldDebtDialogState extends State<AdminAddOldDebtDialog> {
++  final _amountController = TextEditingController();
++  final _notesController = TextEditingController();
++  DateTime _effectiveAt = DateTime.now();
++  bool _loading = false;
++  String? _error;
++
++  @override
++  void dispose() {
++    _amountController.dispose();
++    _notesController.dispose();
++    super.dispose();
++  }
++
++  Future<void> _pickDate() async {
++    final picked = await showDatePicker(
++      context: context,
++      initialDate: _effectiveAt,
++      firstDate: DateTime(2015),
++      lastDate: DateTime.now(),
++    );
++    if (picked != null) setState(() => _effectiveAt = picked);
++  }
++
++  Future<void> _submit() async {
++    final amount = double.tryParse(_amountController.text.trim());
++    if (amount == null || amount <= 0) {
++      setState(() => _error = 'اكتب قيمة صحيحة للمديونية');
++      return;
++    }
++
++    setState(() {
++      _loading = true;
++      _error = null;
++    });
++
++    try {
++      await AdminActionsService().addOldDebt(
++        customerId: widget.customer.id,
++        amount: amount,
++        effectiveAt: _effectiveAt,
++        notes: _notesController.text,
++      );
++      if (mounted) Navigator.pop(context, true);
++    } catch (e) {
++      if (!mounted) return;
++      setState(() {
++        _loading = false;
++        _error = mapErrorToAppException(e).message;
++      });
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return AlertDialog(
++      title: Text(
++        'مديونية قديمة لـ${widget.customer.name}',
++        style: AppTextStyles.cairoBold18
++            .copyWith(color: AppColors.primary, fontSize: 15.sp),
++      ),
++      content: Column(
++        mainAxisSize: MainAxisSize.min,
++        children: [
++          TextField(
++            controller: _amountController,
++            keyboardType: const TextInputType.numberWithOptions(decimal: true),
++            textDirection: TextDirection.ltr,
++            decoration: const InputDecoration(
++              labelText: 'قيمة المديونية (ج.م)',
++            ),
++          ),
++          SizedBox(height: 12.h),
++          InkWell(
++            onTap: _pickDate,
++            child: InputDecorator(
++              decoration: const InputDecoration(labelText: 'تاريخ المديونية'),
++              child: Text(
++                '${_effectiveAt.year}/${_effectiveAt.month.toString().padLeft(2, '0')}/${_effectiveAt.day.toString().padLeft(2, '0')}',
++              ),
++            ),
++          ),
++          SizedBox(height: 12.h),
++          TextField(
++            controller: _notesController,
++            maxLines: 2,
++            decoration: const InputDecoration(
++              labelText: 'ملاحظات (اختياري)',
++            ),
++          ),
++          if (_error != null) ...[
++            SizedBox(height: 10.h),
++            Text(
++              _error!,
++              style: TextStyle(color: AppColors.statusNotReached, fontSize: 13.sp),
++              textAlign: TextAlign.center,
++            ),
++          ],
++        ],
++      ),
++      actions: [
++        TextButton(
++          onPressed: _loading ? null : () => Navigator.pop(context, false),
++          child: const Text('إلغاء'),
++        ),
++        ElevatedButton(
++          onPressed: _loading ? null : _submit,
++          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen),
++          child: _loading
++              ? SizedBox(
++                  width: 18.w,
++                  height: 18.w,
++                  child: const CircularProgressIndicator(
++                      strokeWidth: 2, color: Colors.white),
++                )
++              : const Text('إضافة', style: TextStyle(color: Colors.white)),
++        ),
++      ],
++    );
++  }
++}
+diff --git a/lib/features/owner_dashboard/presentation/widgets/admin_customer_actions_sheet.dart b/lib/features/owner_dashboard/presentation/widgets/admin_customer_actions_sheet.dart
+new file mode 100644
+index 0000000..f064a19
+--- /dev/null
++++ b/lib/features/owner_dashboard/presentation/widgets/admin_customer_actions_sheet.dart
+@@ -0,0 +1,147 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/errors/app_toast.dart';
++import 'package:mivet_app/core/theme/app_colors.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../../customer-visits/customers/domain/models/customer_model.dart';
++import '../../data/admin_actions_service.dart';
++import '../admin_historical_invoice_screen.dart';
++import 'admin_add_old_debt_dialog.dart';
++import 'admin_delete_customer_dialog.dart';
++
++/// الإجراءات الإدارية المتاحة على عميل واحد: مديونية قديمة، فاتورة تاريخية،
++/// أو حذف نهائي. بترجع `true` للشاشة اللي فتحتها لو العميل اتحذف فعلًا،
++/// عشان تحدّث القايمة.
++class AdminCustomerActionsSheet extends StatelessWidget {
++  final CustomerModel customer;
++
++  const AdminCustomerActionsSheet({super.key, required this.customer});
++
++  Future<void> _addOldDebt(BuildContext context) async {
++    Navigator.pop(context);
++    final added = await showDialog<bool>(
++      context: context,
++      builder: (_) => AdminAddOldDebtDialog(customer: customer),
++    );
++    if (added == true && context.mounted) {
++      showAppInfo(context, 'اتضافت المديونية القديمة لـ${customer.name}');
++    }
++  }
++
++  Future<void> _issueHistoricalInvoice(BuildContext context) async {
++    Navigator.pop(context);
++    await Navigator.of(context).push(
++      MaterialPageRoute(
++        builder: (_) => AdminHistoricalInvoiceScreen(customer: customer),
++      ),
++    );
++  }
++
++  Future<void> _deletePermanently(BuildContext context) async {
++    Navigator.pop(context);
++    final confirmed = await showDialog<bool>(
++      context: context,
++      builder: (_) => AdminDeleteCustomerDialog(customer: customer),
++    );
++    if (confirmed != true || !context.mounted) return;
++
++    try {
++      await AdminActionsService().deleteCustomerPermanently(customer.id);
++      if (context.mounted) {
++        showAppInfo(context, 'اتمسح العميل "${customer.name}" نهائيًا');
++        Navigator.of(context).pop(true);
++      }
++    } catch (e) {
++      if (context.mounted) showAppError(context, e);
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return SafeArea(
++      child: Container(
++        margin: EdgeInsets.all(12.w),
++        padding: EdgeInsets.all(16.w),
++        decoration: BoxDecoration(
++          color: Colors.white,
++          borderRadius: BorderRadius.circular(20.r),
++        ),
++        child: Column(
++          mainAxisSize: MainAxisSize.min,
++          crossAxisAlignment: CrossAxisAlignment.stretch,
++          children: [
++            Text(
++              customer.name,
++              textAlign: TextAlign.center,
++              style: AppTextStyles.cairoBold18
++                  .copyWith(color: AppColors.primary, fontSize: 15.sp),
++            ),
++            SizedBox(height: 14.h),
++            _ActionTile(
++              icon: Icons.history_toggle_off_rounded,
++              label: 'إضافة مديونية قديمة',
++              onTap: () => _addOldDebt(context),
++            ),
++            _ActionTile(
++              icon: Icons.receipt_long_outlined,
++              label: 'فاتورة تاريخية',
++              onTap: () => _issueHistoricalInvoice(context),
++            ),
++            _ActionTile(
++              icon: Icons.delete_forever_rounded,
++              label: 'حذف العميل نهائيًا',
++              color: AppColors.statusNotReached,
++              onTap: () => _deletePermanently(context),
++            ),
++            SizedBox(height: 4.h),
++            TextButton(
++              onPressed: () => Navigator.pop(context),
++              child: const Text('إلغاء'),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _ActionTile extends StatelessWidget {
++  final IconData icon;
++  final String label;
++  final Color? color;
++  final VoidCallback onTap;
++
++  const _ActionTile({
++    required this.icon,
++    required this.label,
++    required this.onTap,
++    this.color,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final tint = color ?? AppColors.primary;
++    return Material(
++      color: Colors.transparent,
++      child: InkWell(
++        borderRadius: BorderRadius.circular(12.r),
++        onTap: onTap,
++        child: Padding(
++          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 4.w),
++          child: Row(
++            children: [
++              Icon(icon, color: tint, size: 22.sp),
++              SizedBox(width: 12.w),
++              Text(
++                label,
++                style: AppTextStyles.cairoMedium16
++                    .copyWith(color: tint, fontSize: 14.sp),
++              ),
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++}
+diff --git a/lib/features/owner_dashboard/presentation/widgets/admin_delete_customer_dialog.dart b/lib/features/owner_dashboard/presentation/widgets/admin_delete_customer_dialog.dart
+new file mode 100644
+index 0000000..8d50b7a
+--- /dev/null
++++ b/lib/features/owner_dashboard/presentation/widgets/admin_delete_customer_dialog.dart
+@@ -0,0 +1,78 @@
++import 'package:flutter/material.dart';
++import 'package:mivet_app/core/theme/app_colors.dart';
++import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/responsive_extension.dart';
++
++import '../../../customer-visits/customers/domain/models/customer_model.dart';
++
++/// حذف العميل نهائي وما يترجعش — بيتمسح معاه كل فواتيره وزياراته
++/// وتحصيلاته. بنطلب من الأونر يكتب اسم العميل بالظبط قبل ما نفعّل زرار
++/// الحذف، عشان ميحصلش حذف بالغلط.
++class AdminDeleteCustomerDialog extends StatefulWidget {
++  final CustomerModel customer;
++
++  const AdminDeleteCustomerDialog({super.key, required this.customer});
++
++  @override
++  State<AdminDeleteCustomerDialog> createState() =>
++      _AdminDeleteCustomerDialogState();
++}
++
++class _AdminDeleteCustomerDialogState
++    extends State<AdminDeleteCustomerDialog> {
++  final _confirmController = TextEditingController();
++  bool _matches = false;
++
++  @override
++  void dispose() {
++    _confirmController.dispose();
++    super.dispose();
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return AlertDialog(
++      title: Text(
++        'حذف نهائي',
++        style: AppTextStyles.cairoBold18
++            .copyWith(color: AppColors.statusNotReached, fontSize: 16.sp),
++      ),
++      content: Column(
++        mainAxisSize: MainAxisSize.min,
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Text(
++            'هيتمسح "${widget.customer.name}" نهائيًا مع كل فواتيره وزياراته '
++            'وتحصيلاته ومرتجعاته. الإجراء ده مينفعش يتراجع عنه.',
++            style: AppTextStyles.almaraiRegular14
++                .copyWith(color: AppColors.navInactive, fontSize: 12.5.sp),
++          ),
++          SizedBox(height: 14.h),
++          Text(
++            'اكتب اسم العميل بالظبط للتأكيد:',
++            style: AppTextStyles.almaraiRegular14.copyWith(fontSize: 12.sp),
++          ),
++          SizedBox(height: 6.h),
++          TextField(
++            controller: _confirmController,
++            onChanged: (v) =>
++                setState(() => _matches = v.trim() == widget.customer.name),
++            decoration: InputDecoration(hintText: widget.customer.name),
++          ),
++        ],
++      ),
++      actions: [
++        TextButton(
++          onPressed: () => Navigator.pop(context, false),
++          child: const Text('إلغاء'),
++        ),
++        ElevatedButton(
++          onPressed: _matches ? () => Navigator.pop(context, true) : null,
++          style: ElevatedButton.styleFrom(
++              backgroundColor: AppColors.statusNotReached),
++          child: const Text('حذف نهائي', style: TextStyle(color: Colors.white)),
++        ),
++      ],
++    );
++  }
++}
+diff --git a/lib/features/owner_dashboard/presentation/widgets/rep_list_tile.dart b/lib/features/owner_dashboard/presentation/widgets/rep_list_tile.dart
+index cd13e0d..d899977 100644
+--- a/lib/features/owner_dashboard/presentation/widgets/rep_list_tile.dart
++++ b/lib/features/owner_dashboard/presentation/widgets/rep_list_tile.dart
+@@ -119,12 +119,16 @@ class RepListTile extends StatelessWidget {
+   final VoidCallback onDeactivate;
+   final VoidCallback onReactivate;
+ 
++  /// افتح شاشة أداء المندوب. القيمة null تخلي الكارت مش قابل للضغط.
++  final VoidCallback? onTap;
++
+   const RepListTile({
+     super.key,
+     required this.rep,
+     required this.onEdit,
+     required this.onDeactivate,
+     required this.onReactivate,
++    this.onTap,
+   });
+ 
+   @override
+@@ -132,11 +136,16 @@ class RepListTile extends StatelessWidget {
+     final colors = context.colors;
+     final statusColor =
+         rep.isActive ? AppColors.primaryGreen : AppColors.statusNotReached;
+-    return Container(
++    return Material(
++      color: colors.surface,
++      borderRadius: BorderRadius.circular(16.r),
++      child: InkWell(
++        borderRadius: BorderRadius.circular(16.r),
++        onTap: onTap,
++        child: Container(
+       margin: EdgeInsets.only(bottom: 12.h),
+       padding: EdgeInsets.all(14.w),
+       decoration: BoxDecoration(
+-        color: colors.surface,
+         borderRadius: BorderRadius.circular(16.r),
+         border: Border.all(color: colors.border),
+       ),
+@@ -221,6 +230,8 @@ class RepListTile extends StatelessWidget {
+           ),
+         ],
+       ),
++        ),
++      ),
+     );
+   }
+ }

@@ -119,12 +119,16 @@ class RepListTile extends StatelessWidget {
   final VoidCallback onDeactivate;
   final VoidCallback onReactivate;
 
+  /// افتح شاشة أداء المندوب. القيمة null تخلي الكارت مش قابل للضغط.
+  final VoidCallback? onTap;
+
   const RepListTile({
     super.key,
     required this.rep,
     required this.onEdit,
     required this.onDeactivate,
     required this.onReactivate,
+    this.onTap,
   });
 
   @override
@@ -132,11 +136,16 @@ class RepListTile extends StatelessWidget {
     final colors = context.colors;
     final statusColor =
         rep.isActive ? AppColors.primaryGreen : AppColors.statusNotReached;
-    return Container(
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(16.r),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16.r),
+        onTap: onTap,
+        child: Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: colors.surface,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: colors.border),
       ),
@@ -220,6 +229,8 @@ class RepListTile extends StatelessWidget {
             ],
           ),
         ],
+      ),
+        ),
       ),
     );
   }
