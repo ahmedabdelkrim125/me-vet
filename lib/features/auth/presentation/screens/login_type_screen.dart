@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/routing/routes.dart';
-import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/utils/extensions.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../widgets/login_header.dart';
@@ -12,7 +11,6 @@ class LoginTypeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
