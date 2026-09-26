@@ -5,11 +5,9 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 import '../../../customer-visits/customers/domain/models/customer_model.dart';
-import '../../data/admin_actions_service.dart';
 import '../admin_historical_invoice_screen.dart';
 import 'admin_add_old_debt_dialog.dart';
 import 'admin_delete_customer_dialog.dart';
-
 
 class AdminCustomerActionsSheet extends StatelessWidget {
   final CustomerModel customer;
@@ -37,22 +35,15 @@ class AdminCustomerActionsSheet extends StatelessWidget {
   }
 
   Future<void> _deletePermanently(BuildContext context) async {
-    Navigator.pop(context);
-    final confirmed = await showDialog<bool>(
+    final deleted = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (_) => AdminDeleteCustomerDialog(customer: customer),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (deleted != true || !context.mounted) return;
 
-    try {
-      await AdminActionsService().deleteCustomerPermanently(customer.id);
-      if (context.mounted) {
-        showAppInfo(context, 'اتمسح العميل "${customer.name}" نهائيًا');
-        Navigator.of(context).pop(true);
-      }
-    } catch (e) {
-      if (context.mounted) showAppError(context, e);
-    }
+    showAppInfo(context, 'اتمسح العميل "${customer.name}" نهائيًا');
+    Navigator.of(context).pop(true);
   }
 
   @override

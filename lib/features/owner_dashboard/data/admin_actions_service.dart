@@ -1,11 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../../core/errors/app_exception.dart';
 import '../../customer-visits/customers/domain/models/customer_model.dart';
 import '../../customer-visits/customers/domain/models/invoice_line_input.dart';
 import '../../customer_account/domain/entities/payment_method.dart';
 
-/// أداء مندوب واحد — نتيجة `get_rep_performance_stats`.
 class RepPerformanceStats {
   final String repId;
   final String repName;
@@ -88,11 +86,6 @@ class RepPerformanceStats {
   }
 }
 
-/// كل نداءات Supabase الخاصة بصلاحيات الأونر الإضافية: مديونية قديمة،
-/// فاتورة تاريخية، حذف عميل نهائي، وتقارير أداء المناديب.
-///
-/// إدارة بيانات المندوب نفسها (اسم/هاتف/PIN/تفعيل) موجودة بالفعل في
-/// [OwnerService] عن طريق Edge Function `manage-rep` ومش متكررة هنا.
 class AdminActionsService {
   SupabaseClient get _supabase => Supabase.instance.client;
 
@@ -165,13 +158,23 @@ class AdminActionsService {
     }
   }
 
-  /// حذف نهائي لا يمكن التراجع عنه — كل فواتير العميل وزياراته وتحصيلاته
-  /// وكل ما هو مرتبط به بيتمسح فعليًا من قاعدة البيانات.
-  Future<void> deleteCustomerPermanently(String customerId) async {
+  Future<bool> deleteCustomerPermanently(
+    String customerId, {
+    required String password,
+  }) async {
     try {
+      final verified = await _supabase.rpc(
+        'admin_verify_delete_password',
+        params: {'p_password': password},
+      );
+
+      if (verified != true) return false;
+
       await _supabase.rpc('admin_delete_customer', params: {
         'p_customer_id': customerId,
       });
+
+      return true;
     } catch (e) {
       throw mapErrorToAppException(e);
     }

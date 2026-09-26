@@ -39,11 +39,6 @@ class _MevetAppState extends State<MevetApp> {
             debugShowCheckedModeBanner: false,
             navigatorKey: MevetApp.navigatorKey,
             onGenerateRoute: AppRouter.generateRoute,
-            initialRoute: Routes.splashScreen,
-            // Build ONLY the splash route. Without this, Flutter also creates
-            // a hidden "/" route underneath it (because the route name is
-            // nested), and pressing back from the main screen lands on it,
-            // showing "Route not found".
             onGenerateInitialRoutes: (_) => [
               AppRouter.generateRoute(
                 const RouteSettings(name: Routes.splashScreen),
