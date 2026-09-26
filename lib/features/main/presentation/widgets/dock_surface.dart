@@ -3,11 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 
-/// Shared "glass" surface used by the floating mobile dock
-/// (the navigation pill and the detached settings button).
-///
-/// The shadow lives on the outer container so it is not clipped by the
-/// rounded [ClipRRect] that blurs whatever is behind the dock.
 class DockSurface extends StatelessWidget {
   final double height;
   final double? width;

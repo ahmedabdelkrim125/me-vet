@@ -2,35 +2,21 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import '../../../../core/const/app_images.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../inventory/domain/models/delivery_vehicle_model.dart';
 import '../../../inventory/domain/models/product_catalog.dart';
 import '../../../inventory/domain/models/vehicle_stock_model.dart';
 import '../../../inventory/domain/models/vehicle_stock_added_today_model.dart';
 import 'package:mivet_app/core/utils/pdf_page_background.dart';
-
-class _ReportSection {
-  final String category;
-  final List<String> headers;
-  final List<List<String>> rows;
-  final Map<int, pw.TableColumnWidth> columnWidths;
-
-  _ReportSection(this.category, this.headers, this.rows, this.columnWidths);
-}
+import 'report/all_stock_report_sections.dart';
+import 'report/report_layout_widgets.dart';
+import 'report/report_paginator.dart';
+import 'report/report_section.dart';
+import 'report/report_table_widget.dart';
+import 'report/today_stock_report_sections.dart';
 
 class VehicleStockReportBuilder {
   VehicleStockReportBuilder._();
-
-  static String _sanitize(String text) =>
-      text.replaceAll(RegExp(r'[\u200B-\u200F\u202A-\u202E\uFEFF]'), '');
-
-  static final _navy = PdfColor.fromInt(AppColors.primary.value);
-  static final _green = PdfColor.fromInt(AppColors.primaryGreen.value);
-  static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
-  static const _companyContactNumber = '01091192831';
-  static const _rowsPerManualPage = 14;
 
   static Future<Uint8List> buildPdf({
     required String representativeName,
@@ -42,7 +28,7 @@ class VehicleStockReportBuilder {
       representativeName: representativeName,
       vehicle: vehicle,
       title: 'تقرير مخزون العربية',
-      sectionsBuilder: () => _buildAllStockSections(stock, catalog),
+      sectionsBuilder: () => buildAllStockReportSections(stock, catalog),
       singlePage: false,
     );
     return document.save();
@@ -58,7 +44,7 @@ class VehicleStockReportBuilder {
       representativeName: representativeName,
       vehicle: vehicle,
       title: 'تقرير مخزون العربية',
-      sectionsBuilder: () => _buildAllStockSections(stock, catalog),
+      sectionsBuilder: () => buildAllStockReportSections(stock, catalog),
       singlePage: true,
     );
     return document.save();
@@ -74,7 +60,7 @@ class VehicleStockReportBuilder {
       representativeName: representativeName,
       vehicle: vehicle,
       title: 'تقرير الإضافة اليومي',
-      sectionsBuilder: () => _buildTodayStockSections(stock, catalog),
+      sectionsBuilder: () => buildTodayStockReportSections(stock, catalog),
       singlePage: false,
     );
     return document.save();
@@ -90,7 +76,7 @@ class VehicleStockReportBuilder {
       representativeName: representativeName,
       vehicle: vehicle,
       title: 'تقرير الإضافة اليومي',
-      sectionsBuilder: () => _buildTodayStockSections(stock, catalog),
+      sectionsBuilder: () => buildTodayStockReportSections(stock, catalog),
       singlePage: true,
     );
     return document.save();
@@ -100,7 +86,7 @@ class VehicleStockReportBuilder {
     required String representativeName,
     required DeliveryVehicleModel vehicle,
     required String title,
-    required List<_ReportSection> Function() sectionsBuilder,
+    required List<ReportSection> Function() sectionsBuilder,
     required bool singlePage,
   }) async {
     final document = pw.Document();
@@ -112,24 +98,7 @@ class VehicleStockReportBuilder {
     final regularFont = pw.Font.ttf(regularFontData);
     final boldFont = pw.Font.ttf(boldFontData);
 
-    Uint8List? logoBytes;
-    try {
-      final logoData = await rootBundle.load(AppImages.logoSplash);
-      logoBytes = logoData.buffer.asUint8List();
-    } catch (_) {
-      logoBytes = null;
-    }
-
-    Uint8List? watermarkBytes;
-    try {
-      final watermarkData = await rootBundle.load(AppImages.invoiceWatermark);
-      watermarkBytes = watermarkData.buffer.asUint8List();
-    } catch (_) {
-      watermarkBytes = null;
-    }
-
-    pw.Widget buildBackground(pw.Context context) =>
-        buildWhitePdfBackground(watermarkBytes: watermarkBytes);
+    pw.Widget buildBackground(pw.Context context) => buildWhitePdfBackground();
 
     final sections = sectionsBuilder();
 
@@ -146,14 +115,12 @@ class VehicleStockReportBuilder {
           build: (context) => pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: [
-              _buildHeader(logoBytes, boldFont),
+              buildReportTitle(title, boldFont),
               pw.SizedBox(height: 18),
-              _buildTitle(title, boldFont),
-              pw.SizedBox(height: 18),
-              _buildMetaRow(representativeName, vehicle, boldFont),
+              buildReportMetaRow(representativeName, vehicle, boldFont),
               pw.SizedBox(height: 20),
               for (final section in sections) ...[
-                _buildSectionTable(section, boldFont, regularFont),
+                buildReportSectionTable(section, boldFont, regularFont),
                 pw.SizedBox(height: 16),
               ],
             ],
@@ -163,7 +130,7 @@ class VehicleStockReportBuilder {
       return document;
     }
 
-    final pages = _paginateSections(sections);
+    final pages = paginateReportSections(sections);
     for (var pageIndex = 0; pageIndex < pages.length; pageIndex++) {
       final pageSections = pages[pageIndex];
       final isFirstPage = pageIndex == 0;
@@ -180,27 +147,18 @@ class VehicleStockReportBuilder {
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             mainAxisSize: pw.MainAxisSize.max,
             children: [
-              _buildHeader(logoBytes, boldFont),
-              pw.SizedBox(height: 18),
               if (isFirstPage) ...[
-                _buildTitle(title, boldFont),
+                buildReportTitle(title, boldFont),
                 pw.SizedBox(height: 18),
-                _buildMetaRow(representativeName, vehicle, boldFont),
+                buildReportMetaRow(representativeName, vehicle, boldFont),
                 pw.SizedBox(height: 20),
               ],
               for (final section in pageSections) ...[
-                _buildSectionTable(section, boldFont, regularFont),
+                buildReportSectionTable(section, boldFont, regularFont),
                 pw.SizedBox(height: 16),
               ],
               pw.Spacer(),
-              _buildFooter(boldFont),
-              pw.SizedBox(height: 6),
-              pw.Center(
-                child: pw.Text(
-                  'صفحة ${pageIndex + 1} من ${pages.length}',
-                  style: pw.TextStyle(font: regularFont, fontSize: 9),
-                ),
-              ),
+              buildReportPageFooter(pageIndex, pages.length, regularFont),
             ],
           ),
         ),
@@ -209,297 +167,4 @@ class VehicleStockReportBuilder {
 
     return document;
   }
-
-  static List<List<_ReportSection>> _paginateSections(
-    List<_ReportSection> sections,
-  ) {
-    final pages = <List<_ReportSection>>[];
-    var currentPage = <_ReportSection>[];
-    var currentRowCount = 0;
-
-    void pushPage() {
-      if (currentPage.isNotEmpty) pages.add(currentPage);
-      currentPage = <_ReportSection>[];
-      currentRowCount = 0;
-    }
-
-    for (final section in sections) {
-      var remainingRows = section.rows;
-      var isFirstPart = true;
-
-      while (remainingRows.isNotEmpty) {
-        var availableSlots = _rowsPerManualPage - currentRowCount;
-        if (availableSlots <= 0) {
-          pushPage();
-          availableSlots = _rowsPerManualPage;
-        }
-        final takeCount = remainingRows.length <= availableSlots
-            ? remainingRows.length
-            : availableSlots;
-        final chunkRows = remainingRows.sublist(0, takeCount);
-        remainingRows = remainingRows.sublist(takeCount);
-
-        final label =
-            isFirstPart ? section.category : '${section.category} (تابع)';
-        currentPage.add(
-          _ReportSection(
-              label, section.headers, chunkRows, section.columnWidths),
-        );
-        currentRowCount += chunkRows.length;
-        isFirstPart = false;
-      }
-    }
-    pushPage();
-    if (pages.isEmpty) pages.add(<_ReportSection>[]);
-    return pages;
-  }
-
-  static List<_ReportSection> _buildAllStockSections(
-    List<VehicleStockModel> stock,
-    ProductCatalog catalog,
-  ) {
-    final grouped = _groupByCategory(stock, catalog);
-    final sections = <_ReportSection>[];
-    for (final entry in grouped.entries) {
-      sections.add(_buildStockSection(entry.key, entry.value));
-    }
-    return sections;
-  }
-
-  static List<_ReportSection> _buildTodayStockSections(
-    List<VehicleStockAddedTodayModel> stock,
-    ProductCatalog catalog,
-  ) {
-    final grouped = <String, List<VehicleStockAddedTodayModel>>{};
-    for (final item in stock) {
-      final categoryName = _sanitize(catalog.categoryName(item.category));
-      grouped.putIfAbsent(categoryName, () => []).add(item);
-    }
-    final sections = <_ReportSection>[];
-    for (final entry in grouped.entries) {
-      sections.add(_buildTodayStockSection(entry.key, entry.value));
-    }
-    return sections;
-  }
-
-  static Map<String, List<VehicleStockModel>> _groupByCategory(
-    List<VehicleStockModel> stock,
-    ProductCatalog catalog,
-  ) {
-    final grouped = <String, List<VehicleStockModel>>{};
-    for (final item in stock) {
-      final product = item.product;
-      if (product == null) continue;
-      final categoryName = _sanitize(catalog.categoryName(product.category));
-      grouped.putIfAbsent(categoryName, () => []).add(item);
-    }
-    return grouped;
-  }
-
-  static pw.Widget _buildHeader(Uint8List? logoBytes, pw.Font boldFont) {
-    return pw.Row(
-      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('تواصل معنا', style: _labelStyle(boldFont)),
-            pw.SizedBox(height: 4),
-            pw.Text(_companyContactNumber,
-                style: _valueStyle(boldFont, _green)),
-          ],
-        ),
-        if (logoBytes != null)
-          pw.Image(pw.MemoryImage(logoBytes), width: 90)
-        else
-          pw.Text(
-            'MeVet',
-            style: pw.TextStyle(font: boldFont, fontSize: 22, color: _navy),
-          ),
-      ],
-    );
-  }
-
-  static pw.Widget _buildTitle(String title, pw.Font boldFont) {
-    return pw.Center(
-      child: pw.Text(
-        _sanitize(title),
-        style: pw.TextStyle(font: boldFont, fontSize: 20, color: _navy),
-      ),
-    );
-  }
-
-  static pw.Widget _buildMetaRow(
-    String representativeName,
-    DeliveryVehicleModel vehicle,
-    pw.Font boldFont,
-  ) {
-    return pw.Row(
-      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('اسم المندوب : ${_sanitize(representativeName)}',
-                style: pw.TextStyle(font: boldFont, fontSize: 11)),
-            pw.SizedBox(height: 4),
-            pw.Text('رقم العربية : ${_sanitize(vehicle.plateNumber)}',
-                style: pw.TextStyle(font: boldFont, fontSize: 11)),
-            pw.SizedBox(height: 4),
-            pw.Text('السائق : ${_sanitize(vehicle.driverName)}',
-                style: pw.TextStyle(font: boldFont, fontSize: 11)),
-          ],
-        ),
-        pw.Text(
-          'تاريخ التقرير : ${_formatDate(DateTime.now())}',
-          style: pw.TextStyle(font: boldFont, fontSize: 11),
-        ),
-      ],
-    );
-  }
-
-  static pw.Widget _buildFooter(pw.Font boldFont) {
-    return pw.Column(
-      children: [
-        pw.Divider(color: _green, thickness: 1),
-        pw.SizedBox(height: 6),
-        pw.Center(
-          child: pw.Text(
-            'MeVet — For Animal Health',
-            style: pw.TextStyle(font: boldFont, fontSize: 10, color: _green),
-          ),
-        ),
-      ],
-    );
-  }
-
-  static _ReportSection _buildStockSection(
-    String categoryName,
-    List<VehicleStockModel> items,
-  ) {
-    final headers = ['حالة المخزون', 'الحد الأدنى', 'الكمية', 'اسم الصنف', 'م'];
-    final rows = <List<String>>[];
-    for (var i = 0; i < items.length; i++) {
-      final item = items[i];
-      rows.add([
-        _stockStatusLabel(item),
-        '${item.minThreshold}',
-        '${item.quantity}',
-        _sanitize(item.product!.name),
-        '${i + 1}',
-      ]);
-    }
-    return _ReportSection(categoryName, headers, rows, const {
-      0: pw.FlexColumnWidth(1.6),
-      1: pw.FlexColumnWidth(1.4),
-      2: pw.FlexColumnWidth(1.4),
-      3: pw.FlexColumnWidth(3),
-      4: pw.FlexColumnWidth(0.6),
-    });
-  }
-
-  static _ReportSection _buildTodayStockSection(
-    String categoryName,
-    List<VehicleStockAddedTodayModel> items,
-  ) {
-    final headers = [
-      'الكمية الحالية',
-      'وقت الإضافة',
-      'الكمية المضافة',
-      'اسم الصنف',
-      'م'
-    ];
-    final rows = <List<String>>[];
-    for (var i = 0; i < items.length; i++) {
-      final item = items[i];
-      final timeFormatted =
-          '${item.addedAt.hour.toString().padLeft(2, '0')}:${item.addedAt.minute.toString().padLeft(2, '0')}';
-      rows.add([
-        '${item.currentQuantity}',
-        timeFormatted,
-        '${item.quantityAdded}',
-        _sanitize(item.productName),
-        '${i + 1}',
-      ]);
-    }
-    return _ReportSection(categoryName, headers, rows, const {
-      0: pw.FlexColumnWidth(1.4),
-      1: pw.FlexColumnWidth(1.6),
-      2: pw.FlexColumnWidth(1.4),
-      3: pw.FlexColumnWidth(3),
-      4: pw.FlexColumnWidth(0.6),
-    });
-  }
-
-  static pw.Widget _buildSectionTable(
-    _ReportSection section,
-    pw.Font boldFont,
-    pw.Font regularFont,
-  ) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(section.category,
-            style: pw.TextStyle(font: boldFont, fontSize: 14, color: _green)),
-        pw.SizedBox(height: 8),
-        pw.Table(
-          border: pw.TableBorder.all(color: _border, width: 0.6),
-          columnWidths: section.columnWidths,
-          children: [
-            pw.TableRow(
-              decoration: pw.BoxDecoration(color: _navy),
-              children: section.headers
-                  .map((h) => pw.Padding(
-                        padding: const pw.EdgeInsets.symmetric(
-                            vertical: 6, horizontal: 4),
-                        child: pw.Text(
-                          h,
-                          textAlign: pw.TextAlign.center,
-                          maxLines: 1,
-                          overflow: pw.TextOverflow.clip,
-                          style: pw.TextStyle(
-                              font: boldFont,
-                              fontSize: 10,
-                              color: PdfColors.white),
-                        ),
-                      ))
-                  .toList(),
-            ),
-            for (final row in section.rows)
-              pw.TableRow(
-                children: row
-                    .map((cell) => pw.Padding(
-                          padding: const pw.EdgeInsets.symmetric(
-                              vertical: 6, horizontal: 4),
-                          child: pw.Text(
-                            cell,
-                            textAlign: pw.TextAlign.center,
-                            maxLines: 2,
-                            overflow: pw.TextOverflow.clip,
-                            style:
-                                pw.TextStyle(font: regularFont, fontSize: 10),
-                          ),
-                        ))
-                    .toList(),
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  static String _stockStatusLabel(VehicleStockModel stock) {
-    if (stock.quantity == 0) return 'نفذ من المخزون';
-    if (stock.isLowStock) return 'منخفض';
-    return 'متوفر';
-  }
-
-  static pw.TextStyle _labelStyle(pw.Font boldFont) =>
-      pw.TextStyle(font: boldFont, fontSize: 10, color: _navy);
-  static pw.TextStyle _valueStyle(pw.Font boldFont, PdfColor color) =>
-      pw.TextStyle(font: boldFont, fontSize: 10, color: color);
-  static String _formatDate(DateTime date) =>
-      '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
 }

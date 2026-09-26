@@ -11,6 +11,6 @@ const List<NavItemModel> appNavItems = [
     icon: HugeIcons.strokeRoundedPackage,
     label: 'مخزون العربية',
   ),
-  NavItemModel(icon: HugeIcons.strokeRoundedChartColumn, label: 'تقرير اليوم'),
+  NavItemModel(icon: HugeIcons.strokeRoundedChartColumn, label: 'التقارير'),
   NavItemModel(icon: HugeIcons.strokeRoundedSettings01, label: 'الإعدادات'),
 ];

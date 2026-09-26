@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import '../../../core/const/app_images.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/pdf_page_background.dart';
@@ -53,7 +52,6 @@ class InvoicePdfBuilder {
   static final _navy = PdfColor.fromInt(AppColors.primary.value);
   static final _green = PdfColor.fromInt(AppColors.primaryGreen.value);
   static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
-  static const _companyContactNumber = '01091192831';
 
   static Future<Uint8List> build(InvoicePdfData data) async {
     final document = pw.Document();
@@ -67,22 +65,6 @@ class InvoicePdfBuilder {
     final regularFont = pw.Font.ttf(regularFontData);
     final boldFont = pw.Font.ttf(boldFontData);
 
-    Uint8List? logoBytes;
-    try {
-      final logoData = await rootBundle.load(AppImages.logoSplash);
-      logoBytes = logoData.buffer.asUint8List();
-    } catch (_) {
-      logoBytes = null;
-    }
-
-    Uint8List? watermarkBytes;
-    try {
-      final watermarkData = await rootBundle.load(AppImages.invoiceWatermark);
-      watermarkBytes = watermarkData.buffer.asUint8List();
-    } catch (_) {
-      watermarkBytes = null;
-    }
-
     document.addPage(
       pw.MultiPage(
         pageTheme: pw.PageTheme(
@@ -90,15 +72,11 @@ class InvoicePdfBuilder {
           margin: const pw.EdgeInsets.all(28),
           theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
           buildBackground: (context) =>
-              buildWhitePdfBackground(watermarkBytes: watermarkBytes),
-        ),
-        header: (context) => pw.Directionality(
-          textDirection: pw.TextDirection.rtl,
-          child: _buildHeader(logoBytes, boldFont),
+              buildWhitePdfBackground(watermarkBytes: null),
         ),
         footer: (context) => pw.Directionality(
           textDirection: pw.TextDirection.rtl,
-          child: _buildFooter(boldFont),
+          child: _buildFooter(),
         ),
         build: (context) {
           final chunks = paginateItems(data.items);
@@ -124,33 +102,6 @@ class InvoicePdfBuilder {
     );
 
     return document.save();
-  }
-
-  static pw.Widget _buildHeader(Uint8List? logoBytes, pw.Font boldFont) {
-    return pw.Row(
-      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('تواصل معنا', style: _labelStyle(boldFont)),
-            pw.SizedBox(height: 4),
-            pw.Text(
-              _companyContactNumber,
-              style: _valueStyle(boldFont, _green),
-            ),
-          ],
-        ),
-        if (logoBytes != null)
-          pw.Image(pw.MemoryImage(logoBytes), width: 90)
-        else
-          pw.Text(
-            'MeVet',
-            style: pw.TextStyle(font: boldFont, fontSize: 22, color: _navy),
-          ),
-      ],
-    );
   }
 
   static pw.Widget _buildTitle(InvoicePdfData data, pw.Font boldFont) {
@@ -198,17 +149,10 @@ class InvoicePdfBuilder {
     );
   }
 
-  static pw.Widget _buildFooter(pw.Font boldFont) {
+  static pw.Widget _buildFooter() {
     return pw.Column(
       children: [
         pw.Divider(color: _green, thickness: 1),
-        pw.SizedBox(height: 6),
-        pw.Center(
-          child: pw.Text(
-            'MeVet — For Animal Health',
-            style: pw.TextStyle(font: boldFont, fontSize: 10, color: _green),
-          ),
-        ),
       ],
     );
   }
@@ -373,14 +317,6 @@ class InvoicePdfBuilder {
         ),
       ],
     );
-  }
-
-  static pw.TextStyle _labelStyle(pw.Font boldFont) {
-    return pw.TextStyle(font: boldFont, fontSize: 10, color: _navy);
-  }
-
-  static pw.TextStyle _valueStyle(pw.Font boldFont, PdfColor color) {
-    return pw.TextStyle(font: boldFont, fontSize: 9, color: color);
   }
 
   static String _formatDate(DateTime date) {
