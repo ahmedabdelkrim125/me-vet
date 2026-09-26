@@ -232,6 +232,23 @@ class CustomerAccountRemoteDataSource {
     return result as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> recordCustomerAccountPaymentSplit({
+    required String customerId,
+    required List<PaymentSplitEntry> payments,
+    String? notes,
+  }) async {
+    final result = await _client.rpc(
+      'record_customer_account_payment_split',
+      params: {
+        'p_customer_id': customerId,
+        'p_payments': payments.map((p) => p.toRpcJson()).toList(),
+        'p_notes': notes,
+      },
+    );
+
+    return result as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> createSalesReturn({
     required String customerId,
     required String invoiceId,

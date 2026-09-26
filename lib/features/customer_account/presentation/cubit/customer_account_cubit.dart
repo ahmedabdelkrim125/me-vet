@@ -110,6 +110,42 @@ class CustomerAccountCubit extends Cubit<CustomerAccountState> {
     }
   }
 
+  Future<void> recordPaymentSplit({
+    required List<PaymentSplitEntry> payments,
+    String? notes,
+  }) async {
+    emit(state.copyWith(actionStatus: CustomerAccountActionStatus.submitting));
+    try {
+      final receipt = await _recordCustomerAccountPayment.split(
+        customerId: state.customerId,
+        customerName: state.customerName,
+        payments: payments,
+        notes: notes,
+      );
+      if (isClosed) return;
+      emit(state.copyWith(
+        actionStatus: CustomerAccountActionStatus.success,
+        actionSuccessMessage: 'تم تسجيل التحصيل بنجاح',
+        receipt: receipt,
+      ));
+      await _loadLedger();
+    } on CollectionReceiptBuildFailure catch (e) {
+      if (isClosed) return;
+      emit(state.copyWith(
+        actionStatus: CustomerAccountActionStatus.success,
+        actionSuccessMessage: 'تم تسجيل التحصيل بنجاح',
+        receiptError: AppException(e.message),
+      ));
+      await _loadLedger();
+    } catch (e) {
+      if (isClosed) return;
+      emit(state.copyWith(
+        actionStatus: CustomerAccountActionStatus.failure,
+        actionError: mapErrorToAppException(e),
+      ));
+    }
+  }
+
   Future<void> submitSalesReturn({
     required String invoiceId,
     required List<SalesReturnItemInput> items,

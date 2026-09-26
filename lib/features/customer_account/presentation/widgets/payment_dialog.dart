@@ -21,6 +21,15 @@ Future<void> showPaymentDialog(BuildContext context) {
   );
 }
 
+class _PaymentSplitRow {
+  PaymentMethod? method;
+  final TextEditingController amountController = TextEditingController();
+
+  double get amount => double.tryParse(amountController.text.trim()) ?? 0;
+
+  void dispose() => amountController.dispose();
+}
+
 class PaymentDialog extends StatefulWidget {
   const PaymentDialog({super.key});
 
@@ -29,41 +38,72 @@ class PaymentDialog extends StatefulWidget {
 }
 
 class _PaymentDialogState extends State<PaymentDialog> {
-  final _amountController = TextEditingController();
   final _notesController = TextEditingController();
+  final List<_PaymentSplitRow> _rows = [_PaymentSplitRow()];
   String? _validationMessage;
-  PaymentMethod? _paymentMethod;
 
-  @override
-  void initState() {
-    super.initState();
-  }
+  bool get _isSplit => _rows.length > 1;
+
+  double get _total => _rows.fold(0, (sum, row) => sum + row.amount);
 
   @override
   void dispose() {
-    _amountController.dispose();
     _notesController.dispose();
+    for (final row in _rows) {
+      row.dispose();
+    }
     super.dispose();
   }
 
+  void _addRow() {
+    setState(() {
+      _rows.add(_PaymentSplitRow());
+      _validationMessage = null;
+    });
+  }
+
+  void _removeRow(int index) {
+    setState(() {
+      _rows[index].dispose();
+      _rows.removeAt(index);
+      _validationMessage = null;
+    });
+  }
+
   void _submit() {
-    final amount = double.tryParse(_amountController.text.trim());
-    if (amount == null || amount <= 0) {
-      setState(() => _validationMessage = 'أدخل مبلغًا صحيحًا');
-      return;
+    for (final row in _rows) {
+      if (row.method == null) {
+        setState(() => _validationMessage = 'اختر طريقة الدفع لكل سطر');
+        return;
+      }
+      if (row.amount <= 0) {
+        setState(() => _validationMessage = 'أدخل مبلغًا صحيحًا لكل سطر');
+        return;
+      }
     }
-    if (_paymentMethod == null) {
-      setState(() => _validationMessage = 'اختر طريقة الدفع أولًا');
-      return;
-    }
+
     setState(() => _validationMessage = null);
-    context.read<CustomerAccountCubit>().recordPayment(
-          amount: amount,
-          paymentMethod: _paymentMethod!,
-          notes: _notesController.text.trim().isEmpty
-              ? null
-              : _notesController.text.trim(),
-        );
+    final notes = _notesController.text.trim().isEmpty
+        ? null
+        : _notesController.text.trim();
+
+    if (_rows.length == 1) {
+      context.read<CustomerAccountCubit>().recordPayment(
+            amount: _rows.first.amount,
+            paymentMethod: _rows.first.method!,
+            notes: notes,
+          );
+    } else {
+      context.read<CustomerAccountCubit>().recordPaymentSplit(
+            payments: _rows
+                .map((row) => PaymentSplitEntry(
+                      method: row.method!,
+                      amount: row.amount,
+                    ))
+                .toList(),
+            notes: notes,
+          );
+    }
   }
 
   @override
@@ -101,21 +141,65 @@ class _PaymentDialogState extends State<PaymentDialog> {
                     style: AppTextStyles.cairoBold18
                         .copyWith(color: colors.text, fontSize: 15.sp)),
                 SizedBox(height: 12.h),
-                PaymentMethodSelector(
-                  value: _paymentMethod,
-                  onChanged: (method) => setState(() {
-                    _paymentMethod = method;
-                    _validationMessage = null;
-                  }),
+                for (var i = 0; i < _rows.length; i++) ...[
+                  if (i > 0) ...[
+                    SizedBox(height: 12.h),
+                    Divider(color: colors.text.withValues(alpha: 0.1)),
+                    SizedBox(height: 4.h),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _isSplit ? 'طريقة الدفع ${i + 1}' : 'طريقة الدفع',
+                          style: AppTextStyles.almaraiRegular14
+                              .copyWith(color: colors.text),
+                        ),
+                      ),
+                      if (_isSplit)
+                        IconButton(
+                          onPressed: () => _removeRow(i),
+                          icon: Icon(Icons.close,
+                              size: 18.sp, color: colors.statusNotReached),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                  PaymentMethodSelector(
+                    value: _rows[i].method,
+                    onChanged: (method) => setState(() {
+                      _rows[i].method = method;
+                      _validationMessage = null;
+                    }),
+                  ),
+                  SizedBox(height: 8.h),
+                  TextField(
+                    controller: _rows[i].amountController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: _isSplit ? 'المبلغ ${i + 1}' : 'المبلغ',
+                    ),
+                  ),
+                ],
+                SizedBox(height: 8.h),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    onPressed: _addRow,
+                    icon: const Icon(Icons.add),
+                    label: const Text('إضافة طريقة دفع تانية'),
+                  ),
                 ),
-                SizedBox(height: 12.h),
-                TextField(
-                  controller: _amountController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'المبلغ'),
-                ),
-                SizedBox(height: 12.h),
+                if (_isSplit) ...[
+                  Text(
+                    'إجمالي التحصيل: ${_total.toStringAsFixed(2)}',
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.text),
+                  ),
+                  SizedBox(height: 8.h),
+                ],
                 TextField(
                   controller: _notesController,
                   maxLines: 2,

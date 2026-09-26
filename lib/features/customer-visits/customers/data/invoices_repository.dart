@@ -111,6 +111,7 @@ class InvoicesRepository {
     required bool isCashSale,
     required double paidNow,
     PaymentMethod? paymentMethod,
+    List<PaymentSplitEntry>? payments,
     String? notes,
   }) async {
     final row = await _supabase.rpc(
@@ -123,6 +124,8 @@ class InvoicesRepository {
         'p_paid_now': paidNow,
         'p_payment_method': paymentMethod?.backendValue,
         'p_notes': notes,
+        if (payments != null && payments.isNotEmpty)
+          'p_payments': payments.map((p) => p.toRpcJson()).toList(),
       },
     );
 

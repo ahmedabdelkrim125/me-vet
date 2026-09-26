@@ -56,6 +56,15 @@ String _money(double value) {
 String _date(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+class _InvoicePaymentSplitRow {
+  PaymentMethod? method;
+  final TextEditingController amountController = TextEditingController();
+
+  double get amount => double.tryParse(amountController.text.trim()) ?? 0;
+
+  void dispose() => amountController.dispose();
+}
+
 class _VehicleStockInfo {
   final bool known;
   final Map<String, int> quantities;
@@ -131,6 +140,11 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   final paidNowController = TextEditingController(text: '0');
   bool _isIssuing = false;
   PaymentMethod? _paymentMethod;
+  bool _splitPaymentMethods = false;
+  final List<_InvoicePaymentSplitRow> _paymentSplitRows = [
+    _InvoicePaymentSplitRow(),
+    _InvoicePaymentSplitRow(),
+  ];
   final VehicleStockCubit _vehicleStockCubit = sl<VehicleStockCubit>();
 
   @override
@@ -150,8 +164,14 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     discountController.dispose();
     notesController.dispose();
     paidNowController.dispose();
+    for (final row in _paymentSplitRows) {
+      row.dispose();
+    }
     super.dispose();
   }
+
+  double get _paymentSplitTotal =>
+      _paymentSplitRows.fold(0, (sum, row) => sum + row.amount);
 
   double get subtotal => lineItems.fold(0, (sum, item) => sum + item.total);
   double get discountAmount =>
@@ -301,10 +321,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     }
     final total = grandTotal;
     final isDeferredSale = saleType != 'نقدي';
-    if (isDeferredSale && total > customer!.availableCredit) {
-      _toast('العميل تجاوز الحد الائتماني المسموح به');
-      return;
-    }
 
     final paid = paidNow;
     if (paid < 0) {
@@ -319,9 +335,21 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       _toast('المبلغ المدفوع يتجاوز الرصيد المستحق');
       return;
     }
-    if (paid > 0 && _paymentMethod == null) {
+    if (paid > 0 && !_splitPaymentMethods && _paymentMethod == null) {
       _toast('اختر طريقة الدفع');
       return;
+    }
+    if (paid > 0 && _splitPaymentMethods) {
+      final validRows =
+          _paymentSplitRows.where((row) => row.method != null && row.amount > 0);
+      if (validRows.isEmpty) {
+        _toast('أدخل طريقة دفع واحدة على الأقل بمبلغها');
+        return;
+      }
+      if ((_paymentSplitTotal - paid).abs() > 0.01) {
+        _toast('مجموع طرق الدفع لازم يساوي المبلغ المدفوع');
+        return;
+      }
     }
 
     for (final item in lineItems) {
@@ -351,7 +379,17 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
         discountAmount: discountAmount,
         isCashSale: !isDeferredSale,
         paidNow: paid,
-        paymentMethod: paid > 0 ? _paymentMethod : null,
+        paymentMethod:
+            paid > 0 && !_splitPaymentMethods ? _paymentMethod : null,
+        payments: paid > 0 && _splitPaymentMethods
+            ? _paymentSplitRows
+                .where((row) => row.method != null && row.amount > 0)
+                .map((row) => PaymentSplitEntry(
+                      method: row.method!,
+                      amount: row.amount,
+                    ))
+                .toList()
+            : null,
         notes: notesController.text.trim().isEmpty
             ? null
             : notesController.text.trim(),
@@ -546,10 +584,111 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                         if (paidNow > 0) ...[
                           SizedBox(height: 14.h),
                           _SectionCard(
-                            child: PaymentMethodSelector(
-                              value: _paymentMethod,
-                              onChanged: (method) =>
-                                  setState(() => _paymentMethod = method),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'طريقة الدفع',
+                                        style: AppTextStyles.almaraiRegular14
+                                            .copyWith(
+                                                color:
+                                                    context.colors.text),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => setState(() {
+                                        _splitPaymentMethods =
+                                            !_splitPaymentMethods;
+                                      }),
+                                      child: Text(
+                                        _splitPaymentMethods
+                                            ? 'إلغاء تقسيم المبلغ'
+                                            : 'تقسيم المبلغ على أكثر من طريقة',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (!_splitPaymentMethods)
+                                  PaymentMethodSelector(
+                                    value: _paymentMethod,
+                                    onChanged: (method) => setState(
+                                        () => _paymentMethod = method),
+                                  )
+                                else ...[
+                                  for (var i = 0;
+                                      i < _paymentSplitRows.length;
+                                      i++) ...[
+                                    if (i > 0) SizedBox(height: 10.h),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: PaymentMethodSelector(
+                                            value: _paymentSplitRows[i]
+                                                .method,
+                                            onChanged: (method) =>
+                                                setState(() =>
+                                                    _paymentSplitRows[i]
+                                                            .method =
+                                                        method),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 6.h),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _paymentSplitRows[i]
+                                                .amountController,
+                                            keyboardType: const TextInputType
+                                                .numberWithOptions(
+                                                decimal: true),
+                                            onChanged: (_) =>
+                                                setState(() {}),
+                                            decoration: InputDecoration(
+                                              labelText: 'المبلغ ${i + 1}',
+                                            ),
+                                          ),
+                                        ),
+                                        if (_paymentSplitRows.length > 2)
+                                          IconButton(
+                                            onPressed: () => setState(() {
+                                              _paymentSplitRows[i].dispose();
+                                              _paymentSplitRows.removeAt(i);
+                                            }),
+                                            icon: Icon(Icons.close,
+                                                size: 18.sp,
+                                                color: context
+                                                    .colors.statusNotReached),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                  SizedBox(height: 6.h),
+                                  Align(
+                                    alignment:
+                                        AlignmentDirectional.centerStart,
+                                    child: TextButton.icon(
+                                      onPressed: () => setState(() =>
+                                          _paymentSplitRows
+                                              .add(_InvoicePaymentSplitRow())),
+                                      icon: const Icon(Icons.add),
+                                      label: const Text('إضافة طريقة دفع'),
+                                    ),
+                                  ),
+                                  Text(
+                                    'مجموع طرق الدفع: ${_paymentSplitTotal.toStringAsFixed(2)} من ${paidNow.toStringAsFixed(2)}',
+                                    style: AppTextStyles.almaraiRegular14
+                                        .copyWith(
+                                            color: context.colors.textMuted,
+                                            fontSize: 12.sp),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],

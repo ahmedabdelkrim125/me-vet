@@ -22,20 +22,55 @@ class EditVehicleStockQuantitySheet extends StatefulWidget {
 class _EditVehicleStockQuantitySheetState
     extends State<EditVehicleStockQuantitySheet> {
   late int _quantity;
+  late final TextEditingController _quantityController;
+  final FocusNode _quantityFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _quantity = widget.initialQuantity;
+    _quantityController = TextEditingController(text: '$_quantity');
+    _quantityFocusNode.addListener(() {
+      if (!_quantityFocusNode.hasFocus) _commitTypedQuantity();
+    });
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _quantityFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _syncControllerWithQuantity() {
+    _quantityController.text = '$_quantity';
+    _quantityController.selection = TextSelection.collapsed(
+      offset: _quantityController.text.length,
+    );
+  }
+
+  void _commitTypedQuantity() {
+    final typed = int.tryParse(_quantityController.text.trim());
+    if (typed == null || typed < 0) {
+      _syncControllerWithQuantity();
+      return;
+    }
+    setState(() => _quantity = typed);
   }
 
   void _increment() {
-    setState(() => _quantity++);
+    setState(() {
+      _quantity++;
+      _syncControllerWithQuantity();
+    });
   }
 
   void _decrement() {
     if (_quantity > 0) {
-      setState(() => _quantity--);
+      setState(() {
+        _quantity--;
+        _syncControllerWithQuantity();
+      });
     }
   }
 
@@ -89,17 +124,27 @@ class _EditVehicleStockQuantitySheetState
                 onTap: _decrement,
                 color: context.colors.text,
               ),
-              SizedBox(width: 32.w),
+              SizedBox(width: 16.w),
               SizedBox(
-                width: 60.w,
-                child: Text(
-                  '$_quantity',
+                width: 90.w,
+                child: TextField(
+                  controller: _quantityController,
+                  focusNode: _quantityFocusNode,
+                  keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.cairoBold18
                       .copyWith(color: context.colors.text, fontSize: 24.sp),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 8.h),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  onSubmitted: (_) => _commitTypedQuantity(),
                 ),
               ),
-              SizedBox(width: 32.w),
+              SizedBox(width: 16.w),
               _buildAdjustButton(
                 icon: CupertinoIcons.add,
                 onTap: _increment,
@@ -109,7 +154,10 @@ class _EditVehicleStockQuantitySheetState
           ),
           SizedBox(height: 40.h),
           FilledButton(
-            onPressed: () => Navigator.pop(context, _quantity),
+            onPressed: () {
+              _commitTypedQuantity();
+              Navigator.pop(context, _quantity);
+            },
             style: FilledButton.styleFrom(
               padding: EdgeInsets.symmetric(vertical: 16.h),
               shape: RoundedRectangleBorder(
