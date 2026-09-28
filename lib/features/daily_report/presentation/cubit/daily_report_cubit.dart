@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/daily_report_repository.dart';
 import '../../domain/models/report_period_type.dart';
@@ -85,14 +84,6 @@ class DailyReportCubit extends Cubit<DailyReportState> {
           to = DateTime(now.year, now.month + 1, 1);
           break;
       }
-
-      // --- STEP 3: LOG THE CURRENT REPORT PERIOD ---
-      debugPrint('\n=== DAILY_REPORT_DEBUG_CUBIT ===');
-      debugPrint('CURRENT NOW: $now');
-      debugPrint('CURRENT PERIOD: $period');
-      debugPrint('FROM (Local): $from');
-      debugPrint('TO (Local): $to');
-      debugPrint('================================\n');
 
       final report = await _repository.getDailyReport(
         from: from,

@@ -125,13 +125,18 @@ class ReportPdfBuilder {
     pw.Font boldFont,
     pw.Font regularFont,
   ) {
+    final hasReturns = report.totalReturns > 0;
     final headers = [
+      if (hasReturns) 'صافي المبيعات',
+      if (hasReturns) 'إجمالي المرتجعات',
       'إجمالي المصروفات',
       'عدد الفواتير',
       'إجمالي التحصيل',
       'إجمالي المبيعات'
     ];
     final values = [
+      if (hasReturns) '${report.netSales.toStringAsFixed(2)} ج.م',
+      if (hasReturns) '${report.totalReturns.toStringAsFixed(2)} ج.م',
       '${report.totalExpenses.toStringAsFixed(2)} ج.م',
       '${report.invoiceCount}',
       '${report.totalCollections.toStringAsFixed(2)} ج.م',
