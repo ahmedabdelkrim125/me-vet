@@ -6,6 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/pdf_page_background.dart';
 
+const _pdfOrange = 0xFFE0862F;
+
 class InvoicePdfLineItem {
   final String name;
   final int quantity;
@@ -52,6 +54,7 @@ class InvoicePdfBuilder {
   static final _navy = PdfColor.fromInt(AppColors.primary.value);
   static final _green = PdfColor.fromInt(AppColors.primaryGreen.value);
   static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
+  static const _orange = PdfColor.fromInt(_pdfOrange);
 
   static Future<Uint8List> build(InvoicePdfData data) async {
     final document = pw.Document();
@@ -93,6 +96,7 @@ class InvoicePdfBuilder {
                   ..._buildChunkWidgets(chunks, boldFont, regularFont),
                   pw.SizedBox(height: 18),
                   _buildTotalsTable(data, boldFont),
+                  _buildPaymentStatusNote(data, boldFont),
                 ],
               ),
             ),
@@ -254,68 +258,120 @@ class InvoicePdfBuilder {
   }
 
   static pw.Widget _buildTotalsTable(InvoicePdfData data, pw.Font boldFont) {
-    final headers = [
-      'المبلغ المتبقي',
-      'المبلغ المدفوع',
-      'إجمالي الحساب',
-      'الحساب السابق',
-      'إجمالي الفاتورة',
-    ];
-    final values = [
-      data.remaining.toStringAsFixed(0),
-      data.paidNow.toStringAsFixed(0),
-      data.totalDue.toStringAsFixed(0),
-      data.previousBalance.toStringAsFixed(0),
-      data.invoiceTotal.toStringAsFixed(0),
+    final rows = <(String, double)>[
+      ('قيمة الفاتورة الحالية', data.invoiceTotal),
+      ('الحساب السابق', data.previousBalance),
+      ('إجمالي المستحق على العميل', data.totalDue),
+      ('المدفوع الآن', data.paidNow),
+      ('المتبقي على العميل', data.remaining),
     ];
 
     return pw.Table(
       border: pw.TableBorder.all(color: _border, width: 0.6),
       children: [
-        pw.TableRow(
-          decoration: pw.BoxDecoration(color: _navy),
-          children: headers
-              .map(
-                (h) => pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 4,
-                  ),
-                  child: pw.Text(
-                    h,
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      font: boldFont,
-                      fontSize: 9.5,
-                      color: PdfColors.white,
-                    ),
+        for (var i = 0; i < rows.length; i++)
+          pw.TableRow(
+            decoration: pw.BoxDecoration(
+              color: i.isOdd ? PdfColors.grey50 : PdfColors.white,
+            ),
+            children: [
+              pw.Padding(
+                padding:
+                    const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                child: pw.Text(
+                  rows[i].$1,
+                  textAlign: pw.TextAlign.start,
+                  style: pw.TextStyle(font: boldFont, fontSize: 10.5),
+                ),
+              ),
+              pw.Padding(
+                padding:
+                    const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                child: pw.Text(
+                  '${_formatAmount(rows[i].$2)} ج.م',
+                  textAlign: pw.TextAlign.end,
+                  style: pw.TextStyle(
+                    font: boldFont,
+                    fontSize: 11,
+                    color: _navy,
                   ),
                 ),
-              )
-              .toList(),
-        ),
-        pw.TableRow(
-          children: values
-              .map(
-                (v) => pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 4,
-                  ),
-                  child: pw.Text(
-                    '$v ج.م',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      font: boldFont,
-                      fontSize: 11,
-                      color: _navy,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
+              ),
+            ],
+          ),
       ],
+    );
+  }
+
+  /// نفس تفاصيل الحساب الظاهرة في شاشة الفاتورة:
+  /// حالة التحصيل (مسدد بالكامل / تحصيل جزئي / آجلة بدون تحصيل).
+  static pw.Widget _buildPaymentStatusNote(
+      InvoicePdfData data, pw.Font boldFont) {
+    final fullyPaid = (data.remaining.abs() <= 0.01) && data.paidNow > 0;
+    final fullyDeferred = data.paidNow <= 0.005;
+
+    String note;
+    PdfColor color;
+    if (fullyPaid) {
+      note = 'تم تحصيل كامل المبلغ المستحق — الحساب مسدد بالكامل';
+      color = _green;
+    } else if (fullyDeferred) {
+      note =
+          'لم يتم تحصيل أي مبلغ — الفاتورة آجلة بالكامل والمبلغ مستحق على العميل';
+      color = _orange;
+    } else {
+      note =
+          'تم تحصيل جزء من المبلغ — المتبقي (${_formatAmount(data.remaining)} ج.م) مستحق على العميل';
+      color = _orange;
+    }
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 10),
+      padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      decoration: pw.BoxDecoration(
+        color: _tint(color, 0.12),
+        border: pw.Border.all(color: _tint(color, 0.45)),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+      ),
+      child: pw.Row(
+        children: [
+          pw.Container(
+            width: 7,
+            height: 7,
+            decoration:
+                pw.BoxDecoration(color: color, shape: pw.BoxShape.circle),
+          ),
+          pw.SizedBox(width: 8),
+          pw.Expanded(
+            child: pw.Text(
+              note,
+              style: pw.TextStyle(font: boldFont, fontSize: 10, color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatAmount(double value) {
+    final whole = value.abs().truncate();
+    final digits = whole.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i != 0 && (digits.length - i) % 3 == 0) buffer.write(',');
+      buffer.write(digits[i]);
+    }
+    var out = (value < 0 ? '-' : '') + buffer.toString();
+    final decimals = (value.abs() - whole);
+    if (decimals > 0.005) {
+      out += '.${(decimals * 100).round().toString().padLeft(2, '0')}';
+    }
+    return out;
+  }
+
+  static PdfColor _tint(PdfColor color, double opacity) {
+    return PdfColor.fromInt(
+      color.toInt() & 0x00FFFFFF | ((opacity * 255).round() << 24),
     );
   }
 

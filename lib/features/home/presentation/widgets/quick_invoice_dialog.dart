@@ -127,7 +127,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   late final String invoiceNumber;
   DateTime now = DateTime.now();
   late DateTime invoiceDate = DateTime(now.year, now.month, now.day);
-  String saleType = 'آجل';
 
   InvoiceCustomerModel? customer;
   final List<InvoiceLineItemModel> lineItems = [];
@@ -320,20 +319,19 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       return;
     }
     final total = grandTotal;
-    final isDeferredSale = saleType != 'نقدي';
 
     final paid = paidNow;
     if (paid < 0) {
       _toast('المبلغ المدفوع غير صحيح');
       return;
     }
-    if (!isDeferredSale && (paid - total).abs() > 0.01) {
-      _toast('المبلغ المدفوع في حالة الدفع النقدي يجب أن يطابق الإجمالي');
+    if (paid > totalDue + 0.01) {
+      _toast('المبلغ المدفوع يتجاوز إجمالي المستحق على العميل');
       return;
     }
-    if (isDeferredSale && paid > totalDue + 0.01) {
-      _toast('المبلغ المدفوع يتجاوز الرصيد المستحق');
-      return;
+    if (paid <= 0.005) {
+      final confirmed = await _confirmFullyDeferredInvoice();
+      if (!confirmed || !mounted) return;
     }
     if (paid > 0 && !_splitPaymentMethods && _paymentMethod == null) {
       _toast('اختر طريقة الدفع');
@@ -377,7 +375,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                 ))
             .toList(),
         discountAmount: discountAmount,
-        isCashSale: !isDeferredSale,
+        isCashSale: false,
         paidNow: paid,
         paymentMethod:
             paid > 0 && !_splitPaymentMethods ? _paymentMethod : null,
@@ -413,7 +411,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     widget.onIssued?.call(IssuedInvoiceInfo(
       invoiceNumber: invoiceNumber,
       amount: total,
-      saleType: saleType,
       date: invoiceDate,
     ));
 
@@ -422,6 +419,77 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       context,
       'تم إصدار الفاتورة بنجاح: $invoiceNumber',
     );
+  }
+
+  /// تنبيه قبل إصدار فاتورة بدون أي تحصيل (المدفوع الآن = 0):
+  /// الفاتورة هتتسجل آجلة بالكامل والمبلغ كاملًا هيتضاف لرصيد العميل.
+  Future<bool> _confirmFullyDeferredInvoice() async {
+    final colors = context.colors;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: colors.statOrange, size: 22.sp),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                'فاتورة آجلة بدون تحصيل',
+                style: AppTextStyles.cairoBold18
+                    .copyWith(color: colors.text, fontSize: 15.sp),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'العميل لم يدفع أي مبلغ (المدفوع الآن = 0).',
+              style: AppTextStyles.almaraiRegular14
+                  .copyWith(color: colors.text, fontSize: 12.5.sp),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'سيتم تسجيل الفاتورة كفاتورة آجلة بالكامل، وإضافة مبلغ ${_money(totalDue)} بالكامل إلى رصيد العميل المستحق.',
+              style: AppTextStyles.almaraiRegular14
+                  .copyWith(color: colors.statOrange, fontSize: 12.sp),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(
+              'رجوع',
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: colors.textMuted, fontSize: 13.sp),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r)),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              'تأكيد وإصدار الفاتورة',
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: Colors.white, fontSize: 13.sp),
+            ),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
   }
 
   void _toast(String message) {
@@ -514,9 +582,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                           date: invoiceDate,
                           onPickDate: _pickDate,
                           invoiceNumber: invoiceNumber,
-                          saleType: saleType,
-                          onSaleTypeChanged: (v) =>
-                              setState(() => saleType = v),
                         ),
                       ),
                       SizedBox(height: 14.h),
@@ -578,7 +643,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                             paidController: paidNowController,
                             onPaidChanged: (_) => setState(() {}),
                             remaining: remainingBalance,
-                            saleType: saleType,
                           ),
                         ),
                         if (paidNow > 0) ...[
@@ -1117,15 +1181,11 @@ class _InvoiceMetaSection extends StatelessWidget {
   final DateTime date;
   final VoidCallback onPickDate;
   final String invoiceNumber;
-  final String saleType;
-  final ValueChanged<String> onSaleTypeChanged;
 
   const _InvoiceMetaSection({
     required this.date,
     required this.onPickDate,
     required this.invoiceNumber,
-    required this.saleType,
-    required this.onSaleTypeChanged,
   });
 
   @override
@@ -1153,34 +1213,6 @@ class _InvoiceMetaSection extends StatelessWidget {
                 label: 'رقم الفاتورة',
                 value: invoiceNumber,
                 icon: Icons.tag_rounded,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 12.h),
-        Text(
-          'نوع البيع',
-          style: AppTextStyles.almaraiRegular14
-              .copyWith(color: colors.textMuted, fontSize: 12.sp),
-        ),
-        SizedBox(height: 8.h),
-        Row(
-          children: [
-            Expanded(
-              child: _SaleTypeOption(
-                label: 'نقدي',
-                icon: Icons.payments_outlined,
-                selected: saleType == 'نقدي',
-                onTap: () => onSaleTypeChanged('نقدي'),
-              ),
-            ),
-            SizedBox(width: 10.w),
-            Expanded(
-              child: _SaleTypeOption(
-                label: 'آجل',
-                icon: Icons.schedule_outlined,
-                selected: saleType == 'آجل',
-                onTap: () => onSaleTypeChanged('آجل'),
               ),
             ),
           ],
@@ -1278,52 +1310,6 @@ class _StaticField extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SaleTypeOption extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _SaleTypeOption({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Material(
-      color: selected ? colors.primary : colors.background,
-      borderRadius: BorderRadius.circular(12.r),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12.r),
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 10.h),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon,
-                  size: 15.sp,
-                  color: selected ? Colors.white : colors.textMuted),
-              SizedBox(width: 6.w),
-              Text(
-                label,
-                style: AppTextStyles.cairoMedium16.copyWith(
-                  color: selected ? Colors.white : colors.text,
-                  fontSize: 12.sp,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1686,6 +1672,86 @@ class _InvoicePagination extends StatelessWidget {
   }
 }
 
+/// حقل إدخال يدوي لكمية المنتج بجانب أزرار + و -،
+/// لتسهيل إدخال الكميات الكبيرة مباشرة (مثل 1000) بدل الضغط المتكرر.
+class _QuantityField extends StatefulWidget {
+  final int quantity;
+  final ValueChanged<int> onQuantityChanged;
+
+  const _QuantityField({
+    required this.quantity,
+    required this.onQuantityChanged,
+  });
+
+  @override
+  State<_QuantityField> createState() => _QuantityFieldState();
+}
+
+class _QuantityFieldState extends State<_QuantityField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '${widget.quantity}');
+  }
+
+  @override
+  void didUpdateWidget(covariant _QuantityField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final parsed = int.tryParse(_controller.text);
+    // حدّث نص الحقل لو الكمية تغيّرت من الأزرار أو من مصدر خارجي،
+    // وسيب النص كما هو لو المستخدم بيكتبه حاليًا.
+    if (parsed != widget.quantity) {
+      _controller.text = '${widget.quantity}';
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      width: 46.w,
+      height: 30.h,
+      margin: EdgeInsets.symmetric(horizontal: 4.w),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: colors.border),
+      ),
+      alignment: Alignment.center,
+      child: TextField(
+        controller: _controller,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        textAlignVertical: TextAlignVertical.center,
+        style: AppTextStyles.cairoMedium16
+            .copyWith(color: colors.text, fontSize: 12.sp),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+        ],
+        decoration: const InputDecoration(
+          isDense: true,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
+        onChanged: (value) {
+          final qty = int.tryParse(value.trim());
+          if (qty != null && qty >= 0) {
+            widget.onQuantityChanged(qty);
+          }
+        },
+      ),
+    );
+  }
+}
+
 class _StepButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -1797,12 +1863,9 @@ class _LineItemTile extends StatelessWidget {
           _StepButton(
               icon: Icons.remove_rounded,
               onTap: () => onQuantityChanged(item.quantity - 1)),
-          Container(
-            width: 30.w,
-            alignment: Alignment.center,
-            child: Text('${item.quantity}',
-                style: AppTextStyles.cairoMedium16
-                    .copyWith(color: colors.text, fontSize: 12.sp)),
+          _QuantityField(
+            quantity: item.quantity,
+            onQuantityChanged: onQuantityChanged,
           ),
           _StepButton(
               icon: Icons.add_rounded,
@@ -2256,7 +2319,6 @@ class _AccountSummarySection extends StatelessWidget {
   final TextEditingController paidController;
   final ValueChanged<String> onPaidChanged;
   final double remaining;
-  final String saleType;
 
   const _AccountSummarySection({
     required this.previousBalance,
@@ -2264,22 +2326,19 @@ class _AccountSummarySection extends StatelessWidget {
     required this.paidController,
     required this.onPaidChanged,
     required this.remaining,
-    required this.saleType,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final totalDue = previousBalance + invoiceTotal;
-    final isSettled = remaining <= 0;
+    final isSettled = remaining <= 0.005;
     final paid = double.tryParse(paidController.text) ?? 0;
-    final isCash = saleType == 'نقدي';
+    final isFullyDeferred = paid <= 0.005;
 
-    final String? warning = isCash && (paid - invoiceTotal).abs() > 0.01
-        ? 'المبلغ المدفوع في حالة الدفع النقدي يجب أن يطابق إجمالي الفاتورة (${_money(invoiceTotal)}) تماماً'
-        : !isCash && paid > totalDue + 0.01
-            ? 'المبلغ المدفوع يتجاوز إجمالي المستحق على العميل'
-            : null;
+    final String? warning = paid > totalDue + 0.01
+        ? 'المبلغ المدفوع يتجاوز إجمالي المستحق على العميل'
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2291,29 +2350,24 @@ class _AccountSummarySection extends StatelessWidget {
         SizedBox(height: 12.h),
         _TotalsRow(label: 'قيمة الفاتورة الحالية', value: _money(invoiceTotal)),
         SizedBox(height: 8.h),
-        _TotalsRow(label: 'حساب سابق', value: _money(previousBalance)),
+        _TotalsRow(label: 'الحساب السابق', value: _money(previousBalance)),
         SizedBox(height: 10.h),
         Divider(height: 1, color: colors.border),
         SizedBox(height: 10.h),
         _TotalsRow(label: 'إجمالي المستحق على العميل', value: _money(totalDue)),
         SizedBox(height: 14.h),
-        Row(
-          children: [
-            Text('المدفوع الآن',
-                style: AppTextStyles.almaraiRegular14
-                    .copyWith(color: colors.textMuted, fontSize: 12.sp)),
-            if (isCash) ...[
-              SizedBox(width: 8.w),
-              Text('(نقدي - ملزم بتسديد كامل الفاتورة)',
-                  style: AppTextStyles.almaraiRegular14
-                      .copyWith(color: colors.statOrange, fontSize: 10.sp)),
-            ],
-          ],
+        Text(
+          'المدفوع الآن',
+          style: AppTextStyles.almaraiRegular14
+              .copyWith(color: colors.textMuted, fontSize: 12.sp),
         ),
         SizedBox(height: 6.h),
         TextField(
           controller: paidController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+          ],
           onChanged: onPaidChanged,
           style: AppTextStyles.cairoMedium16.copyWith(color: colors.text),
           decoration: InputDecoration(
@@ -2342,17 +2396,15 @@ class _AccountSummarySection extends StatelessWidget {
             ),
             contentPadding:
                 EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-            suffixIcon: isCash
-                ? TextButton(
-                    onPressed: () {
-                      paidController.text = invoiceTotal.toStringAsFixed(2);
-                      onPaidChanged(paidController.text);
-                    },
-                    child: Text('تعبئة كاملة',
-                        style: AppTextStyles.cairoMedium16
-                            .copyWith(color: colors.primary, fontSize: 11.sp)),
-                  )
-                : null,
+            suffixIcon: TextButton(
+              onPressed: () {
+                paidController.text = totalDue.toStringAsFixed(2);
+                onPaidChanged(paidController.text);
+              },
+              child: Text('تعبئة كاملة',
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(color: colors.primary, fontSize: 11.sp)),
+            ),
           ),
         ),
         if (warning != null) ...[
@@ -2371,6 +2423,32 @@ class _AccountSummarySection extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+        if (isFullyDeferred) ...[
+          SizedBox(height: 10.h),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: colors.statOrange.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: colors.statOrange.withOpacity(0.4)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.schedule_rounded,
+                    size: 16.sp, color: colors.statOrange),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    'العميل لم يدفع أي مبلغ — سيتم تسجيل الفاتورة كفاتورة آجلة بالكامل وإضافة ${_money(totalDue)} إلى رصيد العميل المستحق.',
+                    style: AppTextStyles.almaraiRegular14.copyWith(
+                        color: colors.statOrange, fontSize: 11.sp),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
         SizedBox(height: 14.h),
