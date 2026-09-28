@@ -32,7 +32,6 @@ class InvoiceFullDetail {
   final double discountAmount;
   final double totalAmount;
   final double paidNow;
-  final String saleType;
   final String statusLabel;
   final String? notes;
   final List<InvoiceItemRow> items;
@@ -49,7 +48,6 @@ class InvoiceFullDetail {
     required this.discountAmount,
     required this.totalAmount,
     required this.paidNow,
-    required this.saleType,
     required this.statusLabel,
     required this.notes,
     required this.items,
@@ -250,7 +248,6 @@ class InvoicesRepository {
       discountAmount: (invoice['discount_amount'] as num?)?.toDouble() ?? 0,
       totalAmount: (invoice['total_amount'] as num).toDouble(),
       paidNow: (invoice['paid_now'] as num).toDouble(),
-      saleType: invoice['sale_type'] == 'cash' ? 'نقدي' : 'آجل',
       statusLabel: _statusLabelFromDb(
         invoice['status'] as String?,
       ),

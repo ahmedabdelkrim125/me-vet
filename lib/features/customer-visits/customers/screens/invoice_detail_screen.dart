@@ -125,7 +125,9 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
         previousBalance: widget.previousBalanceAtView,
         totalDue: detail.totalAmount + widget.previousBalanceAtView,
         paidNow: detail.paidNow,
-        remaining: detail.remaining,
+        // الدفع الزائد عن قيمة الفاتورة بيروح لرصيد العميل (سالب في الداتابيز)،
+        // لكن عرضه في الفاتورة لازم يفضل 0 زي ما الويذجت بيعمل.
+        remaining: detail.remaining < 0 ? 0 : detail.remaining,
       ),
     );
   }
@@ -294,10 +296,6 @@ class _DetailBody extends StatelessWidget {
                   '${detail.date.year}/${detail.date.month.toString().padLeft(2, '0')}/${detail.date.day.toString().padLeft(2, '0')}',
             ),
             _InfoRow(
-              label: 'نوع البيع',
-              value: detail.saleType,
-            ),
-            _InfoRow(
               label: 'الحالة',
               value: detail.statusLabel,
             ),
@@ -331,12 +329,13 @@ class _DetailBody extends StatelessWidget {
               highlight: true,
             ),
             _InfoRow(
-              label: 'المدفوع',
+              label: 'المدفوع الآن',
               value: '${detail.paidNow.toStringAsFixed(0)} ج.م',
             ),
             _InfoRow(
-              label: 'المتبقي',
-              value: '${detail.remaining.toStringAsFixed(0)} ج.م',
+              label: 'المتبقي على العميل',
+              value:
+                  '${(detail.remaining < 0 ? 0 : detail.remaining).toStringAsFixed(0)} ج.م',
             ),
           ],
         ),

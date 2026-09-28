@@ -95,7 +95,7 @@ class InvoicePdfBuilder {
                   pw.SizedBox(height: 18),
                   ..._buildChunkWidgets(chunks, boldFont, regularFont),
                   pw.SizedBox(height: 18),
-                  _buildTotalsTable(data, boldFont),
+                  _buildTotalsTable(data, boldFont, regularFont),
                   _buildPaymentStatusNote(data, boldFont),
                 ],
               ),
@@ -257,45 +257,71 @@ class InvoicePdfBuilder {
     return widgets;
   }
 
-  static pw.Widget _buildTotalsTable(InvoicePdfData data, pw.Font boldFont) {
-    final rows = <(String, double)>[
-      ('قيمة الفاتورة الحالية', data.invoiceTotal),
-      ('الحساب السابق', data.previousBalance),
-      ('إجمالي المستحق على العميل', data.totalDue),
-      ('المدفوع الآن', data.paidNow),
-      ('المتبقي على العميل', data.remaining),
+  static pw.Widget _buildTotalsTable(
+    InvoicePdfData data,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    // نفس تفاصيل الحساب الظاهرة في شاشة إنشاء الفاتورة، وصف المتبقي
+    // مميز بخلفية كحلي زي صندوق "الرصيد الحالي" في كشف حساب العميل.
+    final rows = <(String, double, bool)>[
+      ('قيمة الفاتورة الحالية', data.invoiceTotal, false),
+      ('الحساب السابق', data.previousBalance, false),
+      ('إجمالي المستحق على العميل', data.totalDue, false),
+      ('المدفوع الآن', data.paidNow, false),
+      ('المتبقي على العميل', data.remaining, true),
     ];
+
+    pw.Widget cell(
+      String text,
+      pw.TextAlign align,
+      pw.Font font,
+      double fontSize,
+      PdfColor color,
+    ) {
+      return pw.Padding(
+        padding:
+            const pw.EdgeInsets.symmetric(vertical: 7, horizontal: 8),
+        child: pw.Text(
+          text,
+          textAlign: align,
+          style: pw.TextStyle(font: font, fontSize: fontSize, color: color),
+        ),
+      );
+    }
 
     return pw.Table(
       border: pw.TableBorder.all(color: _border, width: 0.6),
+      columnWidths: const {
+        0: pw.FlexColumnWidth(2),
+        1: pw.FlexColumnWidth(1.2),
+      },
       children: [
-        for (var i = 0; i < rows.length; i++)
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: _navy),
+          children: [
+            cell('البيان', pw.TextAlign.start, boldFont, 9.5, PdfColors.white),
+            cell('القيمة', pw.TextAlign.end, boldFont, 9.5, PdfColors.white),
+          ],
+        ),
+        for (final row in rows)
           pw.TableRow(
-            decoration: pw.BoxDecoration(
-              color: i.isOdd ? PdfColors.grey50 : PdfColors.white,
-            ),
+            decoration:
+                pw.BoxDecoration(color: row.$3 ? _navy : PdfColors.white),
             children: [
-              pw.Padding(
-                padding:
-                    const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                child: pw.Text(
-                  rows[i].$1,
-                  textAlign: pw.TextAlign.start,
-                  style: pw.TextStyle(font: boldFont, fontSize: 10.5),
-                ),
+              cell(
+                row.$1,
+                pw.TextAlign.start,
+                row.$3 ? boldFont : regularFont,
+                10,
+                row.$3 ? PdfColors.white : PdfColors.black,
               ),
-              pw.Padding(
-                padding:
-                    const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                child: pw.Text(
-                  '${_formatAmount(rows[i].$2)} ج.م',
-                  textAlign: pw.TextAlign.end,
-                  style: pw.TextStyle(
-                    font: boldFont,
-                    fontSize: 11,
-                    color: _navy,
-                  ),
-                ),
+              cell(
+                '${_formatAmount(row.$2)} ج.م',
+                pw.TextAlign.end,
+                boldFont,
+                11,
+                row.$3 ? PdfColors.white : _navy,
               ),
             ],
           ),
@@ -321,23 +347,23 @@ class InvoicePdfBuilder {
       color = _orange;
     } else {
       note =
-          'تم تحصيل جزء من المبلغ — المتبقي (${_formatAmount(data.remaining)} ج.م) مستحق على العميل';
+          'تحصيل جزئي — المتبقي (${_formatAmount(data.remaining)} ج.م) مستحق على العميل';
       color = _orange;
     }
 
     return pw.Container(
       margin: const pw.EdgeInsets.only(top: 10),
-      padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      padding: const pw.EdgeInsets.symmetric(vertical: 7, horizontal: 10),
       decoration: pw.BoxDecoration(
-        color: _tint(color, 0.12),
+        color: _tint(color, 0.10),
         border: pw.Border.all(color: _tint(color, 0.45)),
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
       ),
       child: pw.Row(
         children: [
           pw.Container(
-            width: 7,
-            height: 7,
+            width: 6,
+            height: 6,
             decoration:
                 pw.BoxDecoration(color: color, shape: pw.BoxShape.circle),
           ),
@@ -345,7 +371,7 @@ class InvoicePdfBuilder {
           pw.Expanded(
             child: pw.Text(
               note,
-              style: pw.TextStyle(font: boldFont, fontSize: 10, color: color),
+              style: pw.TextStyle(font: boldFont, fontSize: 9.5, color: color),
             ),
           ),
         ],
@@ -369,10 +395,10 @@ class InvoicePdfBuilder {
     return out;
   }
 
+  /// نسخة شفافة من اللون. `PdfColor.fromInt` بيتجاهل بايت الشفافية،
+  /// فبناء اللون بالقنوات مباشرة هو الطريقة الصحيحة للـ tint.
   static PdfColor _tint(PdfColor color, double opacity) {
-    return PdfColor.fromInt(
-      color.toInt() & 0x00FFFFFF | ((opacity * 255).round() << 24),
-    );
+    return PdfColor(color.red, color.green, color.blue, opacity);
   }
 
   static String _formatDate(DateTime date) {
