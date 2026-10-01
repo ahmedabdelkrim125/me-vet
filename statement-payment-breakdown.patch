@@ -1,0 +1,751 @@
+diff --git a/lib/features/customer_account/data/repositories/payment_breakdown_repository.dart b/lib/features/customer_account/data/repositories/payment_breakdown_repository.dart
+new file mode 100644
+index 0000000..f69ada0
+--- /dev/null
++++ b/lib/features/customer_account/data/repositories/payment_breakdown_repository.dart
+@@ -0,0 +1,31 @@
++import 'package:supabase_flutter/supabase_flutter.dart';
++
++import '../../domain/entities/payment_breakdown.dart';
++
++/// Reads how each payment of a customer was split between the invoice issued
++/// with it and older debt. Read-only.
++class PaymentBreakdownRepository {
++  PaymentBreakdownRepository._();
++
++  static final PaymentBreakdownRepository instance =
++      PaymentBreakdownRepository._();
++
++  SupabaseClient get _supabase => Supabase.instance.client;
++
++  /// Newest payment first.
++  Future<List<PaymentBreakdown>> getForCustomer(
++    String customerId, {
++    DateTime? from,
++    DateTime? to,
++  }) async {
++    final rows = await _supabase.rpc(
++      'get_customer_payment_breakdown',
++      params: {
++        'p_customer_id': customerId,
++        'p_from': from?.toUtc().toIso8601String(),
++        'p_to': to?.toUtc().toIso8601String(),
++      },
++    );
++    return PaymentBreakdown.fromRows(rows as List<dynamic>);
++  }
++}
+diff --git a/lib/features/customer_account/domain/customer_statement_pdf_builder.dart b/lib/features/customer_account/domain/customer_statement_pdf_builder.dart
+index 591f374..2f5ba17 100644
+--- a/lib/features/customer_account/domain/customer_statement_pdf_builder.dart
++++ b/lib/features/customer_account/domain/customer_statement_pdf_builder.dart
+@@ -2,21 +2,25 @@ import 'dart:typed_data';
+ import 'package:flutter/services.dart' show rootBundle;
+ import 'package:mivet_app/core/theme/app_colors.dart';
+ import 'package:mivet_app/core/theme/app_text_styles.dart';
++import 'package:mivet_app/core/utils/pdf_page_background.dart';
+ import 'package:pdf/pdf.dart';
+ import 'package:pdf/widgets.dart' as pw;
+ 
+ import 'customer_statement.dart';
+ import 'entities/customer_transaction.dart';
++import 'entities/payment_breakdown.dart';
+ 
+ class CustomerStatementPdfBuilder {
+   CustomerStatementPdfBuilder._();
+ 
+   static final _navy = PdfColor.fromInt(AppColors.primary.value);
++  static final _green = PdfColor.fromInt(AppColors.primaryGreen.value);
+   static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
+ 
+   static Future<Uint8List> build({
+     required String customerName,
+     required CustomerStatement statement,
++    List<PaymentBreakdown> payments = const [],
+   }) async {
+     final document = pw.Document();
+ 
+@@ -29,6 +33,12 @@ class CustomerStatementPdfBuilder {
+     final regularFont = pw.Font.ttf(regularFontData);
+     final boldFont = pw.Font.ttf(boldFontData);
+ 
++    // Keyed by the payment's own code, so each payment transaction row can
++    // look up how it was split between its own invoice and older debt.
++    final paymentsByCode = <String, PaymentBreakdown>{
++      for (final p in payments) p.code: p,
++    };
++
+     document.addPage(
+       pw.MultiPage(
+         // A big statement must be allowed to flow over many pages.
+@@ -41,29 +51,25 @@ class CustomerStatementPdfBuilder {
+           // pw.Directionality widget: it cannot be split across pages, so a
+           // long table throws TooManyPagesException.
+           textDirection: pw.TextDirection.rtl,
+-          // Explicit white page (a PDF page is transparent by default).
+-          buildBackground: (context) => pw.FullPage(
+-            ignoreMargins: true,
+-            child: pw.Container(color: PdfColors.white),
+-          ),
++          buildBackground: (context) =>
++              buildWhitePdfBackground(watermarkBytes: null),
++        ),
++        footer: (context) => pw.Column(
++          children: [pw.Divider(color: _green, thickness: 1)],
+         ),
+         // Top-level children of MultiPage: the table is splittable, so it
+         // continues on the next page (its header row repeats).
+         build: (context) => [
+-          pw.Text('كشف حساب العميل',
+-              style: pw.TextStyle(font: boldFont, fontSize: 18, color: _navy)),
+-          pw.SizedBox(height: 6),
+-          pw.Text(customerName,
+-              style: pw.TextStyle(font: boldFont, fontSize: 13)),
+-          pw.SizedBox(height: 4),
++          _buildTitle(customerName, boldFont),
++          pw.SizedBox(height: 14),
+           pw.Text(
+             'الفترة: من ${_date(statement.periodStart)} إلى ${_date(statement.periodEnd)}',
+-            style: pw.TextStyle(font: regularFont, fontSize: 10),
++            style: pw.TextStyle(font: boldFont, fontSize: 11),
+           ),
+           pw.SizedBox(height: 14),
+           _buildSummary(statement, boldFont, regularFont),
+-          pw.SizedBox(height: 14),
+-          _buildTable(statement.transactions, boldFont, regularFont),
++          pw.SizedBox(height: 18),
++          _buildTable(statement.transactions, paymentsByCode, boldFont, regularFont),
+         ],
+       ),
+     );
+@@ -71,6 +77,24 @@ class CustomerStatementPdfBuilder {
+     return document.save();
+   }
+ 
++  static pw.Widget _buildTitle(String customerName, pw.Font boldFont) {
++    return pw.Center(
++      child: pw.Column(
++        children: [
++          pw.Text(
++            'كشف حساب العميل',
++            style: pw.TextStyle(font: boldFont, fontSize: 20, color: _navy),
++          ),
++          pw.SizedBox(height: 4),
++          pw.Text(
++            customerName,
++            style: pw.TextStyle(font: boldFont, fontSize: 11, color: _green),
++          ),
++        ],
++      ),
++    );
++  }
++
+   static pw.Widget _buildSummary(
+     CustomerStatement s,
+     pw.Font boldFont,
+@@ -96,7 +120,7 @@ class CustomerStatementPdfBuilder {
+                   style: pw.TextStyle(
+                       font: boldFont,
+                       fontSize: 11,
+-                      color: highlight ? PdfColors.white : PdfColors.black)),
++                      color: highlight ? PdfColors.white : _navy)),
+             ],
+           ),
+         ),
+@@ -115,6 +139,7 @@ class CustomerStatementPdfBuilder {
+ 
+   static pw.Widget _buildTable(
+     List<CustomerTransaction> transactions,
++    Map<String, PaymentBreakdown> paymentsByCode,
+     pw.Font boldFont,
+     pw.Font regularFont,
+   ) {
+@@ -132,19 +157,28 @@ class CustomerStatementPdfBuilder {
+       final d = t.occurredAt.toLocal();
+       final time =
+           '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+-      return [
+-        _money(t.balanceAfter),
+-        t.credit > 0 ? _money(t.credit) : '-',
+-        t.debit > 0 ? _money(t.debit) : '-',
+-        time,
+-        _date(d),
+-        t.referenceCode ?? '-',
+-        t.type.label,
+-      ];
++      return (
++        balanceAfter: _money(t.balanceAfter),
++        credit: t.credit > 0 ? _money(t.credit) : '-',
++        debit: t.debit > 0 ? _money(t.debit) : '-',
++        time: time,
++        date: _date(d),
++        reference: _referenceText(t, paymentsByCode),
++        type: t.type.label,
++      );
+     }).toList();
+ 
+     return pw.Table(
+       border: pw.TableBorder.all(color: _border, width: 0.6),
++      columnWidths: const {
++        0: pw.FlexColumnWidth(1.3),
++        1: pw.FlexColumnWidth(1),
++        2: pw.FlexColumnWidth(1),
++        3: pw.FlexColumnWidth(0.9),
++        4: pw.FlexColumnWidth(1.1),
++        5: pw.FlexColumnWidth(2.2),
++        6: pw.FlexColumnWidth(1),
++      },
+       children: [
+         pw.TableRow(
+           repeat: true,
+@@ -164,22 +198,53 @@ class CustomerStatementPdfBuilder {
+         ),
+         for (final row in rows)
+           pw.TableRow(
+-            children: row
+-                .map((cell) => pw.Padding(
+-                      padding: const pw.EdgeInsets.symmetric(
+-                          vertical: 5, horizontal: 3),
+-                      child: pw.Text(
+-                        cell,
+-                        textAlign: pw.TextAlign.center,
+-                        style: pw.TextStyle(font: regularFont, fontSize: 8),
+-                      ),
+-                    ))
+-                .toList(),
++            children: [
++              _cell(row.balanceAfter, regularFont),
++              _cell(row.credit, regularFont),
++              _cell(row.debit, regularFont),
++              _cell(row.time, regularFont),
++              _cell(row.date, regularFont),
++              _cell(row.reference, regularFont),
++              _cell(row.type, regularFont),
++            ],
+           ),
+       ],
+     );
+   }
+ 
++  static pw.Widget _cell(String text, pw.Font font) {
++    return pw.Padding(
++      padding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 3),
++      child: pw.Text(
++        text,
++        textAlign: pw.TextAlign.center,
++        style: pw.TextStyle(font: font, fontSize: 8),
++      ),
++    );
++  }
++
++  /// The transaction's reference code, plus — for a payment split between the
++  /// invoice issued with it and older debt — one extra line per invoice it
++  /// was applied to, so the breakdown is visible without leaving the table.
++  static String _referenceText(
++    CustomerTransaction t,
++    Map<String, PaymentBreakdown> paymentsByCode,
++  ) {
++    final code = t.referenceCode ?? '-';
++    if (t.type != CustomerTransactionType.payment) return code;
++
++    final breakdown = paymentsByCode[t.referenceCode];
++    if (breakdown == null || breakdown.lines.length < 2) return code;
++
++    final lines = [code];
++    for (final line in breakdown.lines) {
++      final label = line.isOwnInvoice ? 'فاتورة' : 'دين قديم';
++      final target = line.invoiceCode ?? 'رصيد سابق';
++      lines.add('$label $target: ${_money(line.amount)}');
++    }
++    return lines.join('\n');
++  }
++
+   static String _date(DateTime d) =>
+       '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
+ 
+diff --git a/lib/features/customer_account/domain/entities/payment_breakdown.dart b/lib/features/customer_account/domain/entities/payment_breakdown.dart
+new file mode 100644
+index 0000000..5cf1ce0
+--- /dev/null
++++ b/lib/features/customer_account/domain/entities/payment_breakdown.dart
+@@ -0,0 +1,85 @@
++/// One line of a payment: how much of the money went where.
++class PaymentBreakdownLine {
++  final double amount;
++
++  /// `true` when the line paid the invoice that was issued together with the
++  /// payment (`new_invoice_payment`), `false` when it collected an older debt
++  /// (`old_debt_payment`).
++  final bool isOwnInvoice;
++
++  /// Code of the invoice this line was applied to. `null` when the money was
++  /// not matched to any invoice (an old balance without an invoice).
++  final String? invoiceCode;
++
++  const PaymentBreakdownLine({
++    required this.amount,
++    required this.isOwnInvoice,
++    this.invoiceCode,
++  });
++}
++
++/// A whole payment (one `split_group_id`): the total the customer paid, and
++/// the lines it was split into. Built from `get_customer_payment_breakdown`.
++class PaymentBreakdown {
++  final String groupId;
++
++  /// Base code of the payment (`PAY-2026-000349`). Matches the `referenceCode`
++  /// of the payment row in the customer ledger.
++  final String code;
++  final DateTime collectedAt;
++  final List<PaymentBreakdownLine> lines;
++
++  const PaymentBreakdown({
++    required this.groupId,
++    required this.code,
++    required this.collectedAt,
++    required this.lines,
++  });
++
++  double get total => lines.fold(0.0, (sum, l) => sum + l.amount);
++
++  List<PaymentBreakdownLine> get ownInvoiceLines =>
++      lines.where((l) => l.isOwnInvoice).toList();
++
++  List<PaymentBreakdownLine> get oldDebtLines =>
++      lines.where((l) => !l.isOwnInvoice).toList();
++
++  /// Code of the invoice issued together with this payment, if any.
++  String? get ownInvoiceCode {
++    for (final l in lines) {
++      if (l.isOwnInvoice && l.invoiceCode != null) return l.invoiceCode;
++    }
++    return null;
++  }
++
++  /// Groups the flat rows of `get_customer_payment_breakdown` by payment.
++  /// Keeps the order of the rows (newest payment first).
++  static List<PaymentBreakdown> fromRows(List<dynamic> rows) {
++    final order = <String>[];
++    final byGroup = <String, List<Map<String, dynamic>>>{};
++    for (final raw in rows) {
++      final row = raw as Map<String, dynamic>;
++      final key = row['group_id'] as String;
++      if (!byGroup.containsKey(key)) order.add(key);
++      byGroup.putIfAbsent(key, () => []).add(row);
++    }
++
++    return [
++      for (final key in order)
++        PaymentBreakdown(
++          groupId: key,
++          code: (byGroup[key]!.first['payment_code'] as String?) ?? '',
++          collectedAt:
++              DateTime.parse(byGroup[key]!.first['collected_at'] as String),
++          lines: [
++            for (final row in byGroup[key]!)
++              PaymentBreakdownLine(
++                amount: (row['amount'] as num).toDouble(),
++                isOwnInvoice: row['source'] == 'new_invoice_payment',
++                invoiceCode: row['invoice_code'] as String?,
++              ),
++          ],
++        ),
++    ];
++  }
++}
+diff --git a/lib/features/customer_account/presentation/screens/customer_invoices_screen.dart b/lib/features/customer_account/presentation/screens/customer_invoices_screen.dart
+index f76fea1..587db6e 100644
+--- a/lib/features/customer_account/presentation/screens/customer_invoices_screen.dart
++++ b/lib/features/customer_account/presentation/screens/customer_invoices_screen.dart
+@@ -1,3 +1,4 @@
++import 'package:flutter/foundation.dart';
+ import 'package:flutter/material.dart';
+ import 'package:mivet_app/core/errors/app_toast.dart';
+ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+@@ -7,6 +8,8 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
+ import 'package:mivet_app/features/customer-visits/customers/data/invoices_repository.dart';
+ import 'package:mivet_app/features/customer-visits/customers/domain/models/invoice_record_model.dart';
+ import 'package:mivet_app/features/customer-visits/customers/screens/invoice_detail_screen.dart';
++import 'package:mivet_app/features/customer_account/data/repositories/payment_breakdown_repository.dart';
++import 'package:mivet_app/features/customer_account/domain/entities/payment_breakdown.dart';
+ 
+ const _arabicMonths = [
+   '',
+@@ -55,6 +58,7 @@ class CustomerInvoicesScreen extends StatefulWidget {
+ 
+ class _CustomerInvoicesScreenState extends State<CustomerInvoicesScreen> {
+   List<InvoiceRecordModel> _invoices = const [];
++  List<PaymentBreakdown> _payments = const [];
+   bool _loading = true;
+   bool _showAll = false;
+ 
+@@ -67,11 +71,14 @@ class _CustomerInvoicesScreenState extends State<CustomerInvoicesScreen> {
+   Future<void> _load() async {
+     setState(() => _loading = true);
+     try {
+-      final invoices = await InvoicesRepository.instance
+-          .getInvoicesForCustomer(widget.customerId);
++      final results = await Future.wait([
++        InvoicesRepository.instance.getInvoicesForCustomer(widget.customerId),
++        _loadPayments(),
++      ]);
+       if (!mounted) return;
+       setState(() {
+-        _invoices = invoices;
++        _invoices = results[0] as List<InvoiceRecordModel>;
++        _payments = results[1] as List<PaymentBreakdown>;
+         _loading = false;
+       });
+     } catch (error) {
+@@ -81,6 +88,32 @@ class _CustomerInvoicesScreenState extends State<CustomerInvoicesScreen> {
+     }
+   }
+ 
++  /// The payment breakdown is an extra detail: if it cannot be loaded the
++  /// invoices are still shown.
++  Future<List<PaymentBreakdown>> _loadPayments() async {
++    try {
++      return await PaymentBreakdownRepository.instance
++          .getForCustomer(widget.customerId);
++    } catch (error) {
++      if (kDebugMode) debugPrint('[CustomerStatement] breakdown failed: $error');
++      return const [];
++    }
++  }
++
++  DateTime get _since =>
++      monthsBefore(DateTime.now(), CustomerInvoicesScreen.recentMonths);
++
++  /// Payments worth a row of their own: the ones that collected old debt, or
++  /// that were not tied to a new invoice. A payment that only paid the invoice
++  /// issued with it is already shown by that invoice's status.
++  List<PaymentBreakdown> get _visiblePayments {
++    return _payments.where((p) {
++      final worthARow = p.oldDebtLines.isNotEmpty || p.ownInvoiceLines.isEmpty;
++      if (!worthARow) return false;
++      return _showAll || !p.collectedAt.toLocal().isBefore(_since);
++    }).toList();
++  }
++
+   List<InvoiceRecordModel> get _visible {
+     if (_showAll) return _invoices;
+     final since =
+@@ -88,14 +121,21 @@ class _CustomerInvoicesScreenState extends State<CustomerInvoicesScreen> {
+     return _invoices.where((i) => !i.date.isBefore(since)).toList();
+   }
+ 
+-  /// Keeps the incoming order (newest first) inside and between months.
+-  Map<String, List<InvoiceRecordModel>> _groupByMonth(
++  /// Invoices and payments merged, newest first inside and between months.
++  Map<String, List<_StatementEntry>> _groupByMonth(
+     List<InvoiceRecordModel> invoices,
++    List<PaymentBreakdown> payments,
+   ) {
+-    final groups = <String, List<InvoiceRecordModel>>{};
+-    for (final invoice in invoices) {
+-      final key = '${_arabicMonths[invoice.date.month]} ${invoice.date.year}';
+-      groups.putIfAbsent(key, () => []).add(invoice);
++    final entries = <_StatementEntry>[
++      for (final i in invoices) _StatementEntry.invoice(i),
++      for (final p in payments) _StatementEntry.payment(p),
++    ]..sort((a, b) => b.date.compareTo(a.date));
++
++    final groups = <String, List<_StatementEntry>>{};
++    for (final entry in entries) {
++      final d = entry.date.toLocal();
++      final key = '${_arabicMonths[d.month]} ${d.year}';
++      groups.putIfAbsent(key, () => []).add(entry);
+     }
+     return groups;
+   }
+@@ -116,7 +156,8 @@ class _CustomerInvoicesScreenState extends State<CustomerInvoicesScreen> {
+   Widget build(BuildContext context) {
+     final colors = context.colors;
+     final visible = _visible;
+-    final groups = _groupByMonth(visible);
++    final visiblePayments = _visiblePayments;
++    final groups = _groupByMonth(visible, visiblePayments);
+ 
+     return Scaffold(
+       backgroundColor: colors.background,
+@@ -177,7 +218,7 @@ class _CustomerInvoicesScreenState extends State<CustomerInvoicesScreen> {
+                   padding: EdgeInsets.only(top: 60.h),
+                   child: const Center(child: CircularProgressIndicator()),
+                 )
+-              else if (visible.isEmpty)
++              else if (visible.isEmpty && visiblePayments.isEmpty)
+                 Padding(
+                   padding: EdgeInsets.only(top: 60.h),
+                   child: Center(
+@@ -208,11 +249,14 @@ class _CustomerInvoicesScreenState extends State<CustomerInvoicesScreen> {
+                     ),
+                     child: Column(
+                       children: [
+-                        for (final invoice in entry.value)
+-                          _InvoiceRow(
+-                            invoice: invoice,
+-                            onTap: () => _openInvoice(invoice),
+-                          ),
++                        for (final item in entry.value)
++                          if (item.invoice != null)
++                            _InvoiceRow(
++                              invoice: item.invoice!,
++                              onTap: () => _openInvoice(item.invoice!),
++                            )
++                          else
++                            _PaymentRow(payment: item.payment!),
+                       ],
+                     ),
+                   ),
+@@ -313,3 +357,186 @@ class _InvoiceRow extends StatelessWidget {
+     );
+   }
+ }
++
++/// A row of the statement: either an invoice or a payment.
++class _StatementEntry {
++  final InvoiceRecordModel? invoice;
++  final PaymentBreakdown? payment;
++
++  const _StatementEntry.invoice(InvoiceRecordModel this.invoice)
++      : payment = null;
++  const _StatementEntry.payment(PaymentBreakdown this.payment)
++      : invoice = null;
++
++  DateTime get date => invoice?.date ?? payment!.collectedAt;
++}
++
++/// A payment. Collapsed it shows the whole amount the customer paid; tapping
++/// it shows how that amount was split between the invoice issued with it and
++/// the older invoices it collected.
++class _PaymentRow extends StatefulWidget {
++  final PaymentBreakdown payment;
++
++  const _PaymentRow({required this.payment});
++
++  @override
++  State<_PaymentRow> createState() => _PaymentRowState();
++}
++
++class _PaymentRowState extends State<_PaymentRow> {
++  bool _expanded = false;
++
++  static String _amount(double v) =>
++      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    final payment = widget.payment;
++    final d = payment.collectedAt.toLocal();
++    final dateLabel =
++        '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
++    final ownCode = payment.ownInvoiceCode;
++
++    return Column(
++      children: [
++        InkWell(
++          borderRadius: BorderRadius.circular(14.r),
++          onTap: () => setState(() => _expanded = !_expanded),
++          child: Padding(
++            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
++            child: Row(
++              children: [
++                Icon(
++                  _expanded ? Icons.expand_less : Icons.expand_more,
++                  color: colors.textMuted,
++                  size: 18.sp,
++                ),
++                Expanded(
++                  child: Column(
++                    crossAxisAlignment: CrossAxisAlignment.start,
++                    children: [
++                      Text(
++                        payment.code,
++                        style: AppTextStyles.cairoMedium16
++                            .copyWith(color: colors.text, fontSize: 12.sp),
++                      ),
++                      SizedBox(height: 2.h),
++                      Text(
++                        ownCode == null
++                            ? dateLabel
++                            : '$dateLabel  •  مع الفاتورة $ownCode',
++                        style: AppTextStyles.almaraiRegular14.copyWith(
++                            color: colors.textMuted, fontSize: 10.sp),
++                      ),
++                    ],
++                  ),
++                ),
++                Text(
++                  '${_amount(payment.total)} ج.م',
++                  style: AppTextStyles.cairoMedium16
++                      .copyWith(color: colors.text, fontSize: 12.sp),
++                ),
++                SizedBox(width: 8.w),
++                Container(
++                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
++                  decoration: BoxDecoration(
++                    color: colors.primary.withOpacity(0.12),
++                    borderRadius: BorderRadius.circular(8.r),
++                  ),
++                  child: Text(
++                    'تحصيل',
++                    style: AppTextStyles.cairoMedium16
++                        .copyWith(color: colors.primary, fontSize: 10.sp),
++                  ),
++                ),
++              ],
++            ),
++          ),
++        ),
++        if (_expanded)
++          Container(
++            width: double.infinity,
++            margin: EdgeInsets.fromLTRB(12.w, 0, 12.w, 10.h),
++            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
++            decoration: BoxDecoration(
++              color: colors.background,
++              borderRadius: BorderRadius.circular(10.r),
++              border: Border.all(color: colors.border),
++            ),
++            child: Column(
++              children: [
++                for (final line in payment.lines)
++                  _BreakdownLine(line: line, amountText: _amount(line.amount)),
++                Divider(color: colors.border, height: 12.h),
++                Row(
++                  children: [
++                    Expanded(
++                      child: Text(
++                        'إجمالي التحصيل',
++                        style: AppTextStyles.cairoMedium16
++                            .copyWith(color: colors.text, fontSize: 11.sp),
++                      ),
++                    ),
++                    Text(
++                      '${_amount(payment.total)} ج.م',
++                      style: AppTextStyles.cairoMedium16
++                          .copyWith(color: colors.primary, fontSize: 12.sp),
++                    ),
++                  ],
++                ),
++              ],
++            ),
++          ),
++      ],
++    );
++  }
++}
++
++class _BreakdownLine extends StatelessWidget {
++  final PaymentBreakdownLine line;
++  final String amountText;
++
++  const _BreakdownLine({required this.line, required this.amountText});
++
++  @override
++  Widget build(BuildContext context) {
++    final colors = context.colors;
++    final kind = line.isOwnInvoice ? 'دفعة الفاتورة' : 'دين قديم';
++    final target = line.invoiceCode ?? 'رصيد سابق';
++    final accent = line.isOwnInvoice ? colors.primary : colors.statOrange;
++
++    return Padding(
++      padding: EdgeInsets.symmetric(vertical: 3.h),
++      child: Row(
++        children: [
++          Container(
++            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
++            decoration: BoxDecoration(
++              color: accent.withOpacity(0.12),
++              borderRadius: BorderRadius.circular(6.r),
++            ),
++            child: Text(
++              kind,
++              style: AppTextStyles.cairoMedium16
++                  .copyWith(color: accent, fontSize: 9.sp),
++            ),
++          ),
++          SizedBox(width: 8.w),
++          Expanded(
++            child: Text(
++              target,
++              style: AppTextStyles.almaraiRegular14
++                  .copyWith(color: colors.text, fontSize: 11.sp),
++            ),
++          ),
++          Text(
++            '$amountText ج.م',
++            style: AppTextStyles.cairoMedium16
++                .copyWith(color: colors.text, fontSize: 11.sp),
++          ),
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart b/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart
+index 9347f82..1cefd9e 100644
+--- a/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart
++++ b/lib/features/customer_account/presentation/screens/customer_statement_pdf_screen.dart
+@@ -1,11 +1,15 @@
++import 'dart:typed_data';
++
+ import 'package:flutter/material.dart';
+ import 'package:flutter_bloc/flutter_bloc.dart';
+ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+ import 'package:mivet_app/core/theme/app_text_styles.dart';
+ import 'package:printing/printing.dart';
+ 
++import '../../data/repositories/payment_breakdown_repository.dart';
+ import '../../domain/customer_statement.dart';
+ import '../../domain/customer_statement_pdf_builder.dart';
++import '../../domain/entities/payment_breakdown.dart';
+ import '../cubit/customer_account_cubit.dart';
+ import '../cubit/customer_account_state.dart';
+ 
+@@ -52,10 +56,7 @@ class CustomerStatementPdfScreen extends StatelessWidget {
+           }
+ 
+           return PdfPreview(
+-            build: (_) => CustomerStatementPdfBuilder.build(
+-              customerName: state.customerName,
+-              statement: statement,
+-            ),
++            build: (_) => _buildPdf(state.customerId, state.customerName, statement),
+             pdfFileName: 'customer_statement_6_months.pdf',
+             allowSharing: true,
+             allowPrinting: true,
+@@ -69,6 +70,31 @@ class CustomerStatementPdfScreen extends StatelessWidget {
+   }
+ }
+ 
++Future<Uint8List> _buildPdf(
++  String customerId,
++  String customerName,
++  CustomerStatement statement,
++) async {
++  // The breakdown is an extra detail: if it cannot be loaded, the statement
++  // is still generated without it.
++  List<PaymentBreakdown> payments = const [];
++  try {
++    payments = await PaymentBreakdownRepository.instance.getForCustomer(
++      customerId,
++      from: statement.periodStart,
++      to: statement.periodEnd,
++    );
++  } catch (_) {
++    payments = const [];
++  }
++
++  return CustomerStatementPdfBuilder.build(
++    customerName: customerName,
++    statement: statement,
++    payments: payments,
++  );
++}
++
+ class _Message extends StatelessWidget {
+   final String text;
+ 

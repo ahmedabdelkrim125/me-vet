@@ -6,8 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/pdf_page_background.dart';
 
-const _pdfOrange = 0xFFE0862F;
-
 class InvoicePdfLineItem {
   final String name;
   final int quantity;
@@ -19,6 +17,18 @@ class InvoicePdfLineItem {
     required this.quantity,
     required this.price,
     required this.total,
+  });
+}
+
+/// One older invoice paid off together with the current invoice's own
+/// payment, as part of the same collection.
+class InvoicePdfOldDebtLine {
+  final String invoiceCode;
+  final double amount;
+
+  const InvoicePdfOldDebtLine({
+    required this.invoiceCode,
+    required this.amount,
   });
 }
 
@@ -34,6 +44,11 @@ class InvoicePdfData {
   final double paidNow;
   final double remaining;
 
+  /// Older invoices collected together with this invoice's own payment, if
+  /// any (e.g. the customer had an old debt and it was collected alongside
+  /// this invoice in one payment).
+  final List<InvoicePdfOldDebtLine> oldDebtCollected;
+
   const InvoicePdfData({
     required this.invoiceNumber,
     required this.date,
@@ -45,7 +60,11 @@ class InvoicePdfData {
     required this.totalDue,
     required this.paidNow,
     required this.remaining,
+    this.oldDebtCollected = const [],
   });
+
+  double get oldDebtTotal =>
+      oldDebtCollected.fold(0.0, (sum, l) => sum + l.amount);
 }
 
 class InvoicePdfBuilder {
@@ -54,7 +73,6 @@ class InvoicePdfBuilder {
   static final _navy = PdfColor.fromInt(AppColors.primary.value);
   static final _green = PdfColor.fromInt(AppColors.primaryGreen.value);
   static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
-  static const _orange = PdfColor.fromInt(_pdfOrange);
 
   static Future<Uint8List> build(InvoicePdfData data) async {
     final document = pw.Document();
@@ -94,9 +112,12 @@ class InvoicePdfBuilder {
                   _buildMetaRow(data, boldFont),
                   pw.SizedBox(height: 18),
                   ..._buildChunkWidgets(chunks, boldFont, regularFont),
-                  pw.SizedBox(height: 18),
-                  _buildTotalsTable(data, boldFont, regularFont),
-                  _buildPaymentStatusNote(data, boldFont),
+                  pw.SizedBox(height: 16),
+                  _buildSummaryTable(data, boldFont, regularFont),
+                  if (data.oldDebtCollected.isNotEmpty) ...[
+                    pw.SizedBox(height: 14),
+                    _buildOldDebtTable(data, boldFont, regularFont),
+                  ],
                 ],
               ),
             ),
@@ -179,8 +200,12 @@ class InvoicePdfBuilder {
         '${i + 1}',
       ]);
     }
-    return pw.Table(
-      border: pw.TableBorder.all(color: _border, width: 0.6),
+    return _buildStyledTable(
+      null,
+      headers,
+      rows,
+      boldFont,
+      regularFont,
       columnWidths: const {
         0: pw.FlexColumnWidth(1.4),
         1: pw.FlexColumnWidth(1.2),
@@ -188,48 +213,6 @@ class InvoicePdfBuilder {
         3: pw.FlexColumnWidth(3.4),
         4: pw.FlexColumnWidth(0.6),
       },
-      children: [
-        pw.TableRow(
-          decoration: pw.BoxDecoration(color: _navy),
-          children: headers
-              .map(
-                (h) => pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(
-                    vertical: 5,
-                    horizontal: 4,
-                  ),
-                  child: pw.Text(
-                    h,
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      font: boldFont,
-                      fontSize: 10,
-                      color: PdfColors.white,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-        for (final row in rows)
-          pw.TableRow(
-            children: row
-                .map(
-                  (cell) => pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(
-                      vertical: 5,
-                      horizontal: 4,
-                    ),
-                    child: pw.Text(
-                      cell,
-                      textAlign: pw.TextAlign.center,
-                      style: pw.TextStyle(font: regularFont, fontSize: 10),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-      ],
     );
   }
 
@@ -257,125 +240,130 @@ class InvoicePdfBuilder {
     return widgets;
   }
 
-  static pw.Widget _buildTotalsTable(
+  /// ملخص الفاتورة: نفس أسلوب باقي الـ PDFs في التطبيق (عنوان أخضر فوق،
+  /// وجدول رفيع بهيدر كحلي وصف قيم واحد) بدل مربعات كبيرة منفصلة.
+  static pw.Widget _buildSummaryTable(
     InvoicePdfData data,
     pw.Font boldFont,
     pw.Font regularFont,
   ) {
-    // نفس تفاصيل الحساب الظاهرة في شاشة إنشاء الفاتورة، وصف المتبقي
-    // مميز بخلفية كحلي زي صندوق "الرصيد الحالي" في كشف حساب العميل.
-    final rows = <(String, double, bool)>[
-      ('قيمة الفاتورة الحالية', data.invoiceTotal, false),
-      ('الحساب السابق', data.previousBalance, false),
-      ('إجمالي المستحق على العميل', data.totalDue, false),
-      ('المدفوع الآن', data.paidNow, false),
-      ('المتبقي على العميل', data.remaining, true),
+    final hasOldDebt = data.oldDebtCollected.isNotEmpty;
+
+    final headers = [
+      'المتبقي على العميل',
+      if (hasOldDebt) 'دين قديم متحصّل معها',
+      'المدفوع من الفاتورة',
+      'إجمالي المستحق على العميل',
+      'الحساب السابق',
+      'قيمة الفاتورة الحالية',
+    ];
+    final values = [
+      _formatAmount(data.remaining),
+      if (hasOldDebt) _formatAmount(data.oldDebtTotal),
+      _formatAmount(data.paidNow),
+      _formatAmount(data.totalDue),
+      _formatAmount(data.previousBalance),
+      _formatAmount(data.invoiceTotal),
+    ].map((v) => '$v ج.م').toList();
+
+    return _buildStyledTable('ملخص الفاتورة', headers, [values], boldFont,
+        regularFont);
+  }
+
+  /// نفس أسلوب "تحصيلات العملاء" في تقرير المندوب اليومي.
+  static pw.Widget _buildOldDebtTable(
+    InvoicePdfData data,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    final headers = ['المبلغ', 'الفاتورة القديمة', 'م'];
+    final rows = <List<String>>[
+      for (var i = 0; i < data.oldDebtCollected.length; i++)
+        [
+          '${_formatAmount(data.oldDebtCollected[i].amount)} ج.م',
+          data.oldDebtCollected[i].invoiceCode,
+          '${i + 1}',
+        ],
     ];
 
-    pw.Widget cell(
-      String text,
-      pw.TextAlign align,
-      pw.Font font,
-      double fontSize,
-      PdfColor color,
-    ) {
-      return pw.Padding(
-        padding:
-            const pw.EdgeInsets.symmetric(vertical: 7, horizontal: 8),
-        child: pw.Text(
-          text,
-          textAlign: align,
-          style: pw.TextStyle(font: font, fontSize: fontSize, color: color),
-        ),
-      );
-    }
-
-    return pw.Table(
-      border: pw.TableBorder.all(color: _border, width: 0.6),
+    return _buildStyledTable(
+      'دين قديم اتحصّل مع الفاتورة دي',
+      headers,
+      rows,
+      boldFont,
+      regularFont,
       columnWidths: const {
-        0: pw.FlexColumnWidth(2),
-        1: pw.FlexColumnWidth(1.2),
+        0: pw.FlexColumnWidth(1.4),
+        1: pw.FlexColumnWidth(2.6),
+        2: pw.FlexColumnWidth(0.6),
       },
-      children: [
-        pw.TableRow(
-          decoration: pw.BoxDecoration(color: _navy),
-          children: [
-            cell('البيان', pw.TextAlign.start, boldFont, 9.5, PdfColors.white),
-            cell('القيمة', pw.TextAlign.end, boldFont, 9.5, PdfColors.white),
-          ],
-        ),
-        for (final row in rows)
-          pw.TableRow(
-            decoration:
-                pw.BoxDecoration(color: row.$3 ? _navy : PdfColors.white),
-            children: [
-              cell(
-                row.$1,
-                pw.TextAlign.start,
-                row.$3 ? boldFont : regularFont,
-                10,
-                row.$3 ? PdfColors.white : PdfColors.black,
-              ),
-              cell(
-                '${_formatAmount(row.$2)} ج.م',
-                pw.TextAlign.end,
-                boldFont,
-                11,
-                row.$3 ? PdfColors.white : _navy,
-              ),
-            ],
-          ),
-      ],
     );
   }
 
-  /// نفس تفاصيل الحساب الظاهرة في شاشة الفاتورة:
-  /// حالة التحصيل (مسدد بالكامل / تحصيل جزئي / آجلة بدون تحصيل).
-  static pw.Widget _buildPaymentStatusNote(
-      InvoicePdfData data, pw.Font boldFont) {
-    final fullyPaid = (data.remaining.abs() <= 0.01) && data.paidNow > 0;
-    final fullyDeferred = data.paidNow <= 0.005;
-
-    String note;
-    PdfColor color;
-    if (fullyPaid) {
-      note = 'تم تحصيل كامل المبلغ المستحق — الحساب مسدد بالكامل';
-      color = _green;
-    } else if (fullyDeferred) {
-      note =
-          'لم يتم تحصيل أي مبلغ — الفاتورة آجلة بالكامل والمبلغ مستحق على العميل';
-      color = _orange;
-    } else {
-      note =
-          'تحصيل جزئي — المتبقي (${_formatAmount(data.remaining)} ج.م) مستحق على العميل';
-      color = _orange;
-    }
-
-    return pw.Container(
-      margin: const pw.EdgeInsets.only(top: 10),
-      padding: const pw.EdgeInsets.symmetric(vertical: 7, horizontal: 10),
-      decoration: pw.BoxDecoration(
-        color: _tint(color, 0.10),
-        border: pw.Border.all(color: _tint(color, 0.45)),
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
-      ),
-      child: pw.Row(
-        children: [
-          pw.Container(
-            width: 6,
-            height: 6,
-            decoration:
-                pw.BoxDecoration(color: color, shape: pw.BoxShape.circle),
+  /// الجدول الموحّد المستخدم في كل الـ PDFs بالتطبيق: عنوان أخضر (اختياري)،
+  /// جدول بهيدر كحلي وصفوف رفيعة.
+  static pw.Widget _buildStyledTable(
+    String? title,
+    List<String> headers,
+    List<List<String>> rows,
+    pw.Font boldFont,
+    pw.Font regularFont, {
+    Map<int, pw.TableColumnWidth>? columnWidths,
+  }) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        if (title != null) ...[
+          pw.Text(
+            title,
+            style: pw.TextStyle(font: boldFont, fontSize: 14, color: _green),
           ),
-          pw.SizedBox(width: 8),
-          pw.Expanded(
-            child: pw.Text(
-              note,
-              style: pw.TextStyle(font: boldFont, fontSize: 9.5, color: color),
-            ),
-          ),
+          pw.SizedBox(height: 8),
         ],
-      ),
+        pw.Table(
+          border: pw.TableBorder.all(color: _border, width: 0.6),
+          columnWidths: columnWidths,
+          children: [
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: _navy),
+              children: headers
+                  .map(
+                    (h) => pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(
+                          vertical: 6, horizontal: 4),
+                      child: pw.Text(
+                        h,
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: boldFont,
+                          fontSize: 9.5,
+                          color: PdfColors.white,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            for (final row in rows)
+              pw.TableRow(
+                children: row
+                    .map(
+                      (cell) => pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(
+                            vertical: 6, horizontal: 4),
+                        child: pw.Text(
+                          cell,
+                          textAlign: pw.TextAlign.center,
+                          style:
+                              pw.TextStyle(font: regularFont, fontSize: 10),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -393,12 +381,6 @@ class InvoicePdfBuilder {
       out += '.${(decimals * 100).round().toString().padLeft(2, '0')}';
     }
     return out;
-  }
-
-  /// نسخة شفافة من اللون. `PdfColor.fromInt` بيتجاهل بايت الشفافية،
-  /// فبناء اللون بالقنوات مباشرة هو الطريقة الصحيحة للـ tint.
-  static PdfColor _tint(PdfColor color, double opacity) {
-    return PdfColor(color.red, color.green, color.blue, opacity);
   }
 
   static String _formatDate(DateTime date) {

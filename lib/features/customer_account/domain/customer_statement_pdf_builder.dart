@@ -2,21 +2,25 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
+import 'package:mivet_app/core/utils/pdf_page_background.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'customer_statement.dart';
 import 'entities/customer_transaction.dart';
+import 'entities/payment_breakdown.dart';
 
 class CustomerStatementPdfBuilder {
   CustomerStatementPdfBuilder._();
 
   static final _navy = PdfColor.fromInt(AppColors.primary.value);
+  static final _green = PdfColor.fromInt(AppColors.primaryGreen.value);
   static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
 
   static Future<Uint8List> build({
     required String customerName,
     required CustomerStatement statement,
+    List<PaymentBreakdown> payments = const [],
   }) async {
     final document = pw.Document();
 
@@ -28,6 +32,12 @@ class CustomerStatementPdfBuilder {
     );
     final regularFont = pw.Font.ttf(regularFontData);
     final boldFont = pw.Font.ttf(boldFontData);
+
+    // Keyed by the payment's own code, so each payment transaction row can
+    // look up how it was split between its own invoice and older debt.
+    final paymentsByCode = <String, PaymentBreakdown>{
+      for (final p in payments) p.code: p,
+    };
 
     document.addPage(
       pw.MultiPage(
@@ -41,34 +51,48 @@ class CustomerStatementPdfBuilder {
           // pw.Directionality widget: it cannot be split across pages, so a
           // long table throws TooManyPagesException.
           textDirection: pw.TextDirection.rtl,
-          // Explicit white page (a PDF page is transparent by default).
-          buildBackground: (context) => pw.FullPage(
-            ignoreMargins: true,
-            child: pw.Container(color: PdfColors.white),
-          ),
+          buildBackground: (context) =>
+              buildWhitePdfBackground(watermarkBytes: null),
+        ),
+        footer: (context) => pw.Column(
+          children: [pw.Divider(color: _green, thickness: 1)],
         ),
         // Top-level children of MultiPage: the table is splittable, so it
         // continues on the next page (its header row repeats).
         build: (context) => [
-          pw.Text('كشف حساب العميل',
-              style: pw.TextStyle(font: boldFont, fontSize: 18, color: _navy)),
-          pw.SizedBox(height: 6),
-          pw.Text(customerName,
-              style: pw.TextStyle(font: boldFont, fontSize: 13)),
-          pw.SizedBox(height: 4),
+          _buildTitle(customerName, boldFont),
+          pw.SizedBox(height: 14),
           pw.Text(
             'الفترة: من ${_date(statement.periodStart)} إلى ${_date(statement.periodEnd)}',
-            style: pw.TextStyle(font: regularFont, fontSize: 10),
+            style: pw.TextStyle(font: boldFont, fontSize: 11),
           ),
           pw.SizedBox(height: 14),
           _buildSummary(statement, boldFont, regularFont),
-          pw.SizedBox(height: 14),
-          _buildTable(statement.transactions, boldFont, regularFont),
+          pw.SizedBox(height: 18),
+          _buildTable(statement.transactions, paymentsByCode, boldFont, regularFont),
         ],
       ),
     );
 
     return document.save();
+  }
+
+  static pw.Widget _buildTitle(String customerName, pw.Font boldFont) {
+    return pw.Center(
+      child: pw.Column(
+        children: [
+          pw.Text(
+            'كشف حساب العميل',
+            style: pw.TextStyle(font: boldFont, fontSize: 20, color: _navy),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            customerName,
+            style: pw.TextStyle(font: boldFont, fontSize: 11, color: _green),
+          ),
+        ],
+      ),
+    );
   }
 
   static pw.Widget _buildSummary(
@@ -96,7 +120,7 @@ class CustomerStatementPdfBuilder {
                   style: pw.TextStyle(
                       font: boldFont,
                       fontSize: 11,
-                      color: highlight ? PdfColors.white : PdfColors.black)),
+                      color: highlight ? PdfColors.white : _navy)),
             ],
           ),
         ),
@@ -115,6 +139,7 @@ class CustomerStatementPdfBuilder {
 
   static pw.Widget _buildTable(
     List<CustomerTransaction> transactions,
+    Map<String, PaymentBreakdown> paymentsByCode,
     pw.Font boldFont,
     pw.Font regularFont,
   ) {
@@ -132,19 +157,28 @@ class CustomerStatementPdfBuilder {
       final d = t.occurredAt.toLocal();
       final time =
           '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-      return [
-        _money(t.balanceAfter),
-        t.credit > 0 ? _money(t.credit) : '-',
-        t.debit > 0 ? _money(t.debit) : '-',
-        time,
-        _date(d),
-        t.referenceCode ?? '-',
-        t.type.label,
-      ];
+      return (
+        balanceAfter: _money(t.balanceAfter),
+        credit: t.credit > 0 ? _money(t.credit) : '-',
+        debit: t.debit > 0 ? _money(t.debit) : '-',
+        time: time,
+        date: _date(d),
+        reference: _referenceText(t, paymentsByCode),
+        type: t.type.label,
+      );
     }).toList();
 
     return pw.Table(
       border: pw.TableBorder.all(color: _border, width: 0.6),
+      columnWidths: const {
+        0: pw.FlexColumnWidth(1.3),
+        1: pw.FlexColumnWidth(1),
+        2: pw.FlexColumnWidth(1),
+        3: pw.FlexColumnWidth(0.9),
+        4: pw.FlexColumnWidth(1.1),
+        5: pw.FlexColumnWidth(2.2),
+        6: pw.FlexColumnWidth(1),
+      },
       children: [
         pw.TableRow(
           repeat: true,
@@ -164,20 +198,51 @@ class CustomerStatementPdfBuilder {
         ),
         for (final row in rows)
           pw.TableRow(
-            children: row
-                .map((cell) => pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(
-                          vertical: 5, horizontal: 3),
-                      child: pw.Text(
-                        cell,
-                        textAlign: pw.TextAlign.center,
-                        style: pw.TextStyle(font: regularFont, fontSize: 8),
-                      ),
-                    ))
-                .toList(),
+            children: [
+              _cell(row.balanceAfter, regularFont),
+              _cell(row.credit, regularFont),
+              _cell(row.debit, regularFont),
+              _cell(row.time, regularFont),
+              _cell(row.date, regularFont),
+              _cell(row.reference, regularFont),
+              _cell(row.type, regularFont),
+            ],
           ),
       ],
     );
+  }
+
+  static pw.Widget _cell(String text, pw.Font font) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 3),
+      child: pw.Text(
+        text,
+        textAlign: pw.TextAlign.center,
+        style: pw.TextStyle(font: font, fontSize: 8),
+      ),
+    );
+  }
+
+  /// The transaction's reference code, plus — for a payment split between the
+  /// invoice issued with it and older debt — one extra line per invoice it
+  /// was applied to, so the breakdown is visible without leaving the table.
+  static String _referenceText(
+    CustomerTransaction t,
+    Map<String, PaymentBreakdown> paymentsByCode,
+  ) {
+    final code = t.referenceCode ?? '-';
+    if (t.type != CustomerTransactionType.payment) return code;
+
+    final breakdown = paymentsByCode[t.referenceCode];
+    if (breakdown == null || breakdown.lines.length < 2) return code;
+
+    final lines = [code];
+    for (final line in breakdown.lines) {
+      final label = line.isOwnInvoice ? 'فاتورة' : 'دين قديم';
+      final target = line.invoiceCode ?? 'رصيد سابق';
+      lines.add('$label $target: ${_money(line.amount)}');
+    }
+    return lines.join('\n');
   }
 
   static String _date(DateTime d) =>

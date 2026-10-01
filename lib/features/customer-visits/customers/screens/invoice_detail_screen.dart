@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
@@ -12,6 +13,8 @@ import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:mivet_app/features/rep_session/data/rep_session_store.dart';
 import 'package:printing/printing.dart';
 
+import '../../../customer_account/data/repositories/payment_breakdown_repository.dart';
+import '../../../customer_account/domain/entities/payment_breakdown.dart';
 import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../data/invoices_repository.dart';
 import 'edit_invoice_screen.dart';
@@ -34,6 +37,7 @@ class InvoiceDetailScreen extends StatefulWidget {
 
 class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
   InvoiceFullDetail? _detail;
+  List<PaymentBreakdownLine> _oldDebtLines = const [];
   bool _loading = true;
   bool _hasError = false;
 
@@ -53,12 +57,28 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
         _loading = false;
         _hasError = false;
       });
+      unawaited(_loadOldDebt(detail.id));
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
         _hasError = true;
       });
+    }
+  }
+
+  /// Older debt collected together with this invoice's own payment, if any.
+  /// An extra detail: if it fails to load, the invoice itself is still shown.
+  Future<void> _loadOldDebt(String invoiceId) async {
+    try {
+      final lines =
+          await PaymentBreakdownRepository.instance.getForInvoice(invoiceId);
+      if (!mounted) return;
+      setState(() {
+        _oldDebtLines = lines.where((l) => !l.isOwnInvoice).toList();
+      });
+    } catch (_) {
+      // Leave it empty; the invoice's own totals are unaffected.
     }
   }
 
@@ -128,6 +148,14 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
         // الدفع الزائد عن قيمة الفاتورة بيروح لرصيد العميل (سالب في الداتابيز)،
         // لكن عرضه في الفاتورة لازم يفضل 0 زي ما الويذجت بيعمل.
         remaining: detail.remaining < 0 ? 0 : detail.remaining,
+        oldDebtCollected: _oldDebtLines
+            .map(
+              (l) => InvoicePdfOldDebtLine(
+                invoiceCode: l.invoiceCode ?? 'رصيد سابق',
+                amount: l.amount,
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -185,7 +213,10 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
                             ),
                           ),
                         )
-                      : _DetailBody(detail: _detail!),
+                      : _DetailBody(
+                          detail: _detail!,
+                          oldDebtLines: _oldDebtLines,
+                        ),
             ),
             if (!_loading && _detail != null)
               _FooterActions(
@@ -253,8 +284,9 @@ class _Header extends StatelessWidget {
 
 class _DetailBody extends StatelessWidget {
   final InvoiceFullDetail detail;
+  final List<PaymentBreakdownLine> oldDebtLines;
 
-  const _DetailBody({required this.detail});
+  const _DetailBody({required this.detail, this.oldDebtLines = const []});
 
   @override
   Widget build(BuildContext context) {
@@ -339,6 +371,32 @@ class _DetailBody extends StatelessWidget {
             ),
           ],
         ),
+        if (oldDebtLines.isNotEmpty) ...[
+          SizedBox(height: 16.h),
+          Text(
+            'دين قديم اتحصّل مع الفاتورة دي',
+            style: AppTextStyles.cairoMedium16.copyWith(
+              color: colors.text,
+              fontSize: 13.sp,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          _InfoCard(
+            children: [
+              for (final line in oldDebtLines)
+                _InfoRow(
+                  label: line.invoiceCode ?? 'رصيد سابق',
+                  value: '${line.amount.toStringAsFixed(0)} ج.م',
+                ),
+              _InfoRow(
+                label: 'إجمالي التحصيل مع الفاتورة',
+                value:
+                    '${(detail.paidNow + oldDebtLines.fold(0.0, (sum, l) => sum + l.amount)).toStringAsFixed(0)} ج.م',
+                highlight: true,
+              ),
+            ],
+          ),
+        ],
         if (detail.notes != null && detail.notes!.isNotEmpty) ...[
           SizedBox(height: 16.h),
           _InfoCard(
