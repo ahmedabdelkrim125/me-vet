@@ -207,6 +207,13 @@ class _EditInvoiceScreenState extends State<EditInvoiceScreen> {
     setState(() => item.quantity = next);
   }
 
+  /// Typing the quantity directly — for returns or a large one-time
+  /// correction, instead of tapping +/- many times.
+  void _setQuantity(InvoiceItemDraft item, int value) {
+    if (value < 1) return;
+    setState(() => item.quantity = value);
+  }
+
   void _removeItem(InvoiceItemDraft item) {
     setState(() {
       _draft.remove(item);
@@ -346,6 +353,8 @@ class _EditInvoiceScreenState extends State<EditInvoiceScreen> {
                                 item: item,
                                 onIncrease: () => _changeQuantity(item, 1),
                                 onDecrease: () => _changeQuantity(item, -1),
+                                onEditQuantity: (value) =>
+                                    _setQuantity(item, value),
                                 onEditPrice: () => _editPrice(item),
                                 onRemove: () => _removeItem(item),
                               ),
@@ -468,6 +477,7 @@ class _InvoiceItemCard extends StatelessWidget {
   final InvoiceItemDraft item;
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
+  final ValueChanged<int> onEditQuantity;
   final VoidCallback onEditPrice;
   final VoidCallback onRemove;
 
@@ -475,6 +485,7 @@ class _InvoiceItemCard extends StatelessWidget {
     required this.item,
     required this.onIncrease,
     required this.onDecrease,
+    required this.onEditQuantity,
     required this.onEditPrice,
     required this.onRemove,
   });
@@ -557,6 +568,7 @@ class _InvoiceItemCard extends StatelessWidget {
                 quantity: item.quantity,
                 onIncrease: onIncrease,
                 onDecrease: onDecrease,
+                onEditQuantity: onEditQuantity,
               ),
             ],
           ),
@@ -591,11 +603,52 @@ class _QuantityControl extends StatelessWidget {
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
 
+  /// Typing the quantity directly — faster than tapping +/- repeatedly for a
+  /// return or a large one-time correction.
+  final ValueChanged<int> onEditQuantity;
+
   const _QuantityControl({
     required this.quantity,
     required this.onIncrease,
     required this.onDecrease,
+    required this.onEditQuantity,
   });
+
+  Future<void> _promptQuantity(BuildContext context) async {
+    final controller = TextEditingController(text: '$quantity');
+
+    final value = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تعديل الكمية'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(labelText: 'الكمية الجديدة'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final parsed = int.tryParse(controller.text);
+              if (parsed == null || parsed <= 0) return;
+              Navigator.pop(context, parsed);
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+
+    if (value != null) onEditQuantity(value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -616,14 +669,18 @@ class _QuantityControl extends StatelessWidget {
               minHeight: 38,
             ),
           ),
-          SizedBox(
-            width: 28.w,
-            child: Text(
-              '$quantity',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.cairoMedium16.copyWith(
-                color: colors.text,
-                fontSize: 13.sp,
+          InkWell(
+            onTap: () => _promptQuantity(context),
+            child: SizedBox(
+              width: 32.w,
+              child: Text(
+                '$quantity',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.cairoMedium16.copyWith(
+                  color: colors.primary,
+                  fontSize: 13.sp,
+                  decoration: TextDecoration.underline,
+                ),
               ),
             ),
           ),

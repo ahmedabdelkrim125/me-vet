@@ -3,11 +3,11 @@ import 'package:mivet_app/features/invoices/domain/invoice_pdf_builder.dart';
 
 Future<void> main() async {
   InvoicePdfLineItem item(String name) => const InvoicePdfLineItem(
-        name: 'فلوريديكول',
-        quantity: 1,
-        price: 75,
-        total: 75,
-      );
+    name: 'فلوريديكول',
+    quantity: 1,
+    price: 75,
+    total: 75,
+  );
 
   // نفس حالة السكرين شوت: حساب سابق 75 + فاتورة 75، وتم تحصيل 75.
   final cases = <String, InvoicePdfData>{

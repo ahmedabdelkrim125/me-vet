@@ -19,10 +19,15 @@ class SalesReturnScreen extends StatefulWidget {
   final String customerId;
   final String customerName;
 
+  /// لو جاية من شاشة البحث بالمنتج، كود الفاتورة اللي المستخدم اختارها
+  /// بالفعل — بنفتح تفاصيلها على طول من غير ما نعرض قائمة فواتير العميل.
+  final String? initialInvoiceCode;
+
   const SalesReturnScreen({
     super.key,
     required this.customerId,
     required this.customerName,
+    this.initialInvoiceCode,
   });
 
   @override
@@ -41,7 +46,12 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInvoices();
+    if (widget.initialInvoiceCode != null) {
+      _loadingInvoices = false;
+      _selectInvoice(widget.initialInvoiceCode!);
+    } else {
+      _loadInvoices();
+    }
   }
 
   @override
@@ -67,11 +77,11 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
     }
   }
 
-  Future<void> _selectInvoice(InvoiceRecordModel invoice) async {
+  Future<void> _selectInvoice(String invoiceCode) async {
     setState(() => _loadingDetail = true);
     try {
       final detail = await InvoicesRepository.instance
-          .getInvoiceDetailByCode(invoice.code);
+          .getInvoiceDetailByCode(invoiceCode);
       if (!mounted) return;
 
       await context
@@ -88,6 +98,9 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
       if (!mounted) return;
       setState(() => _loadingDetail = false);
       showAppError(context, e);
+      // لو الفاتورة اللي جاية من البحث فشلت، نرجع لقائمة فواتير العميل
+      // العادية عشان المستخدم يقدر يكمل بدل ما يتوه في شاشة فاضية.
+      if (_invoices == null) _loadInvoices();
     }
   }
 
@@ -162,7 +175,7 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
             return _InvoicePicker(
               invoices: _invoices,
               isLoading: _loadingInvoices || _loadingDetail,
-              onSelect: _selectInvoice,
+              onSelect: (invoice) => _selectInvoice(invoice.code),
             );
           }
 

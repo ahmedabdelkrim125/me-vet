@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
@@ -15,6 +16,8 @@ import 'package:printing/printing.dart';
 
 import '../../../customer_account/data/repositories/payment_breakdown_repository.dart';
 import '../../../customer_account/domain/entities/payment_breakdown.dart';
+import '../../../customer_account/domain/entities/payment_method.dart';
+import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
 import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../data/invoices_repository.dart';
 import 'edit_invoice_screen.dart';
@@ -160,6 +163,86 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     );
   }
 
+  /// تعديل المبلغ المدفوع يدويًا: تحصيل مبلغ من الفاتورة دي بالتحديد (بدل
+  /// ما يتوزع على حساب العميل ككل زي زرار "تحصيل" العادي).
+  Future<void> _collectPayment() async {
+    final detail = _detail;
+    if (detail == null) return;
+
+    final remaining = detail.remaining < 0 ? 0.0 : detail.remaining;
+    final amountController = TextEditingController(
+      text: remaining.toStringAsFixed(0),
+    );
+    PaymentMethod method = PaymentMethod.cash;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('تعديل المبلغ المدفوع'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('المتبقي حاليًا: ${remaining.toStringAsFixed(0)} ج.م'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                autofocus: true,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                ],
+                decoration: const InputDecoration(
+                  labelText: 'المبلغ المحصّل دلوقتي',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              PaymentMethodSelector(
+                value: method,
+                onChanged: (value) =>
+                    setDialogState(() => method = value),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('تأكيد التحصيل'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final amount = double.tryParse(amountController.text.trim());
+    if (amount == null || amount <= 0) {
+      showAppError(context, 'المبلغ غير صحيح');
+      return;
+    }
+
+    try {
+      await InvoicesRepository.instance.collectAgainstInvoice(
+        invoiceId: detail.id,
+        amount: amount,
+        method: method,
+      );
+      if (!mounted) return;
+      setState(() => _loading = true);
+      await _load();
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    }
+  }
+
   Future<void> _printPdf() async {
     final detail = _detail;
     if (detail == null) return;
@@ -216,6 +299,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
                       : _DetailBody(
                           detail: _detail!,
                           oldDebtLines: _oldDebtLines,
+                          onCollectPayment: _collectPayment,
                         ),
             ),
             if (!_loading && _detail != null)
@@ -285,8 +369,13 @@ class _Header extends StatelessWidget {
 class _DetailBody extends StatelessWidget {
   final InvoiceFullDetail detail;
   final List<PaymentBreakdownLine> oldDebtLines;
+  final VoidCallback onCollectPayment;
 
-  const _DetailBody({required this.detail, this.oldDebtLines = const []});
+  const _DetailBody({
+    required this.detail,
+    required this.onCollectPayment,
+    this.oldDebtLines = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -371,6 +460,17 @@ class _DetailBody extends StatelessWidget {
             ),
           ],
         ),
+        if (detail.remaining > 0) ...[
+          SizedBox(height: 8.h),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onCollectPayment,
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: const Text('تعديل المبلغ المدفوع'),
+            ),
+          ),
+        ],
         if (oldDebtLines.isNotEmpty) ...[
           SizedBox(height: 16.h),
           Text(
@@ -404,6 +504,18 @@ class _DetailBody extends StatelessWidget {
               _InfoRow(
                 label: 'ملاحظات',
                 value: detail.notes!,
+              ),
+            ],
+          ),
+        ],
+        if (detail.lastEditReason != null &&
+            detail.lastEditReason!.isNotEmpty) ...[
+          SizedBox(height: 16.h),
+          _InfoCard(
+            children: [
+              _InfoRow(
+                label: 'ملاحظة آخر تعديل',
+                value: detail.lastEditReason!,
               ),
             ],
           ),

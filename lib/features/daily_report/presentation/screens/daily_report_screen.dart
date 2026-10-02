@@ -8,7 +8,9 @@ import '../../../../core/theme/app_color_scheme_extension.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_extension.dart';
+import '../../../customer_account/presentation/screens/sales_return_search_screen.dart';
 import '../../../home/presentation/widgets/add_expense_dialog.dart';
+import 'widgets/daily_invoices_section.dart';
 import '../../domain/models/report_period_type.dart';
 import '../../domain/models/representative_report_model.dart';
 import '../../domain/report_pdf_builder.dart';
@@ -99,6 +101,15 @@ class _DailyReportBody extends StatelessWidget {
         iconTheme: IconThemeData(color: colors.text),
         actions: [
           IconButton(
+            icon: Icon(Icons.search_rounded, color: colors.text, size: 24.w),
+            tooltip: 'بحث مرتجع بالمنتج',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const SalesReturnSearchScreen(),
+              ),
+            ),
+          ),
+          IconButton(
             icon: Icon(Icons.add_card_rounded,
                 color: AppColors.primaryGreen, size: 24.w),
             onPressed: () async {
@@ -173,6 +184,8 @@ class _DailyReportBody extends StatelessWidget {
                     ),
                     SizedBox(height: 20.h),
                     _SummarySection(report: report),
+                    SizedBox(height: 16.h),
+                    const DailyInvoicesSection(),
                     SizedBox(height: 16.h),
                     _BalancesSection(report: report),
                     SizedBox(height: 16.h),
@@ -275,8 +288,14 @@ class _BaseCard extends StatelessWidget {
   final String title;
   final Widget child;
   final IconData? icon;
+  final Widget? trailing;
 
-  const _BaseCard({required this.title, required this.child, this.icon});
+  const _BaseCard({
+    required this.title,
+    required this.child,
+    this.icon,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -318,6 +337,7 @@ class _BaseCard extends StatelessWidget {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis)),
+              if (trailing != null) ...[const Spacer(), trailing!],
             ],
           ),
           SizedBox(height: 16.h),

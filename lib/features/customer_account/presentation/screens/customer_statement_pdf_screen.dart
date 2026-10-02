@@ -56,7 +56,8 @@ class CustomerStatementPdfScreen extends StatelessWidget {
           }
 
           return PdfPreview(
-            build: (_) => _buildPdf(state.customerId, state.customerName, statement),
+            build: (_) =>
+                _buildPdf(state.customerId, state.customerName, statement),
             pdfFileName: 'customer_statement_6_months.pdf',
             allowSharing: true,
             allowPrinting: true,

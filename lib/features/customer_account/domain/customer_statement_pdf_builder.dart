@@ -69,7 +69,8 @@ class CustomerStatementPdfBuilder {
           pw.SizedBox(height: 14),
           _buildSummary(statement, boldFont, regularFont),
           pw.SizedBox(height: 18),
-          _buildTable(statement.transactions, paymentsByCode, boldFont, regularFont),
+          _buildTable(
+              statement.transactions, paymentsByCode, boldFont, regularFont),
         ],
       ),
     );

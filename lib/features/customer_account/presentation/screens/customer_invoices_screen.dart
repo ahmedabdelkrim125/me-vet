@@ -102,7 +102,8 @@ class _CustomerInvoicesScreenState extends State<CustomerInvoicesScreen> {
       return await PaymentBreakdownRepository.instance
           .getForCustomer(widget.customerId);
     } catch (error) {
-      if (kDebugMode) debugPrint('[CustomerStatement] breakdown failed: $error');
+      if (kDebugMode)
+        debugPrint('[CustomerStatement] breakdown failed: $error');
       return const [];
     }
   }
@@ -342,7 +343,8 @@ class _InvoiceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final settledElsewhere = hasOldDebtSource && invoice.status == InvoiceStatus.paid;
+    final settledElsewhere =
+        hasOldDebtSource && invoice.status == InvoiceStatus.paid;
     final statusColor = settledElsewhere
         ? colors.statOrange
         : switch (invoice.status) {
@@ -441,8 +443,7 @@ class _StatementEntry {
 
   const _StatementEntry.invoice(InvoiceRecordModel this.invoice)
       : payment = null;
-  const _StatementEntry.payment(PaymentBreakdown this.payment)
-      : invoice = null;
+  const _StatementEntry.payment(PaymentBreakdown this.payment) : invoice = null;
 
   DateTime get date => invoice?.date ?? payment!.collectedAt;
 }
@@ -502,8 +503,8 @@ class _PaymentRowState extends State<_PaymentRow> {
                         ownCode == null
                             ? dateLabel
                             : '$dateLabel  •  مع الفاتورة $ownCode',
-                        style: AppTextStyles.almaraiRegular14.copyWith(
-                            color: colors.textMuted, fontSize: 10.sp),
+                        style: AppTextStyles.almaraiRegular14
+                            .copyWith(color: colors.textMuted, fontSize: 10.sp),
                       ),
                     ],
                   ),

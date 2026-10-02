@@ -1836,11 +1836,13 @@ class _LineItemTile extends StatelessWidget {
                 ),
                 SizedBox(height: 5.h),
                 SizedBox(
-                  height: 36.h,
-                  width: 120.w,
+                  height: 40.h,
+                  width: 150.w,
                   child: TextFormField(
                     initialValue: item.unitPrice.toStringAsFixed(2),
                     enabled: !loadingCustomerPrices,
+                    style: AppTextStyles.cairoMedium16
+                        .copyWith(color: colors.text, fontSize: 13.sp),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
@@ -1850,10 +1852,12 @@ class _LineItemTile extends StatelessWidget {
                       final price = double.tryParse(value);
                       if (price != null && price >= 0) onPriceChanged(price);
                     },
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'سعر البيع',
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10.w, vertical: 10.h),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),

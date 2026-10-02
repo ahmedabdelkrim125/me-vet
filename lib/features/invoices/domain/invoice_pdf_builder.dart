@@ -266,8 +266,8 @@ class InvoicePdfBuilder {
       _formatAmount(data.invoiceTotal),
     ].map((v) => '$v ج.م').toList();
 
-    return _buildStyledTable('ملخص الفاتورة', headers, [values], boldFont,
-        regularFont);
+    return _buildStyledTable(
+        'ملخص الفاتورة', headers, [values], boldFont, regularFont);
   }
 
   /// نفس أسلوب "تحصيلات العملاء" في تقرير المندوب اليومي.
@@ -354,8 +354,7 @@ class InvoicePdfBuilder {
                         child: pw.Text(
                           cell,
                           textAlign: pw.TextAlign.center,
-                          style:
-                              pw.TextStyle(font: regularFont, fontSize: 10),
+                          style: pw.TextStyle(font: regularFont, fontSize: 10),
                         ),
                       ),
                     )

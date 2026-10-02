@@ -86,7 +86,9 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
       );
     }
 
-    final collectedAt = DateTime.tryParse(collectedAtRaw);
+    // الوقت بييجي UTC من Supabase (timestamptz)؛ لازم يتحول للتوقيت المحلي
+    // عشان يطابق وقت التحصيل الفعلي في إيصال التحصيل.
+    final collectedAt = DateTime.tryParse(collectedAtRaw)?.toLocal();
 
     if (collectedAt == null) {
       throw const CollectionReceiptBuildFailure(
@@ -150,7 +152,9 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
       throw const CollectionReceiptBuildFailure('بيانات الإيصال غير مكتملة');
     }
 
-    final collectedAt = DateTime.tryParse(collectedAtRaw);
+    // الوقت بييجي UTC من Supabase (timestamptz)؛ لازم يتحول للتوقيت المحلي
+    // عشان يطابق وقت التحصيل الفعلي في إيصال التحصيل.
+    final collectedAt = DateTime.tryParse(collectedAtRaw)?.toLocal();
     if (collectedAt == null) {
       throw const CollectionReceiptBuildFailure('بيانات الإيصال غير مكتملة');
     }
@@ -163,16 +167,15 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
     final breakdown = (rawPayments as List? ?? [])
         .whereType<Map<String, dynamic>>()
         .map((row) {
-          final method = paymentMethodFromBackend(
-                row['payment_method'] as String?,
-              ) ??
-              payments.first.method;
-          final amount = row['amount'] is num
-              ? (row['amount'] as num).toDouble()
-              : double.tryParse('${row['amount']}') ?? 0;
-          return PaymentSplitEntry(method: method, amount: amount);
-        })
-        .toList();
+      final method = paymentMethodFromBackend(
+            row['payment_method'] as String?,
+          ) ??
+          payments.first.method;
+      final amount = row['amount'] is num
+          ? (row['amount'] as num).toDouble()
+          : double.tryParse('${row['amount']}') ?? 0;
+      return PaymentSplitEntry(method: method, amount: amount);
+    }).toList();
 
     final results = await Future.wait<dynamic>([
       _remote.getCustomerCurrentBalance(customerId: customerId),
