@@ -145,6 +145,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
             )
             .toList(),
         invoiceTotal: detail.totalAmount,
+        discountAmount: detail.discountAmount,
         previousBalance: widget.previousBalanceAtView,
         totalDue: detail.totalAmount + widget.previousBalanceAtView,
         paidNow: detail.paidNow,

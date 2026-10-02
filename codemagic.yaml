@@ -20,7 +20,7 @@ workflows:
         script: flutter pub get
 
       - name: Build Android APK
-        script: flutter build apk --release
+        script: flutter build apk --release --dart-define=use_arabic=true
 
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk

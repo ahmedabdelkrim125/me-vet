@@ -43,6 +43,7 @@ class InvoicePdfData {
   final double totalDue;
   final double paidNow;
   final double remaining;
+  final double discountAmount;
 
   /// Older invoices collected together with this invoice's own payment, if
   /// any (e.g. the customer had an old debt and it was collected alongside
@@ -60,8 +61,16 @@ class InvoicePdfData {
     required this.totalDue,
     required this.paidNow,
     required this.remaining,
+    this.discountAmount = 0,
     this.oldDebtCollected = const [],
   });
+
+  bool get hasDiscount => discountAmount > 0.005;
+
+  double get subtotalBeforeDiscount => invoiceTotal + discountAmount;
+
+  double get discountPercent =>
+      subtotalBeforeDiscount > 0 ? discountAmount / subtotalBeforeDiscount * 100 : 0;
 
   double get oldDebtTotal =>
       oldDebtCollected.fold(0.0, (sum, l) => sum + l.amount);
@@ -113,6 +122,10 @@ class InvoicePdfBuilder {
                   pw.SizedBox(height: 18),
                   ..._buildChunkWidgets(chunks, boldFont, regularFont),
                   pw.SizedBox(height: 16),
+                  if (data.hasDiscount) ...[
+                    _buildDiscountTable(data, boldFont, regularFont),
+                    pw.SizedBox(height: 14),
+                  ],
                   _buildSummaryTable(data, boldFont, regularFont),
                   if (data.oldDebtCollected.isNotEmpty) ...[
                     pw.SizedBox(height: 14),
@@ -268,6 +281,34 @@ class InvoicePdfBuilder {
 
     return _buildStyledTable(
         'ملخص الفاتورة', headers, [values], boldFont, regularFont);
+  }
+
+  static pw.Widget _buildDiscountTable(
+    InvoicePdfData data,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    final headers = [
+      'نسبة الخصم',
+      'قيمة الخصم',
+      'الإجمالي قبل الخصم',
+    ];
+    final values = [
+      '${_formatPercent(data.discountPercent)}%',
+      '${_formatAmount(data.discountAmount)} ج.م',
+      '${_formatAmount(data.subtotalBeforeDiscount)} ج.م',
+    ];
+
+    return _buildStyledTable(
+        'الخصم', headers, [values], boldFont, regularFont);
+  }
+
+  static String _formatPercent(double value) {
+    var text = value.toStringAsFixed(2);
+    if (text.contains('.')) {
+      text = text.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+    }
+    return text;
   }
 
   /// نفس أسلوب "تحصيلات العملاء" في تقرير المندوب اليومي.

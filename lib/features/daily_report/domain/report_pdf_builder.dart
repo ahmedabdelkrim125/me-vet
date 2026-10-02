@@ -76,7 +76,7 @@ class ReportPdfBuilder {
       child: pw.Column(
         children: [
           pw.Text(
-            'تقرير المبيعات والتحصيلات',
+            'تقرير التحصيلات',
             style: pw.TextStyle(font: boldFont, fontSize: 20, color: _navy),
           ),
         ],
@@ -125,22 +125,13 @@ class ReportPdfBuilder {
     pw.Font boldFont,
     pw.Font regularFont,
   ) {
-    final hasReturns = report.totalReturns > 0;
     final headers = [
-      if (hasReturns) 'صافي المبيعات',
-      if (hasReturns) 'إجمالي المرتجعات',
       'إجمالي المصروفات',
-      'عدد الفواتير',
       'إجمالي التحصيل',
-      'إجمالي المبيعات'
     ];
     final values = [
-      if (hasReturns) '${report.netSales.toStringAsFixed(2)} ج.م',
-      if (hasReturns) '${report.totalReturns.toStringAsFixed(2)} ج.م',
       '${report.totalExpenses.toStringAsFixed(2)} ج.م',
-      '${report.invoiceCount}',
       '${report.totalCollections.toStringAsFixed(2)} ج.م',
-      '${report.totalSales.toStringAsFixed(2)} ج.م',
     ];
 
     return _buildStyledTable(
@@ -153,10 +144,10 @@ class ReportPdfBuilder {
     pw.Font regularFont,
   ) {
     final headers = [
-      'وسيلة الدفع',
-      'قبل المصروفات',
+      'بعد المصروفات',
       'المصروفات',
-      'بعد المصروفات'
+      'قبل المصروفات',
+      'وسيلة الدفع',
     ];
     final rows = <List<String>>[];
 
@@ -164,13 +155,13 @@ class ReportPdfBuilder {
       final b = report.balances[methodKey];
       if (b != null) {
         rows.add([
+          b.afterExpenses.toStringAsFixed(2),
+          b.expenses.toStringAsFixed(2),
+          b.beforeExpenses.toStringAsFixed(2),
           methodLabel,
-          (b.beforeExpenses.toStringAsFixed(2)),
-          (b.expenses.toStringAsFixed(2)),
-          (b.afterExpenses.toStringAsFixed(2)),
         ]);
       } else {
-        rows.add([methodLabel, '0.00', '0.00', '0.00']);
+        rows.add(['0.00', '0.00', '0.00', methodLabel]);
       }
     }
 

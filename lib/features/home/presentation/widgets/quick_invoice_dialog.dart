@@ -526,6 +526,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                 ))
             .toList(),
         invoiceTotal: grandTotal,
+        discountAmount: discountAmount,
         previousBalance: previousBalance,
         totalDue: totalDue,
         paidNow: paidNow,

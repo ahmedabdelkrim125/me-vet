@@ -775,37 +775,6 @@ class _ExportButtons extends StatelessWidget {
       children: [
         Expanded(
           child: Material(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(14.r),
-            elevation: 4,
-            shadowColor: AppColors.primary.withOpacity(0.3),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14.r),
-              onTap: () async {
-                final bytes = await ReportPdfBuilder.build(report);
-                await Printing.layoutPdf(onLayout: (_) async => bytes);
-              },
-              child: Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(vertical: 14.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.print_outlined,
-                        color: Colors.white, size: 18.sp),
-                    SizedBox(width: 8.w),
-                    Text('طباعة',
-                        style: AppTextStyles.cairoMedium16
-                            .copyWith(color: Colors.white, fontSize: 14.sp)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: Material(
             color: context.colors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14.r),

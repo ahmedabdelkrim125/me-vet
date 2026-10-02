@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mivet_app/core/di/service_locator.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../inventory/data/products_repository.dart';
+import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
 import '../../../inventory/domain/models/product_model.dart';
+import '../../../inventory/presentation/cubit/vehicle_stock_cubit.dart';
+import '../../../inventory/presentation/cubit/vehicle_stock_state.dart';
 import '../../../invoices/domain/invoice_draft.dart';
 import '../data/invoices_repository.dart';
 
@@ -105,9 +109,44 @@ class _EditInvoiceScreenState extends State<EditInvoiceScreen> {
 
   double get total => subtotal - discountAmount;
 
+  Future<({List<ProductModel> products, Map<String, int> quantities})>
+      _loadMyVehicleStock() async {
+    final cubit = sl<VehicleStockCubit>();
+    final myId = context.read<AuthCubit>().state.user?.id;
+
+    await cubit.loadVehicles();
+
+    if (myId != null) {
+      final mine = cubit.state.vehicles.where((v) => v.repId == myId).toList();
+      if (mine.isNotEmpty && mine.first.id != cubit.state.selectedVehicleId) {
+        await cubit.selectVehicle(mine.first.id);
+      }
+    }
+
+    final state = cubit.state;
+    if (state.status == VehicleStockStatus.error ||
+        state.selectedVehicleId == null) {
+      throw Exception(state.errorMessage ?? 'تعذر تحميل مخزون العربية');
+    }
+
+    final quantities = <String, int>{};
+    final products = <ProductModel>[];
+    for (final stock in state.vehicleStock) {
+      final quantity = stock.quantity > 0 ? stock.quantity : 0;
+      quantities[stock.productId] = quantity;
+      final product = stock.product;
+      if (quantity > 0 && product != null && !product.isDeleted) {
+        products.add(product);
+      }
+    }
+    products.sort((a, b) => a.name.compareTo(b.name));
+
+    return (products: products, quantities: quantities);
+  }
+
   Future<void> _addProduct() async {
     try {
-      final products = await ProductsRepository.instance.getProducts();
+      final stock = await _loadMyVehicleStock();
 
       if (!mounted) return;
 
@@ -116,7 +155,8 @@ class _EditInvoiceScreenState extends State<EditInvoiceScreen> {
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => _ProductPickerSheet(
-          products: products,
+          products: stock.products,
+          stockByProductId: stock.quantities,
           existingItems: _draft.items,
           customerPrices: _customerPrices,
         ),
@@ -845,11 +885,13 @@ class _MoneyRow extends StatelessWidget {
 
 class _ProductPickerSheet extends StatefulWidget {
   final List<ProductModel> products;
+  final Map<String, int> stockByProductId;
   final List<InvoiceItemDraft> existingItems;
   final Map<String, CustomerProductPrice> customerPrices;
 
   const _ProductPickerSheet({
     required this.products,
+    required this.stockByProductId,
     required this.existingItems,
     required this.customerPrices,
   });
@@ -900,7 +942,15 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
               ),
             ),
             Expanded(
-              child: ListView.builder(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        'لا توجد منتجات متاحة في مخزن عربيتك',
+                        style: AppTextStyles.cairoMedium16
+                            .copyWith(color: colors.textMuted),
+                      ),
+                    )
+                  : ListView.builder(
                 itemCount: filtered.length,
                 itemBuilder: (_, index) {
                   final product = filtered[index];
@@ -914,9 +964,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                     onTap: () => Navigator.pop(context, product),
                     title: Text(product.name),
                     subtitle: Text(
-                      remembered == null
-                          ? 'لا يوجد سعر سابق لهذا العميل'
-                          : 'آخر سعر سابق: ${remembered.toStringAsFixed(2)} ج.م',
+                      '${remembered == null ? 'لا يوجد سعر سابق لهذا العميل' : 'آخر سعر سابق: ${remembered.toStringAsFixed(2)} ج.م'}'
+                      '\nالمتاح في العربية: ${widget.stockByProductId[product.id] ?? 0}',
                     ),
                     trailing: Icon(
                       added
