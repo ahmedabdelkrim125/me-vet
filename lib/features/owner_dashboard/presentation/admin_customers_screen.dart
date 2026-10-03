@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -8,8 +9,6 @@ import '../../customer-visits/customers/domain/models/customer_model.dart';
 import '../data/admin_actions_service.dart';
 import 'widgets/admin_customer_actions_sheet.dart';
 
-/// كل عملاء التطبيق (مش عملاء مندوب واحد بس)، عشان الأونر يقدر يختار عميل
-/// ويضيفله مديونية قديمة، أو يعمل له فاتورة تاريخية، أو يحذفه نهائيًا.
 class AdminCustomersScreen extends StatefulWidget {
   const AdminCustomersScreen({super.key});
 
@@ -73,11 +72,11 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
   @override
   Widget build(BuildContext context) {
     final customers = _filtered;
+    final colors = context.colors;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
         title: Text(
           'إدارة العملاء',
           style: AppTextStyles.cairoBold18
@@ -95,10 +94,10 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                 hintText: 'ابحث بالاسم أو رقم الهاتف',
                 prefixIcon: const Icon(Icons.search_rounded),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: colors.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: const BorderSide(color: AppColors.cardBorder),
+                  borderSide: BorderSide(color: colors.border),
                 ),
               ),
             ),
@@ -113,7 +112,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                               ? 'لا يوجد عملاء'
                               : 'مفيش عميل بالاسم ده',
                           style: AppTextStyles.almaraiRegular14.copyWith(
-                              color: AppColors.navInactive, fontSize: 13.sp),
+                              color: colors.textMuted, fontSize: 13.sp),
                         ),
                       )
                     : RefreshIndicator(
@@ -127,9 +126,9 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                             return Container(
                               margin: EdgeInsets.only(bottom: 10.h),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: colors.surface,
                                 borderRadius: BorderRadius.circular(14.r),
-                                border: Border.all(color: AppColors.cardBorder),
+                                border: Border.all(color: colors.border),
                               ),
                               child: ListTile(
                                 onTap: () => _openActions(c),
@@ -144,7 +143,7 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                       : '${c.phone} • ${c.area}',
                                   style: AppTextStyles.almaraiRegular14
                                       .copyWith(
-                                          color: AppColors.navInactive,
+                                          color: colors.textMuted,
                                           fontSize: 11.sp),
                                 ),
                                 trailing: hasDebt
@@ -156,8 +155,8 @@ class _AdminCustomersScreenState extends State<AdminCustomersScreen> {
                                           fontSize: 12.sp,
                                         ),
                                       )
-                                    : const Icon(Icons.chevron_left_rounded,
-                                        color: AppColors.navInactive),
+                                    : Icon(Icons.chevron_left_rounded,
+                                        color: colors.textMuted),
                               ),
                             );
                           },

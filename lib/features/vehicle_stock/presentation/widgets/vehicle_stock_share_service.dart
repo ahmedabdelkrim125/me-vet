@@ -7,6 +7,7 @@ import '../../../inventory/domain/models/product_catalog.dart';
 import '../../../inventory/domain/models/vehicle_stock_added_today_model.dart';
 import '../../../inventory/domain/models/vehicle_stock_model.dart';
 import 'vehicle_stock_report_builder.dart';
+import 'package:mivet_app/core/utils/pdf_export.dart';
 
 class VehicleStockShareService {
   VehicleStockShareService._();
@@ -121,10 +122,7 @@ class VehicleStockShareService {
     Uint8List pdfBytes,
     String fileNameBase,
   ) async {
-    await Printing.sharePdf(
-      bytes: pdfBytes,
-      filename: '$fileNameBase.pdf',
-    );
+    await PdfExport.share(pdfBytes, '$fileNameBase.pdf');
   }
 
   /// Separate, optional "Save" action: opens the native print/preview

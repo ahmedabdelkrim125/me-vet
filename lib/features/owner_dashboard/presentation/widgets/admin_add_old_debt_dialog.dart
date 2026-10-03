@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/errors/app_exception.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-
 import '../../../customer-visits/customers/domain/models/customer_model.dart';
 import '../../data/admin_actions_service.dart';
 
-/// تسجيل مديونية قديمة كانت على العميل قبل ما يتعمل له حساب على التطبيق.
-/// بتدخل في نفس سجل حركة الحساب (ledger) اللي المندوب شايفه أصلًا، فمفيش
-/// أي فرق بالنسبة له غير إن الرصيد بقى فيه المديونية القديمة دي.
 class AdminAddOldDebtDialog extends StatefulWidget {
   final CustomerModel customer;
 
@@ -74,11 +71,12 @@ class _AdminAddOldDebtDialogState extends State<AdminAddOldDebtDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return AlertDialog(
       title: Text(
         'مديونية قديمة لـ${widget.customer.name}',
         style: AppTextStyles.cairoBold18
-            .copyWith(color: AppColors.primary, fontSize: 15.sp),
+            .copyWith(color: colors.text, fontSize: 15.sp),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,

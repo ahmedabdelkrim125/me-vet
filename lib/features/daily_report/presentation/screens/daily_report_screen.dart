@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:printing/printing.dart';
+import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/const/app_images.dart';
 import '../../../../core/di/service_locator.dart';
@@ -8,7 +8,6 @@ import '../../../../core/theme/app_color_scheme_extension.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_extension.dart';
-import '../../../customer_account/presentation/screens/sales_return_search_screen.dart';
 import '../../../home/presentation/widgets/add_expense_dialog.dart';
 import 'widgets/daily_invoices_section.dart';
 import '../../domain/models/report_period_type.dart';
@@ -16,6 +15,7 @@ import '../../domain/models/representative_report_model.dart';
 import '../../domain/report_pdf_builder.dart';
 import '../cubit/daily_report_cubit.dart';
 import '../cubit/daily_report_state.dart';
+import 'package:mivet_app/core/utils/pdf_export.dart';
 
 class DailyReportScreen extends StatelessWidget {
   final String? selectedRepId;
@@ -101,15 +101,6 @@ class _DailyReportBody extends StatelessWidget {
         iconTheme: IconThemeData(color: colors.text),
         actions: [
           IconButton(
-            icon: Icon(Icons.search_rounded, color: colors.text, size: 24.w),
-            tooltip: 'بحث مرتجع بالمنتج',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const SalesReturnSearchScreen(),
-              ),
-            ),
-          ),
-          IconButton(
             icon: Icon(Icons.add_card_rounded,
                 color: AppColors.primaryGreen, size: 24.w),
             onPressed: () async {
@@ -185,8 +176,10 @@ class _DailyReportBody extends StatelessWidget {
                     SizedBox(height: 20.h),
                     _SummarySection(report: report),
                     SizedBox(height: 16.h),
-                    const DailyInvoicesSection(),
-                    SizedBox(height: 16.h),
+                    if (selectedPeriod == ReportPeriodType.daily) ...[
+                      const DailyInvoicesSection(),
+                      SizedBox(height: 16.h),
+                    ],
                     _BalancesSection(report: report),
                     SizedBox(height: 16.h),
                     _CollectionsSection(report: report),
@@ -783,8 +776,12 @@ class _ExportButtons extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(14.r),
               onTap: () async {
-                final bytes = await ReportPdfBuilder.build(report);
-                await Printing.sharePdf(bytes: bytes, filename: 'report.pdf');
+                try {
+                  final bytes = await ReportPdfBuilder.build(report);
+                  await PdfExport.share(bytes, 'report.pdf');
+                } catch (e) {
+                  if (context.mounted) showAppError(context, e);
+                }
               },
               child: Container(
                 alignment: Alignment.center,

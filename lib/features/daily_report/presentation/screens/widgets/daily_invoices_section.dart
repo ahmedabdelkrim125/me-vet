@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
@@ -10,6 +9,7 @@ import 'package:mivet_app/features/customer-visits/customers/domain/models/invoi
 import 'package:mivet_app/features/customer-visits/customers/screens/invoice_detail_screen.dart';
 
 import '../../../domain/daily_invoices_pdf_builder.dart';
+import 'package:mivet_app/core/utils/pdf_export.dart';
 
 class DailyInvoicesSection extends StatefulWidget {
   const DailyInvoicesSection({super.key});
@@ -81,9 +81,9 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
 
       final bytes = await DailyInvoicesPdfBuilder.build(entries, _from);
       if (!mounted) return;
-      await Printing.sharePdf(
-        bytes: bytes,
-        filename: 'الفواتير-اليومية-${_from.year}-${_from.month}-${_from.day}.pdf',
+      await PdfExport.share(
+        bytes,
+        'daily-invoices-${_from.year}-${_from.month}-${_from.day}.pdf',
       );
     } catch (e) {
       if (mounted) showAppError(context, e);
@@ -130,8 +130,8 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
                       ? SizedBox(
                           width: 14.w,
                           height: 14.w,
-                          child: const CircularProgressIndicator(
-                              strokeWidth: 2),
+                          child:
+                              const CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.share_outlined, size: 16),
                   label: const Text('مشاركة الفواتير اليومية'),
@@ -155,8 +155,8 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _invoices.length,
-              separatorBuilder: (_, __) => Divider(
-                  color: colors.border.withOpacity(0.5), height: 16.h),
+              separatorBuilder: (_, __) =>
+                  Divider(color: colors.border.withOpacity(0.5), height: 16.h),
               itemBuilder: (context, index) {
                 final invoice = _invoices[index];
                 return InkWell(

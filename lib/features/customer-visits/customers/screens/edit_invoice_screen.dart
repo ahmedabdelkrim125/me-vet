@@ -951,31 +951,31 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                       ),
                     )
                   : ListView.builder(
-                itemCount: filtered.length,
-                itemBuilder: (_, index) {
-                  final product = filtered[index];
-                  final added = widget.existingItems.any(
-                    (item) => item.productId == product.id,
-                  );
-                  final remembered =
-                      widget.customerPrices[product.id]?.lastPrice;
+                      itemCount: filtered.length,
+                      itemBuilder: (_, index) {
+                        final product = filtered[index];
+                        final added = widget.existingItems.any(
+                          (item) => item.productId == product.id,
+                        );
+                        final remembered =
+                            widget.customerPrices[product.id]?.lastPrice;
 
-                  return ListTile(
-                    onTap: () => Navigator.pop(context, product),
-                    title: Text(product.name),
-                    subtitle: Text(
-                      '${remembered == null ? 'لا يوجد سعر سابق لهذا العميل' : 'آخر سعر سابق: ${remembered.toStringAsFixed(2)} ج.م'}'
-                      '\nالمتاح في العربية: ${widget.stockByProductId[product.id] ?? 0}',
+                        return ListTile(
+                          onTap: () => Navigator.pop(context, product),
+                          title: Text(product.name),
+                          subtitle: Text(
+                            '${remembered == null ? 'لا يوجد سعر سابق لهذا العميل' : 'آخر سعر سابق: ${remembered.toStringAsFixed(2)} ج.م'}'
+                            '\nالمتاح في العربية: ${widget.stockByProductId[product.id] ?? 0}',
+                          ),
+                          trailing: Icon(
+                            added
+                                ? Icons.check_circle_outline
+                                : Icons.add_circle_outline,
+                            color: colors.primary,
+                          ),
+                        );
+                      },
                     ),
-                    trailing: Icon(
-                      added
-                          ? Icons.check_circle_outline
-                          : Icons.add_circle_outline,
-                      color: colors.primary,
-                    ),
-                  );
-                },
-              ),
             ),
           ],
         ),

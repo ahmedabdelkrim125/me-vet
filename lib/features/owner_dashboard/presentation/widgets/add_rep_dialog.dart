@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -75,11 +76,12 @@ class _AddRepDialogState extends State<AddRepDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return AlertDialog(
       title: Text(
         _isEditMode ? 'تعديل بيانات المندوب' : 'إضافة مندوب جديد',
         style: AppTextStyles.cairoBold18
-            .copyWith(color: AppColors.primary, fontSize: 17.sp),
+            .copyWith(color: colors.text, fontSize: 17.sp),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,

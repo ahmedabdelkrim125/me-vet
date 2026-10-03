@@ -21,6 +21,7 @@ import '../../domain/models/quick_invoice_models.dart';
 import '../../../customer_account/domain/entities/payment_method.dart';
 import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
 import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:mivet_app/core/utils/pdf_export.dart';
 
 List<InvoiceCustomerModel> _customersFromRepository() {
   return CustomersRepository.instance.customers
@@ -338,8 +339,8 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       return;
     }
     if (paid > 0 && _splitPaymentMethods) {
-      final validRows =
-          _paymentSplitRows.where((row) => row.method != null && row.amount > 0);
+      final validRows = _paymentSplitRows
+          .where((row) => row.method != null && row.amount > 0);
       if (validRows.isEmpty) {
         _toast('أدخل طريقة دفع واحدة على الأقل بمبلغها');
         return;
@@ -543,8 +544,12 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
   Future<void> _shareInvoiceOnWhatsapp() async {
     if (!_canBuildPdf()) return;
-    final bytes = await _buildInvoicePdfBytes();
-    await Printing.sharePdf(bytes: bytes, filename: '$invoiceNumber.pdf');
+    try {
+      final bytes = await _buildInvoicePdfBytes();
+      await PdfExport.share(bytes, '$invoiceNumber.pdf');
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    }
   }
 
   @override
@@ -659,8 +664,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                                         'طريقة الدفع',
                                         style: AppTextStyles.almaraiRegular14
                                             .copyWith(
-                                                color:
-                                                    context.colors.text),
+                                                color: context.colors.text),
                                       ),
                                     ),
                                     TextButton(
@@ -679,8 +683,8 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                                 if (!_splitPaymentMethods)
                                   PaymentMethodSelector(
                                     value: _paymentMethod,
-                                    onChanged: (method) => setState(
-                                        () => _paymentMethod = method),
+                                    onChanged: (method) =>
+                                        setState(() => _paymentMethod = method),
                                   )
                                 else ...[
                                   for (var i = 0;
@@ -691,13 +695,10 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                                       children: [
                                         Expanded(
                                           child: PaymentMethodSelector(
-                                            value: _paymentSplitRows[i]
-                                                .method,
-                                            onChanged: (method) =>
-                                                setState(() =>
-                                                    _paymentSplitRows[i]
-                                                            .method =
-                                                        method),
+                                            value: _paymentSplitRows[i].method,
+                                            onChanged: (method) => setState(
+                                                () => _paymentSplitRows[i]
+                                                    .method = method),
                                           ),
                                         ),
                                       ],
@@ -712,8 +713,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                                             keyboardType: const TextInputType
                                                 .numberWithOptions(
                                                 decimal: true),
-                                            onChanged: (_) =>
-                                                setState(() {}),
+                                            onChanged: (_) => setState(() {}),
                                             decoration: InputDecoration(
                                               labelText: 'المبلغ ${i + 1}',
                                             ),
@@ -735,8 +735,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                                   ],
                                   SizedBox(height: 6.h),
                                   Align(
-                                    alignment:
-                                        AlignmentDirectional.centerStart,
+                                    alignment: AlignmentDirectional.centerStart,
                                     child: TextButton.icon(
                                       onPressed: () => setState(() =>
                                           _paymentSplitRows
@@ -2448,8 +2447,8 @@ class _AccountSummarySection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'العميل لم يدفع أي مبلغ — سيتم تسجيل الفاتورة كفاتورة آجلة بالكامل وإضافة ${_money(totalDue)} إلى رصيد العميل المستحق.',
-                    style: AppTextStyles.almaraiRegular14.copyWith(
-                        color: colors.statOrange, fontSize: 11.sp),
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.statOrange, fontSize: 11.sp),
                   ),
                 ),
               ],

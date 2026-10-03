@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -48,12 +49,13 @@ class AdminCustomerActionsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SafeArea(
       child: Container(
         margin: EdgeInsets.all(12.w),
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(20.r),
         ),
         child: Column(
@@ -64,7 +66,7 @@ class AdminCustomerActionsSheet extends StatelessWidget {
               customer.name,
               textAlign: TextAlign.center,
               style: AppTextStyles.cairoBold18
-                  .copyWith(color: AppColors.primary, fontSize: 15.sp),
+                  .copyWith(color: colors.text, fontSize: 15.sp),
             ),
             SizedBox(height: 14.h),
             _ActionTile(
@@ -110,7 +112,7 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tint = color ?? AppColors.primary;
+    final tint = color ?? context.colors.text;
     return Material(
       color: Colors.transparent,
       child: InkWell(

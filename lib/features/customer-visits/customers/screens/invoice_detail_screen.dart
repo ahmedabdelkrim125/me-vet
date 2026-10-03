@@ -21,6 +21,7 @@ import '../../../customer_account/presentation/widgets/payment_method_selector.d
 import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../data/invoices_repository.dart';
 import 'edit_invoice_screen.dart';
+import 'package:mivet_app/core/utils/pdf_export.dart';
 
 class InvoiceDetailScreen extends StatefulWidget {
   final String invoiceCode;
@@ -120,6 +121,13 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     return '';
   }
 
+  double _discountOf(InvoiceFullDetail detail) {
+    final fromSubtotal = detail.subtotal - detail.totalAmount;
+    return detail.discountAmount > fromSubtotal
+        ? detail.discountAmount
+        : (fromSubtotal > 0 ? fromSubtotal : 0.0);
+  }
+
   Future<Uint8List> _buildPdf(InvoiceFullDetail detail) async {
     // اسم الشخص اللي عمل الفاتورة فعليًا، مش الشخص اللي بيشوفها دلوقتي.
     // بيرجع لاسم الجلسة الحالية بس لو الفاتورة قديمة من قبل ما كان
@@ -145,7 +153,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
             )
             .toList(),
         invoiceTotal: detail.totalAmount,
-        discountAmount: detail.discountAmount,
+        discountAmount: _discountOf(detail),
         previousBalance: widget.previousBalanceAtView,
         totalDue: detail.totalAmount + widget.previousBalanceAtView,
         paidNow: detail.paidNow,
@@ -203,8 +211,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
               const SizedBox(height: 12),
               PaymentMethodSelector(
                 value: method,
-                onChanged: (value) =>
-                    setDialogState(() => method = value),
+                onChanged: (value) => setDialogState(() => method = value),
               ),
             ],
           ),
@@ -262,10 +269,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
 
     try {
       final bytes = await _buildPdf(detail);
-      await Printing.sharePdf(
-        bytes: bytes,
-        filename: '${detail.code}.pdf',
-      );
+      await PdfExport.share(bytes, '${detail.code}.pdf');
     } catch (e) {
       if (mounted) showAppError(context, e);
     }

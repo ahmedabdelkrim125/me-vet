@@ -10,8 +10,7 @@ class DailyInvoicePdfEntry {
   final String invoiceCode;
   final String customerName;
   final DateTime date;
-  final List<({String name, int quantity, double price, double total})>
-      items;
+  final List<({String name, int quantity, double price, double total})> items;
   final double total;
   final String status;
 
@@ -77,8 +76,8 @@ class DailyInvoicesPdfBuilder {
                 pw.SizedBox(height: 4),
                 pw.Text(
                   _formatDate(reportDate),
-                  style: pw.TextStyle(
-                      font: boldFont, fontSize: 11, color: _green),
+                  style:
+                      pw.TextStyle(font: boldFont, fontSize: 11, color: _green),
                 ),
               ],
             ),
@@ -135,8 +134,7 @@ class DailyInvoicesPdfBuilder {
             children: [
               pw.Text(
                 '${entry.invoiceCode}  —  ${entry.customerName}',
-                style:
-                    pw.TextStyle(font: boldFont, fontSize: 11, color: _navy),
+                style: pw.TextStyle(font: boldFont, fontSize: 11, color: _navy),
               ),
               pw.Text(
                 '${_formatAmount(entry.total)} ج.م  (${entry.status})',

@@ -107,7 +107,8 @@ class _SalesReturnSearchScreenState extends State<SalesReturnSearchScreen> {
               decoration: InputDecoration(
                 hintText: 'اكتب اسم المنتج...',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r)),
               ),
             ),
           ),
@@ -125,7 +126,8 @@ class _SalesReturnSearchScreenState extends State<SalesReturnSearchScreen> {
       return Center(
         child: Text(
           'ابحث باسم المنتج عشان تشوف الفواتير اللي فيها',
-          style: AppTextStyles.almaraiRegular14.copyWith(color: colors.textMuted),
+          style:
+              AppTextStyles.almaraiRegular14.copyWith(color: colors.textMuted),
         ),
       );
     }
@@ -133,7 +135,8 @@ class _SalesReturnSearchScreenState extends State<SalesReturnSearchScreen> {
       return Center(
         child: Text(
           'مفيش فواتير فيها المنتج ده لسه قابلة للإرجاع',
-          style: AppTextStyles.almaraiRegular14.copyWith(color: colors.textMuted),
+          style:
+              AppTextStyles.almaraiRegular14.copyWith(color: colors.textMuted),
         ),
       );
     }

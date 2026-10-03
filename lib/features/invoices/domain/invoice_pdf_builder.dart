@@ -69,8 +69,11 @@ class InvoicePdfData {
 
   double get subtotalBeforeDiscount => invoiceTotal + discountAmount;
 
-  double get discountPercent =>
-      subtotalBeforeDiscount > 0 ? discountAmount / subtotalBeforeDiscount * 100 : 0;
+  double get totalAfterDiscount => invoiceTotal;
+
+  double get discountPercent => subtotalBeforeDiscount > 0
+      ? discountAmount / subtotalBeforeDiscount * 100
+      : 0;
 
   double get oldDebtTotal =>
       oldDebtCollected.fold(0.0, (sum, l) => sum + l.amount);
@@ -289,24 +292,27 @@ class InvoicePdfBuilder {
     pw.Font regularFont,
   ) {
     final headers = [
+      'الإجمالي بعد الخصم',
       'نسبة الخصم',
       'قيمة الخصم',
       'الإجمالي قبل الخصم',
     ];
     final values = [
+      '${_formatAmount(data.totalAfterDiscount)} ج.م',
       '${_formatPercent(data.discountPercent)}%',
       '${_formatAmount(data.discountAmount)} ج.م',
       '${_formatAmount(data.subtotalBeforeDiscount)} ج.م',
     ];
 
-    return _buildStyledTable(
-        'الخصم', headers, [values], boldFont, regularFont);
+    return _buildStyledTable('الخصم', headers, [values], boldFont, regularFont);
   }
 
   static String _formatPercent(double value) {
     var text = value.toStringAsFixed(2);
     if (text.contains('.')) {
-      text = text.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+      text = text
+          .replaceFirst(RegExp(r'0+$'), '')
+          .replaceFirst(RegExp(r'\.$'), '');
     }
     return text;
   }

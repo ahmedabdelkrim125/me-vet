@@ -240,7 +240,7 @@
 //   }
 
 //   Future<List<InvoiceRecordModel>> getInvoicesInRange(
-    
+
 //     DateTime start,
 //     DateTime end,
 //   ) async {
@@ -660,8 +660,7 @@ class InvoicesRepository {
         .order('invoice_date', ascending: false);
 
     return (rows as List<dynamic>)
-        .map((row) =>
-            DailyInvoiceSummary.fromJson(row as Map<String, dynamic>))
+        .map((row) => DailyInvoiceSummary.fromJson(row as Map<String, dynamic>))
         .toList();
   }
 

@@ -14,13 +14,12 @@ import '../cubit/customer_account_cubit.dart';
 import '../cubit/customer_account_state.dart';
 import '../widgets/return_item_selector.dart';
 import '../widgets/return_summary.dart';
+import 'sales_return_search_screen.dart';
 
 class SalesReturnScreen extends StatefulWidget {
   final String customerId;
   final String customerName;
 
-  /// لو جاية من شاشة البحث بالمنتج، كود الفاتورة اللي المستخدم اختارها
-  /// بالفعل — بنفتح تفاصيلها على طول من غير ما نعرض قائمة فواتير العميل.
   final String? initialInvoiceCode;
 
   const SalesReturnScreen({
@@ -80,8 +79,8 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
   Future<void> _selectInvoice(String invoiceCode) async {
     setState(() => _loadingDetail = true);
     try {
-      final detail = await InvoicesRepository.instance
-          .getInvoiceDetailByCode(invoiceCode);
+      final detail =
+          await InvoicesRepository.instance.getInvoiceDetailByCode(invoiceCode);
       if (!mounted) return;
 
       await context
@@ -149,6 +148,22 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
         title: const Text('مرتجع مبيعات'),
         backgroundColor: colors.surface,
         foregroundColor: colors.primary,
+        actions: [
+          if (_selectedInvoice == null && widget.initialInvoiceCode == null)
+            IconButton(
+              icon: Icon(
+                Icons.search_rounded,
+                color: colors.text,
+                size: 24.w,
+              ),
+              tooltip: 'بحث مرتجع بالمنتج',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const SalesReturnSearchScreen(),
+                ),
+              ),
+            ),
+        ],
       ),
       body: BlocConsumer<CustomerAccountCubit, CustomerAccountState>(
         listenWhen: (p, c) => p.actionStatus != c.actionStatus,

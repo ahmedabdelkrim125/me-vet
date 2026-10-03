@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/errors/app_exception.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// الأونر يقدر يغيّر كلمة مروره بنفسه من هنا، بدل ما يرجع للمطور في كل مرة.
-///
-/// الجلسة الحالية نفسها هي إثبات الهوية، فـSupabase Auth مش بيطلب كلمة
-/// المرور القديمة لتغييرها — بس بنطلب تأكيد الكلمة الجديدة مرتين هنا.
 class OwnerChangePasswordScreen extends StatefulWidget {
   const OwnerChangePasswordScreen({super.key});
 
@@ -69,10 +66,10 @@ class _OwnerChangePasswordScreenState extends State<OwnerChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
         title: Text(
           'تغيير كلمة المرور',
           style: AppTextStyles.cairoBold18
