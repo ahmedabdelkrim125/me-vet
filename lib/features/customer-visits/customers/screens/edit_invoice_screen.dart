@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mivet_app/core/di/service_locator.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../inventory/data/products_repository.dart';
+import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
 import '../../../inventory/domain/models/product_model.dart';
+import '../../../inventory/presentation/cubit/vehicle_stock_cubit.dart';
+import '../../../inventory/presentation/cubit/vehicle_stock_state.dart';
 import '../../../invoices/domain/invoice_draft.dart';
 import '../data/invoices_repository.dart';
 
@@ -105,9 +109,44 @@ class _EditInvoiceScreenState extends State<EditInvoiceScreen> {
 
   double get total => subtotal - discountAmount;
 
+  Future<({List<ProductModel> products, Map<String, int> quantities})>
+      _loadMyVehicleStock() async {
+    final cubit = sl<VehicleStockCubit>();
+    final myId = context.read<AuthCubit>().state.user?.id;
+
+    await cubit.loadVehicles();
+
+    if (myId != null) {
+      final mine = cubit.state.vehicles.where((v) => v.repId == myId).toList();
+      if (mine.isNotEmpty && mine.first.id != cubit.state.selectedVehicleId) {
+        await cubit.selectVehicle(mine.first.id);
+      }
+    }
+
+    final state = cubit.state;
+    if (state.status == VehicleStockStatus.error ||
+        state.selectedVehicleId == null) {
+      throw Exception(state.errorMessage ?? 'تعذر تحميل مخزون العربية');
+    }
+
+    final quantities = <String, int>{};
+    final products = <ProductModel>[];
+    for (final stock in state.vehicleStock) {
+      final quantity = stock.quantity > 0 ? stock.quantity : 0;
+      quantities[stock.productId] = quantity;
+      final product = stock.product;
+      if (quantity > 0 && product != null && !product.isDeleted) {
+        products.add(product);
+      }
+    }
+    products.sort((a, b) => a.name.compareTo(b.name));
+
+    return (products: products, quantities: quantities);
+  }
+
   Future<void> _addProduct() async {
     try {
-      final products = await ProductsRepository.instance.getProducts();
+      final stock = await _loadMyVehicleStock();
 
       if (!mounted) return;
 
@@ -116,7 +155,8 @@ class _EditInvoiceScreenState extends State<EditInvoiceScreen> {
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => _ProductPickerSheet(
-          products: products,
+          products: stock.products,
+          stockByProductId: stock.quantities,
           existingItems: _draft.items,
           customerPrices: _customerPrices,
         ),
@@ -205,6 +245,13 @@ class _EditInvoiceScreenState extends State<EditInvoiceScreen> {
     final next = item.quantity + delta;
     if (next < 1) return;
     setState(() => item.quantity = next);
+  }
+
+  /// Typing the quantity directly — for returns or a large one-time
+  /// correction, instead of tapping +/- many times.
+  void _setQuantity(InvoiceItemDraft item, int value) {
+    if (value < 1) return;
+    setState(() => item.quantity = value);
   }
 
   void _removeItem(InvoiceItemDraft item) {
@@ -346,6 +393,8 @@ class _EditInvoiceScreenState extends State<EditInvoiceScreen> {
                                 item: item,
                                 onIncrease: () => _changeQuantity(item, 1),
                                 onDecrease: () => _changeQuantity(item, -1),
+                                onEditQuantity: (value) =>
+                                    _setQuantity(item, value),
                                 onEditPrice: () => _editPrice(item),
                                 onRemove: () => _removeItem(item),
                               ),
@@ -468,6 +517,7 @@ class _InvoiceItemCard extends StatelessWidget {
   final InvoiceItemDraft item;
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
+  final ValueChanged<int> onEditQuantity;
   final VoidCallback onEditPrice;
   final VoidCallback onRemove;
 
@@ -475,6 +525,7 @@ class _InvoiceItemCard extends StatelessWidget {
     required this.item,
     required this.onIncrease,
     required this.onDecrease,
+    required this.onEditQuantity,
     required this.onEditPrice,
     required this.onRemove,
   });
@@ -557,6 +608,7 @@ class _InvoiceItemCard extends StatelessWidget {
                 quantity: item.quantity,
                 onIncrease: onIncrease,
                 onDecrease: onDecrease,
+                onEditQuantity: onEditQuantity,
               ),
             ],
           ),
@@ -591,11 +643,52 @@ class _QuantityControl extends StatelessWidget {
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
 
+  /// Typing the quantity directly — faster than tapping +/- repeatedly for a
+  /// return or a large one-time correction.
+  final ValueChanged<int> onEditQuantity;
+
   const _QuantityControl({
     required this.quantity,
     required this.onIncrease,
     required this.onDecrease,
+    required this.onEditQuantity,
   });
+
+  Future<void> _promptQuantity(BuildContext context) async {
+    final controller = TextEditingController(text: '$quantity');
+
+    final value = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تعديل الكمية'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(labelText: 'الكمية الجديدة'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final parsed = int.tryParse(controller.text);
+              if (parsed == null || parsed <= 0) return;
+              Navigator.pop(context, parsed);
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+
+    if (value != null) onEditQuantity(value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -616,14 +709,18 @@ class _QuantityControl extends StatelessWidget {
               minHeight: 38,
             ),
           ),
-          SizedBox(
-            width: 28.w,
-            child: Text(
-              '$quantity',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.cairoMedium16.copyWith(
-                color: colors.text,
-                fontSize: 13.sp,
+          InkWell(
+            onTap: () => _promptQuantity(context),
+            child: SizedBox(
+              width: 32.w,
+              child: Text(
+                '$quantity',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.cairoMedium16.copyWith(
+                  color: colors.primary,
+                  fontSize: 13.sp,
+                  decoration: TextDecoration.underline,
+                ),
               ),
             ),
           ),
@@ -788,11 +885,13 @@ class _MoneyRow extends StatelessWidget {
 
 class _ProductPickerSheet extends StatefulWidget {
   final List<ProductModel> products;
+  final Map<String, int> stockByProductId;
   final List<InvoiceItemDraft> existingItems;
   final Map<String, CustomerProductPrice> customerPrices;
 
   const _ProductPickerSheet({
     required this.products,
+    required this.stockByProductId,
     required this.existingItems,
     required this.customerPrices,
   });
@@ -843,33 +942,40 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                itemCount: filtered.length,
-                itemBuilder: (_, index) {
-                  final product = filtered[index];
-                  final added = widget.existingItems.any(
-                    (item) => item.productId == product.id,
-                  );
-                  final remembered =
-                      widget.customerPrices[product.id]?.lastPrice;
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        'لا توجد منتجات متاحة في مخزن عربيتك',
+                        style: AppTextStyles.cairoMedium16
+                            .copyWith(color: colors.textMuted),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (_, index) {
+                        final product = filtered[index];
+                        final added = widget.existingItems.any(
+                          (item) => item.productId == product.id,
+                        );
+                        final remembered =
+                            widget.customerPrices[product.id]?.lastPrice;
 
-                  return ListTile(
-                    onTap: () => Navigator.pop(context, product),
-                    title: Text(product.name),
-                    subtitle: Text(
-                      remembered == null
-                          ? 'لا يوجد سعر سابق لهذا العميل'
-                          : 'آخر سعر سابق: ${remembered.toStringAsFixed(2)} ج.م',
+                        return ListTile(
+                          onTap: () => Navigator.pop(context, product),
+                          title: Text(product.name),
+                          subtitle: Text(
+                            '${remembered == null ? 'لا يوجد سعر سابق لهذا العميل' : 'آخر سعر سابق: ${remembered.toStringAsFixed(2)} ج.م'}'
+                            '\nالمتاح في العربية: ${widget.stockByProductId[product.id] ?? 0}',
+                          ),
+                          trailing: Icon(
+                            added
+                                ? Icons.check_circle_outline
+                                : Icons.add_circle_outline,
+                            color: colors.primary,
+                          ),
+                        );
+                      },
                     ),
-                    trailing: Icon(
-                      added
-                          ? Icons.check_circle_outline
-                          : Icons.add_circle_outline,
-                      color: colors.primary,
-                    ),
-                  );
-                },
-              ),
             ),
           ],
         ),

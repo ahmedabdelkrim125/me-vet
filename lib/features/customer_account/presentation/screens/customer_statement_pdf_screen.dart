@@ -1,11 +1,15 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:printing/printing.dart';
 
+import '../../data/repositories/payment_breakdown_repository.dart';
 import '../../domain/customer_statement.dart';
 import '../../domain/customer_statement_pdf_builder.dart';
+import '../../domain/entities/payment_breakdown.dart';
 import '../cubit/customer_account_cubit.dart';
 import '../cubit/customer_account_state.dart';
 
@@ -52,10 +56,8 @@ class CustomerStatementPdfScreen extends StatelessWidget {
           }
 
           return PdfPreview(
-            build: (_) => CustomerStatementPdfBuilder.build(
-              customerName: state.customerName,
-              statement: statement,
-            ),
+            build: (_) =>
+                _buildPdf(state.customerId, state.customerName, statement),
             pdfFileName: 'customer_statement_6_months.pdf',
             allowSharing: true,
             allowPrinting: true,
@@ -67,6 +69,31 @@ class CustomerStatementPdfScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<Uint8List> _buildPdf(
+  String customerId,
+  String customerName,
+  CustomerStatement statement,
+) async {
+  // The breakdown is an extra detail: if it cannot be loaded, the statement
+  // is still generated without it.
+  List<PaymentBreakdown> payments = const [];
+  try {
+    payments = await PaymentBreakdownRepository.instance.getForCustomer(
+      customerId,
+      from: statement.periodStart,
+      to: statement.periodEnd,
+    );
+  } catch (_) {
+    payments = const [];
+  }
+
+  return CustomerStatementPdfBuilder.build(
+    customerName: customerName,
+    statement: statement,
+    payments: payments,
+  );
 }
 
 class _Message extends StatelessWidget {

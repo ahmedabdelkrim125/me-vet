@@ -30,6 +30,20 @@ extension PaymentMethodDisplayLabel on PaymentMethod {
   }
 }
 
+/// One payment-method line within a split collection/payment — e.g. 2000
+/// جنيه نقدي + 3000 جنيه فودافون كاش داخل نفس عملية التحصيل.
+class PaymentSplitEntry {
+  final PaymentMethod method;
+  final double amount;
+
+  const PaymentSplitEntry({required this.method, required this.amount});
+
+  Map<String, dynamic> toRpcJson() => {
+        'payment_method': method.backendValue,
+        'amount': amount,
+      };
+}
+
 PaymentMethod? paymentMethodFromBackend(String? value) {
   switch (value) {
     case 'cash':

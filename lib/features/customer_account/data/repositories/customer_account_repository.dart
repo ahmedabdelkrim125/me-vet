@@ -28,6 +28,15 @@ abstract class CustomerAccountRepository {
     String? notes,
   });
 
+  /// Same as [recordAccountPayment] but splits the collected amount across
+  /// more than one payment method within a single collection operation.
+  Future<CollectionReceipt> recordAccountPaymentSplit({
+    required String customerId,
+    required String customerName,
+    required List<PaymentSplitEntry> payments,
+    String? notes,
+  });
+
   Future<void> createSalesReturn({
     required String customerId,
     required String invoiceId,

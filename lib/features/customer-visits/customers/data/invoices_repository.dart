@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../customer_account/domain/entities/invoice_product_search_result.dart';
 import '../../../customer_account/domain/entities/payment_method.dart';
 import '../domain/models/invoice_line_input.dart';
 import '../domain/models/invoice_record_model.dart';
@@ -32,12 +33,12 @@ class InvoiceFullDetail {
   final double discountAmount;
   final double totalAmount;
   final double paidNow;
-  final String saleType;
   final String statusLabel;
   final String? notes;
   final List<InvoiceItemRow> items;
   final String? creatorType;
   final String? creatorName;
+  final String? lastEditReason;
 
   const InvoiceFullDetail({
     required this.id,
@@ -49,12 +50,12 @@ class InvoiceFullDetail {
     required this.discountAmount,
     required this.totalAmount,
     required this.paidNow,
-    required this.saleType,
     required this.statusLabel,
     required this.notes,
     required this.items,
     this.creatorType,
     this.creatorName,
+    this.lastEditReason,
   });
 
   double get remaining => totalAmount - paidNow;
@@ -111,6 +112,7 @@ class InvoicesRepository {
     required bool isCashSale,
     required double paidNow,
     PaymentMethod? paymentMethod,
+    List<PaymentSplitEntry>? payments,
     String? notes,
   }) async {
     final row = await _supabase.rpc(
@@ -123,6 +125,8 @@ class InvoicesRepository {
         'p_paid_now': paidNow,
         'p_payment_method': paymentMethod?.backendValue,
         'p_notes': notes,
+        if (payments != null && payments.isNotEmpty)
+          'p_payments': payments.map((p) => p.toRpcJson()).toList(),
       },
     );
 
@@ -148,6 +152,155 @@ class InvoicesRepository {
         'p_reason': reason,
       },
     );
+  }
+
+  Future<void> collectAgainstInvoice({
+    required String invoiceId,
+    required double amount,
+    required PaymentMethod method,
+    String? notes,
+  }) async {
+    await _supabase.rpc(
+      'collect_specific_invoice_payment',
+      params: {
+        'p_invoice_id': invoiceId,
+        'p_amount': amount,
+        'p_payment_method': method.backendValue,
+        'p_notes': notes,
+      },
+    );
+  }
+
+  Future<void> releaseInvoiceOverpayment({
+    required String invoiceId,
+    required double newPaid,
+  }) async {
+    await _supabase.rpc(
+      'release_invoice_overpayment',
+      params: {
+        'p_invoice_id': invoiceId,
+        'p_new_paid': newPaid,
+      },
+    );
+  }
+
+  Future<void> refundCustomerCredit({
+    required String customerId,
+    required double amount,
+    required String paymentMethod,
+    String? notes,
+  }) async {
+    await _supabase.rpc(
+      'refund_customer_credit',
+      params: {
+        'p_customer_id': customerId,
+        'p_amount': amount,
+        'p_payment_method': paymentMethod,
+        'p_notes': notes,
+      },
+    );
+  }
+
+  Future<double> getInvoiceApplicableCredit(String invoiceId) async {
+    final result = await _supabase.rpc(
+      'get_invoice_applicable_credit',
+      params: {'p_invoice_id': invoiceId},
+    );
+    return double.tryParse(result.toString()) ?? 0;
+  }
+
+  Future<void> applyCustomerCreditToInvoice({
+    required String invoiceId,
+    required double amount,
+  }) async {
+    await _supabase.rpc(
+      'apply_customer_credit_to_invoice',
+      params: {
+        'p_invoice_id': invoiceId,
+        'p_amount': amount,
+      },
+    );
+  }
+
+  Future<List<InvoiceProductSearchResult>> searchInvoicesByProduct(
+    String query,
+  ) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+    final rows = await _supabase.rpc(
+      'search_invoices_by_product',
+      params: {'p_query': trimmed, 'p_limit': 30},
+    );
+    return (rows as List<dynamic>)
+        .map((row) =>
+            InvoiceProductSearchResult.fromJson(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<InvoiceProductSearchResult>> searchCustomerInvoiceItems({
+    required String customerId,
+    required String customerName,
+    required String query,
+  }) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+    final pattern = trimmed
+        .replaceAll('\\', '\\\\')
+        .replaceAll('%', '\\%')
+        .replaceAll('_', '\\_');
+
+    final rows = await _supabase
+        .from('invoice_items')
+        .select(
+          'id, product_name, unit_price, quantity, '
+          'invoices!inner(id, code, customer_id, invoice_date)',
+        )
+        .eq('invoices.customer_id', customerId)
+        .ilike('product_name', '%$pattern%')
+        .limit(100);
+
+    final results = <InvoiceProductSearchResult>[];
+    for (final row in rows as List) {
+      final map = row as Map<String, dynamic>;
+      final invoice = map['invoices'];
+      if (invoice is! Map) continue;
+      final quantity = (map['quantity'] as num).toInt();
+      results.add(
+        InvoiceProductSearchResult(
+          invoiceItemId: map['id'] as String,
+          invoiceId: invoice['id'] as String,
+          invoiceCode: invoice['code'] as String,
+          invoiceDate:
+              DateTime.parse(invoice['invoice_date'] as String).toLocal(),
+          customerId: customerId,
+          customerName: customerName,
+          productName: map['product_name'] as String? ?? '',
+          quantity: quantity,
+          unitPrice: (map['unit_price'] as num).toDouble(),
+          returnedQuantity: 0,
+          returnableQuantity: quantity,
+        ),
+      );
+    }
+    results.sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
+    return results;
+  }
+
+  Future<List<DailyInvoiceSummary>> getDailyInvoiceSummaries({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final rows = await _supabase
+        .from('invoices')
+        .select('id, code, invoice_date, total_amount, paid_now, status, '
+            'customers(name)')
+        .gte('invoice_date', from.toUtc().toIso8601String())
+        .lt('invoice_date', to.toUtc().toIso8601String())
+        .order('invoice_date', ascending: false);
+
+    return (rows as List<dynamic>)
+        .map((row) => DailyInvoiceSummary.fromJson(row as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<InvoiceRecordModel>> getInvoicesForCustomer(
@@ -237,6 +390,20 @@ class InvoicesRepository {
       );
     }).toList();
 
+    String? lastEditReason;
+    try {
+      final editRow = await _supabase
+          .from('invoice_edit_history')
+          .select('reason')
+          .eq('invoice_id', invoiceId)
+          .order('edited_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      lastEditReason = editRow?['reason'] as String?;
+    } catch (_) {
+      lastEditReason = null;
+    }
+
     return InvoiceFullDetail(
       id: invoiceId,
       code: invoice['code'] as String,
@@ -247,7 +414,6 @@ class InvoicesRepository {
       discountAmount: (invoice['discount_amount'] as num?)?.toDouble() ?? 0,
       totalAmount: (invoice['total_amount'] as num).toDouble(),
       paidNow: (invoice['paid_now'] as num).toDouble(),
-      saleType: invoice['sale_type'] == 'cash' ? 'نقدي' : 'آجل',
       statusLabel: _statusLabelFromDb(
         invoice['status'] as String?,
       ),
@@ -255,6 +421,7 @@ class InvoicesRepository {
       items: items,
       creatorType: invoice['creator_type'] as String?,
       creatorName: creatorName,
+      lastEditReason: lastEditReason,
     );
   }
 
@@ -338,5 +505,41 @@ class InvoicesRepository {
     });
 
     return stats;
+  }
+}
+
+class DailyInvoiceSummary {
+  final String id;
+  final String code;
+  final DateTime date;
+  final double amount;
+  final double paidAmount;
+  final InvoiceStatus status;
+  final String customerName;
+
+  const DailyInvoiceSummary({
+    required this.id,
+    required this.code,
+    required this.date,
+    required this.amount,
+    required this.paidAmount,
+    required this.status,
+    required this.customerName,
+  });
+
+  factory DailyInvoiceSummary.fromJson(Map<String, dynamic> json) {
+    final customer = json['customers'] as Map<String, dynamic>?;
+    return DailyInvoiceSummary(
+      id: json['id'] as String,
+      code: json['code'] as String,
+      date: DateTime.parse(json['invoice_date'] as String).toLocal(),
+      amount: (json['total_amount'] as num).toDouble(),
+      paidAmount: (json['paid_now'] as num?)?.toDouble() ?? 0,
+      status: InvoiceStatus.values.firstWhere(
+        (s) => s.name == (json['status'] as String? ?? 'deferred'),
+        orElse: () => InvoiceStatus.deferred,
+      ),
+      customerName: customer?['name'] as String? ?? '',
+    );
   }
 }

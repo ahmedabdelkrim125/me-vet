@@ -15,7 +15,7 @@ class VehicleStockModel {
     this.product,
   });
 
-  bool get isLowStock => quantity <= minThreshold;
+  bool get isLowStock => quantity < minThreshold;
 
   factory VehicleStockModel.fromMap(Map<String, dynamic> map) {
     final productMap = map['products'];

@@ -20,6 +20,16 @@ class InvoicePdfLineItem {
   });
 }
 
+class InvoicePdfOldDebtLine {
+  final String invoiceCode;
+  final double amount;
+
+  const InvoicePdfOldDebtLine({
+    required this.invoiceCode,
+    required this.amount,
+  });
+}
+
 class InvoicePdfData {
   final String invoiceNumber;
   final DateTime date;
@@ -31,6 +41,9 @@ class InvoicePdfData {
   final double totalDue;
   final double paidNow;
   final double remaining;
+  final double discountAmount;
+
+  final List<InvoicePdfOldDebtLine> oldDebtCollected;
 
   const InvoicePdfData({
     required this.invoiceNumber,
@@ -43,7 +56,22 @@ class InvoicePdfData {
     required this.totalDue,
     required this.paidNow,
     required this.remaining,
+    this.discountAmount = 0,
+    this.oldDebtCollected = const [],
   });
+
+  bool get hasDiscount => discountAmount > 0.005;
+
+  double get subtotalBeforeDiscount => invoiceTotal + discountAmount;
+
+  double get totalAfterDiscount => invoiceTotal;
+
+  double get discountPercent => subtotalBeforeDiscount > 0
+      ? discountAmount / subtotalBeforeDiscount * 100
+      : 0;
+
+  double get oldDebtTotal =>
+      oldDebtCollected.fold(0.0, (sum, l) => sum + l.amount);
 }
 
 class InvoicePdfBuilder {
@@ -91,8 +119,16 @@ class InvoicePdfBuilder {
                   _buildMetaRow(data, boldFont),
                   pw.SizedBox(height: 18),
                   ..._buildChunkWidgets(chunks, boldFont, regularFont),
-                  pw.SizedBox(height: 18),
-                  _buildTotalsTable(data, boldFont),
+                  pw.SizedBox(height: 16),
+                  if (data.hasDiscount) ...[
+                    _buildDiscountTable(data, boldFont, regularFont),
+                    pw.SizedBox(height: 14),
+                  ],
+                  _buildSummaryTable(data, boldFont, regularFont),
+                  if (data.oldDebtCollected.isNotEmpty) ...[
+                    pw.SizedBox(height: 14),
+                    _buildOldDebtTable(data, boldFont, regularFont),
+                  ],
                 ],
               ),
             ),
@@ -175,8 +211,12 @@ class InvoicePdfBuilder {
         '${i + 1}',
       ]);
     }
-    return pw.Table(
-      border: pw.TableBorder.all(color: _border, width: 0.6),
+    return _buildStyledTable(
+      null,
+      headers,
+      rows,
+      boldFont,
+      regularFont,
       columnWidths: const {
         0: pw.FlexColumnWidth(1.4),
         1: pw.FlexColumnWidth(1.2),
@@ -184,48 +224,6 @@ class InvoicePdfBuilder {
         3: pw.FlexColumnWidth(3.4),
         4: pw.FlexColumnWidth(0.6),
       },
-      children: [
-        pw.TableRow(
-          decoration: pw.BoxDecoration(color: _navy),
-          children: headers
-              .map(
-                (h) => pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(
-                    vertical: 5,
-                    horizontal: 4,
-                  ),
-                  child: pw.Text(
-                    h,
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      font: boldFont,
-                      fontSize: 10,
-                      color: PdfColors.white,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-        for (final row in rows)
-          pw.TableRow(
-            children: row
-                .map(
-                  (cell) => pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(
-                      vertical: 5,
-                      horizontal: 4,
-                    ),
-                    child: pw.Text(
-                      cell,
-                      textAlign: pw.TextAlign.center,
-                      style: pw.TextStyle(font: regularFont, fontSize: 10),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-      ],
     );
   }
 
@@ -253,70 +251,175 @@ class InvoicePdfBuilder {
     return widgets;
   }
 
-  static pw.Widget _buildTotalsTable(InvoicePdfData data, pw.Font boldFont) {
+  static pw.Widget _buildSummaryTable(
+    InvoicePdfData data,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    final hasOldDebt = data.oldDebtCollected.isNotEmpty;
+
+    final hasCredit = data.previousBalance < 0;
+    final dueIsCredit = data.totalDue < 0;
+
     final headers = [
-      'المبلغ المتبقي',
-      'المبلغ المدفوع',
-      'إجمالي الحساب',
-      'الحساب السابق',
-      'إجمالي الفاتورة',
+      'المتبقي على العميل',
+      if (hasOldDebt) 'دين قديم متحصّل معها',
+      'المدفوع من الفاتورة',
+      dueIsCredit ? 'رصيد العميل بعد الفاتورة (دائن)' : 'إجمالي المستحق على العميل',
+      hasCredit ? 'رصيد العميل السابق (دائن)' : 'الحساب السابق',
+      'قيمة الفاتورة الحالية',
     ];
     final values = [
-      data.remaining.toStringAsFixed(0),
-      data.paidNow.toStringAsFixed(0),
-      data.totalDue.toStringAsFixed(0),
-      data.previousBalance.toStringAsFixed(0),
-      data.invoiceTotal.toStringAsFixed(0),
+      _formatAmount(data.remaining),
+      if (hasOldDebt) _formatAmount(data.oldDebtTotal),
+      _formatAmount(data.paidNow),
+      _formatAmount(data.totalDue.abs()),
+      _formatAmount(data.previousBalance.abs()),
+      _formatAmount(data.invoiceTotal),
+    ].map((v) => '$v ج.م').toList();
+
+    return _buildStyledTable(
+        'ملخص الفاتورة', headers, [values], boldFont, regularFont);
+  }
+
+  static pw.Widget _buildDiscountTable(
+    InvoicePdfData data,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    final headers = [
+      'الإجمالي بعد الخصم',
+      'نسبة الخصم',
+      'قيمة الخصم',
+      'الإجمالي قبل الخصم',
+    ];
+    final values = [
+      '${_formatAmount(data.totalAfterDiscount)} ج.م',
+      '${_formatPercent(data.discountPercent)}%',
+      '${_formatAmount(data.discountAmount)} ج.م',
+      '${_formatAmount(data.subtotalBeforeDiscount)} ج.م',
     ];
 
-    return pw.Table(
-      border: pw.TableBorder.all(color: _border, width: 0.6),
+    return _buildStyledTable('الخصم', headers, [values], boldFont, regularFont);
+  }
+
+  static String _formatPercent(double value) {
+    var text = value.toStringAsFixed(2);
+    if (text.contains('.')) {
+      text = text
+          .replaceFirst(RegExp(r'0+$'), '')
+          .replaceFirst(RegExp(r'\.$'), '');
+    }
+    return text;
+  }
+
+  static pw.Widget _buildOldDebtTable(
+    InvoicePdfData data,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    final headers = ['المبلغ', 'الفاتورة القديمة', 'م'];
+    final rows = <List<String>>[
+      for (var i = 0; i < data.oldDebtCollected.length; i++)
+        [
+          '${_formatAmount(data.oldDebtCollected[i].amount)} ج.م',
+          data.oldDebtCollected[i].invoiceCode,
+          '${i + 1}',
+        ],
+    ];
+
+    return _buildStyledTable(
+      'دين قديم اتحصّل مع الفاتورة دي',
+      headers,
+      rows,
+      boldFont,
+      regularFont,
+      columnWidths: const {
+        0: pw.FlexColumnWidth(1.4),
+        1: pw.FlexColumnWidth(2.6),
+        2: pw.FlexColumnWidth(0.6),
+      },
+    );
+  }
+
+  static pw.Widget _buildStyledTable(
+    String? title,
+    List<String> headers,
+    List<List<String>> rows,
+    pw.Font boldFont,
+    pw.Font regularFont, {
+    Map<int, pw.TableColumnWidth>? columnWidths,
+  }) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.TableRow(
-          decoration: pw.BoxDecoration(color: _navy),
-          children: headers
-              .map(
-                (h) => pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 4,
-                  ),
-                  child: pw.Text(
-                    h,
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      font: boldFont,
-                      fontSize: 9.5,
-                      color: PdfColors.white,
+        if (title != null) ...[
+          pw.Text(
+            title,
+            style: pw.TextStyle(font: boldFont, fontSize: 14, color: _green),
+          ),
+          pw.SizedBox(height: 8),
+        ],
+        pw.Table(
+          border: pw.TableBorder.all(color: _border, width: 0.6),
+          columnWidths: columnWidths,
+          children: [
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: _navy),
+              children: headers
+                  .map(
+                    (h) => pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(
+                          vertical: 6, horizontal: 4),
+                      child: pw.Text(
+                        h,
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: boldFont,
+                          fontSize: 9.5,
+                          color: PdfColors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-        pw.TableRow(
-          children: values
-              .map(
-                (v) => pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 4,
-                  ),
-                  child: pw.Text(
-                    '$v ج.م',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(
-                      font: boldFont,
-                      fontSize: 11,
-                      color: _navy,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
+                  )
+                  .toList(),
+            ),
+            for (final row in rows)
+              pw.TableRow(
+                children: row
+                    .map(
+                      (cell) => pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(
+                            vertical: 6, horizontal: 4),
+                        child: pw.Text(
+                          cell,
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(font: regularFont, fontSize: 10),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+          ],
         ),
       ],
     );
+  }
+
+  static String _formatAmount(double value) {
+    final whole = value.abs().truncate();
+    final digits = whole.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i != 0 && (digits.length - i) % 3 == 0) buffer.write(',');
+      buffer.write(digits[i]);
+    }
+    var out = (value < 0 ? '-' : '') + buffer.toString();
+    final decimals = (value.abs() - whole);
+    if (decimals > 0.005) {
+      out += '.${(decimals * 100).round().toString().padLeft(2, '0')}';
+    }
+    return out;
   }
 
   static String _formatDate(DateTime date) {

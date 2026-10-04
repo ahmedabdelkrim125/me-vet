@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -7,11 +8,6 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../auth/domain/models/user_profile.dart';
 import '../data/admin_actions_service.dart';
 
-/// أداء مندوب واحد بالتفصيل: زياراته، فواتيره، مبيعاته، تحصيلاته، ومرتجعاته.
-///
-/// البيانات كلها بتيجي من RPC واحدة (`get_rep_performance_stats`) بترجع
-/// صف لكل المناديب مرة واحدة، فبنجيبها كاملة ونفلتر على المندوب المطلوب —
-/// أبسط من عمل RPC تاني لمندوب واحد، والفرق في الأداء غير محسوس هنا.
 class RepPerformanceScreen extends StatefulWidget {
   final UserProfile rep;
 
@@ -52,11 +48,11 @@ class _RepPerformanceScreenState extends State<RepPerformanceScreen> {
   @override
   Widget build(BuildContext context) {
     final stats = _stats;
+    final colors = context.colors;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
         title: Text(
           widget.rep.name,
           style: AppTextStyles.cairoBold18
@@ -69,8 +65,8 @@ class _RepPerformanceScreenState extends State<RepPerformanceScreen> {
               ? Center(
                   child: Text(
                     'لا توجد بيانات كافية لهذا المندوب بعد',
-                    style: AppTextStyles.almaraiRegular14.copyWith(
-                        color: AppColors.navInactive, fontSize: 13.sp),
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: colors.textMuted, fontSize: 13.sp),
                   ),
                 )
               : RefreshIndicator(
@@ -151,7 +147,7 @@ class _SectionTitle extends StatelessWidget {
       child: Text(
         title,
         style: AppTextStyles.cairoBold18
-            .copyWith(color: AppColors.primary, fontSize: 15.sp),
+            .copyWith(color: context.colors.text, fontSize: 15.sp),
       ),
     );
   }
@@ -170,19 +166,19 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Wrap(
       spacing: 10.w,
       runSpacing: 10.h,
       children: items.map((s) {
-        final color =
-            s.isWarning ? AppColors.statusNotReached : AppColors.primary;
+        final color = s.isWarning ? AppColors.statusNotReached : colors.text;
         return Container(
           width: (MediaQuery.of(context).size.width - 32.w - 10.w) / 2,
           padding: EdgeInsets.all(12.w),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: colors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,7 +186,7 @@ class _StatsGrid extends StatelessWidget {
               Text(
                 s.label,
                 style: AppTextStyles.almaraiRegular14
-                    .copyWith(color: AppColors.navInactive, fontSize: 11.sp),
+                    .copyWith(color: colors.textMuted, fontSize: 11.sp),
               ),
               SizedBox(height: 4.h),
               Text(

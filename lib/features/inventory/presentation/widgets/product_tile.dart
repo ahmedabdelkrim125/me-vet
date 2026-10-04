@@ -141,7 +141,7 @@ class ProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final quantity = stock?.quantity ?? 0;
     final threshold = stock?.minThreshold ?? product.minStockThreshold;
-    final isLow = quantity <= threshold;
+    final isLow = quantity < threshold;
     final hasImage = product.imagePath != null && product.imagePath!.isNotEmpty;
     final daysLeft = product.daysUntilExpiry;
 

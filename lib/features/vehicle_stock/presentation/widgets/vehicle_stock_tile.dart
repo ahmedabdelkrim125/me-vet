@@ -25,7 +25,7 @@ class VehicleStockTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOut = stock.quantity == 0;
-    final isLow = !isOut && stock.quantity <= stock.minThreshold;
+    final isLow = !isOut && stock.quantity < stock.minThreshold;
     final statusColor = isOut
         ? context.colors.statusNotReached
         : isLow

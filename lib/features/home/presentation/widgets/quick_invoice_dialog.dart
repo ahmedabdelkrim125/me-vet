@@ -21,6 +21,7 @@ import '../../domain/models/quick_invoice_models.dart';
 import '../../../customer_account/domain/entities/payment_method.dart';
 import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
 import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:mivet_app/core/utils/pdf_export.dart';
 
 List<InvoiceCustomerModel> _customersFromRepository() {
   return CustomersRepository.instance.customers
@@ -56,6 +57,15 @@ String _money(double value) {
 String _date(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+class _InvoicePaymentSplitRow {
+  PaymentMethod? method;
+  final TextEditingController amountController = TextEditingController();
+
+  double get amount => double.tryParse(amountController.text.trim()) ?? 0;
+
+  void dispose() => amountController.dispose();
+}
+
 class _VehicleStockInfo {
   final bool known;
   final Map<String, int> quantities;
@@ -74,9 +84,9 @@ class _VehicleStockInfo {
 
 _VehicleStockInfo _resolveVehicleStockInfo(VehicleStockState state) {
   final known = state.selectedVehicleId != null &&
-      state.status != VehicleStockStatus.initial &&
-      state.status != VehicleStockStatus.loading &&
-      state.status != VehicleStockStatus.error;
+      (state.status == VehicleStockStatus.loaded ||
+          state.status == VehicleStockStatus.success ||
+          state.status == VehicleStockStatus.loadingAction);
 
   if (!known) {
     return _VehicleStockInfo(
@@ -118,7 +128,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   late final String invoiceNumber;
   DateTime now = DateTime.now();
   late DateTime invoiceDate = DateTime(now.year, now.month, now.day);
-  String saleType = 'آجل';
 
   InvoiceCustomerModel? customer;
   final List<InvoiceLineItemModel> lineItems = [];
@@ -131,6 +140,11 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   final paidNowController = TextEditingController(text: '0');
   bool _isIssuing = false;
   PaymentMethod? _paymentMethod;
+  bool _splitPaymentMethods = false;
+  final List<_InvoicePaymentSplitRow> _paymentSplitRows = [
+    _InvoicePaymentSplitRow(),
+    _InvoicePaymentSplitRow(),
+  ];
   final VehicleStockCubit _vehicleStockCubit = sl<VehicleStockCubit>();
 
   @override
@@ -140,7 +154,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     customer = widget.initialCustomer;
     CustomersRepository.instance.initialize();
     if (customer != null) _loadCustomerPrices(customer!.customer.id);
-    if (_vehicleStockCubit.state.status == VehicleStockStatus.initial) {
+    final stockStatus = _vehicleStockCubit.state.status;
+    if (stockStatus != VehicleStockStatus.loading &&
+        stockStatus != VehicleStockStatus.loadingStock) {
       _vehicleStockCubit.loadVehicles();
     }
   }
@@ -150,8 +166,14 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     discountController.dispose();
     notesController.dispose();
     paidNowController.dispose();
+    for (final row in _paymentSplitRows) {
+      row.dispose();
+    }
     super.dispose();
   }
+
+  double get _paymentSplitTotal =>
+      _paymentSplitRows.fold(0, (sum, row) => sum + row.amount);
 
   double get subtotal => lineItems.fold(0, (sum, item) => sum + item.total);
   double get discountAmount =>
@@ -161,6 +183,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   double get previousBalance => customer?.customer.currentBalance ?? 0;
   double get paidNow => double.tryParse(paidNowController.text) ?? 0;
   double get totalDue => previousBalance + grandTotal;
+  double get payableDue => totalDue > 0 ? totalDue : 0;
+  double get creditUsed =>
+      previousBalance < 0 ? min(-previousBalance, grandTotal) : 0;
   double get remainingBalance {
     final value = totalDue - paidNow;
     return value < 0 ? 0 : value;
@@ -300,28 +325,35 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       return;
     }
     final total = grandTotal;
-    final isDeferredSale = saleType != 'نقدي';
-    if (isDeferredSale && total > customer!.availableCredit) {
-      _toast('العميل تجاوز الحد الائتماني المسموح به');
-      return;
-    }
 
     final paid = paidNow;
     if (paid < 0) {
       _toast('المبلغ المدفوع غير صحيح');
       return;
     }
-    if (!isDeferredSale && (paid - total).abs() > 0.01) {
-      _toast('المبلغ المدفوع في حالة الدفع النقدي يجب أن يطابق الإجمالي');
+    if (paid > payableDue + 0.01) {
+      _toast('المبلغ المدفوع يتجاوز إجمالي المستحق على العميل');
       return;
     }
-    if (isDeferredSale && paid > totalDue + 0.01) {
-      _toast('المبلغ المدفوع يتجاوز الرصيد المستحق');
-      return;
+    if (paid <= 0.005 && payableDue > 0.005) {
+      final confirmed = await _confirmFullyDeferredInvoice();
+      if (!confirmed || !mounted) return;
     }
-    if (paid > 0 && _paymentMethod == null) {
+    if (paid > 0 && !_splitPaymentMethods && _paymentMethod == null) {
       _toast('اختر طريقة الدفع');
       return;
+    }
+    if (paid > 0 && _splitPaymentMethods) {
+      final validRows = _paymentSplitRows
+          .where((row) => row.method != null && row.amount > 0);
+      if (validRows.isEmpty) {
+        _toast('أدخل طريقة دفع واحدة على الأقل بمبلغها');
+        return;
+      }
+      if ((_paymentSplitTotal - paid).abs() > 0.01) {
+        _toast('مجموع طرق الدفع لازم يساوي المبلغ المدفوع');
+        return;
+      }
     }
 
     for (final item in lineItems) {
@@ -338,7 +370,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     try {
       final customerId = customer!.customer.id;
 
-      await InvoicesRepository.instance.issueInvoice(
+      final issued = await InvoicesRepository.instance.issueInvoice(
         customerId: customerId,
         items: lineItems
             .map((item) => InvoiceLineInput(
@@ -349,13 +381,36 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                 ))
             .toList(),
         discountAmount: discountAmount,
-        isCashSale: !isDeferredSale,
+        isCashSale: false,
         paidNow: paid,
-        paymentMethod: paid > 0 ? _paymentMethod : null,
+        paymentMethod:
+            paid > 0 && !_splitPaymentMethods ? _paymentMethod : null,
+        payments: paid > 0 && _splitPaymentMethods
+            ? _paymentSplitRows
+                .where((row) => row.method != null && row.amount > 0)
+                .map((row) => PaymentSplitEntry(
+                      method: row.method!,
+                      amount: row.amount,
+                    ))
+                .toList()
+            : null,
         notes: notesController.text.trim().isEmpty
             ? null
             : notesController.text.trim(),
       );
+
+      if (previousBalance < 0) {
+        try {
+          final applicable = await InvoicesRepository.instance
+              .getInvoiceApplicableCredit(issued.id);
+          if (applicable > 0.005) {
+            await InvoicesRepository.instance.applyCustomerCreditToInvoice(
+              invoiceId: issued.id,
+              amount: applicable,
+            );
+          }
+        } catch (_) {}
+      }
 
       await CustomersRepository.instance.refresh();
 
@@ -375,7 +430,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     widget.onIssued?.call(IssuedInvoiceInfo(
       invoiceNumber: invoiceNumber,
       amount: total,
-      saleType: saleType,
       date: invoiceDate,
     ));
 
@@ -384,6 +438,77 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       context,
       'تم إصدار الفاتورة بنجاح: $invoiceNumber',
     );
+  }
+
+  Future<bool> _confirmFullyDeferredInvoice() async {
+    final colors = context.colors;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: colors.statOrange, size: 22.sp),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                'فاتورة آجلة بدون تحصيل',
+                style: AppTextStyles.cairoBold18
+                    .copyWith(color: colors.text, fontSize: 15.sp),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'العميل لم يدفع أي مبلغ (المدفوع الآن = 0).',
+              style: AppTextStyles.almaraiRegular14
+                  .copyWith(color: colors.text, fontSize: 12.5.sp),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              previousBalance < 0
+                  ? 'سيتم خصم ${_money(creditUsed)} من رصيد العميل الدائن، وإضافة ${_money(totalDue)} إلى رصيده المستحق.'
+                  : 'سيتم تسجيل الفاتورة كفاتورة آجلة بالكامل، وإضافة مبلغ ${_money(totalDue)} بالكامل إلى رصيد العميل المستحق.',
+              style: AppTextStyles.almaraiRegular14
+                  .copyWith(color: colors.statOrange, fontSize: 12.sp),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(
+              'رجوع',
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: colors.textMuted, fontSize: 13.sp),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r)),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              'تأكيد وإصدار الفاتورة',
+              style: AppTextStyles.cairoMedium16
+                  .copyWith(color: Colors.white, fontSize: 13.sp),
+            ),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
   }
 
   void _toast(String message) {
@@ -420,6 +545,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                 ))
             .toList(),
         invoiceTotal: grandTotal,
+        discountAmount: discountAmount,
         previousBalance: previousBalance,
         totalDue: totalDue,
         paidNow: paidNow,
@@ -436,8 +562,12 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
 
   Future<void> _shareInvoiceOnWhatsapp() async {
     if (!_canBuildPdf()) return;
-    final bytes = await _buildInvoicePdfBytes();
-    await Printing.sharePdf(bytes: bytes, filename: '$invoiceNumber.pdf');
+    try {
+      final bytes = await _buildInvoicePdfBytes();
+      await PdfExport.share(bytes, '$invoiceNumber.pdf');
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    }
   }
 
   @override
@@ -476,9 +606,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                           date: invoiceDate,
                           onPickDate: _pickDate,
                           invoiceNumber: invoiceNumber,
-                          saleType: saleType,
-                          onSaleTypeChanged: (v) =>
-                              setState(() => saleType = v),
                         ),
                       ),
                       SizedBox(height: 14.h),
@@ -540,16 +667,110 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
                             paidController: paidNowController,
                             onPaidChanged: (_) => setState(() {}),
                             remaining: remainingBalance,
-                            saleType: saleType,
                           ),
                         ),
                         if (paidNow > 0) ...[
                           SizedBox(height: 14.h),
                           _SectionCard(
-                            child: PaymentMethodSelector(
-                              value: _paymentMethod,
-                              onChanged: (method) =>
-                                  setState(() => _paymentMethod = method),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'طريقة الدفع',
+                                        style: AppTextStyles.almaraiRegular14
+                                            .copyWith(
+                                                color: context.colors.text),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => setState(() {
+                                        _splitPaymentMethods =
+                                            !_splitPaymentMethods;
+                                      }),
+                                      child: Text(
+                                        _splitPaymentMethods
+                                            ? 'إلغاء تقسيم المبلغ'
+                                            : 'تقسيم المبلغ على أكثر من طريقة',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (!_splitPaymentMethods)
+                                  PaymentMethodSelector(
+                                    value: _paymentMethod,
+                                    onChanged: (method) =>
+                                        setState(() => _paymentMethod = method),
+                                  )
+                                else ...[
+                                  for (var i = 0;
+                                      i < _paymentSplitRows.length;
+                                      i++) ...[
+                                    if (i > 0) SizedBox(height: 10.h),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: PaymentMethodSelector(
+                                            value: _paymentSplitRows[i].method,
+                                            onChanged: (method) => setState(
+                                                () => _paymentSplitRows[i]
+                                                    .method = method),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 6.h),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _paymentSplitRows[i]
+                                                .amountController,
+                                            keyboardType: const TextInputType
+                                                .numberWithOptions(
+                                                decimal: true),
+                                            onChanged: (_) => setState(() {}),
+                                            decoration: InputDecoration(
+                                              labelText: 'المبلغ ${i + 1}',
+                                            ),
+                                          ),
+                                        ),
+                                        if (_paymentSplitRows.length > 2)
+                                          IconButton(
+                                            onPressed: () => setState(() {
+                                              _paymentSplitRows[i].dispose();
+                                              _paymentSplitRows.removeAt(i);
+                                            }),
+                                            icon: Icon(Icons.close,
+                                                size: 18.sp,
+                                                color: context
+                                                    .colors.statusNotReached),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                  SizedBox(height: 6.h),
+                                  Align(
+                                    alignment: AlignmentDirectional.centerStart,
+                                    child: TextButton.icon(
+                                      onPressed: () => setState(() =>
+                                          _paymentSplitRows
+                                              .add(_InvoicePaymentSplitRow())),
+                                      icon: const Icon(Icons.add),
+                                      label: const Text('إضافة طريقة دفع'),
+                                    ),
+                                  ),
+                                  Text(
+                                    'مجموع طرق الدفع: ${_paymentSplitTotal.toStringAsFixed(2)} من ${paidNow.toStringAsFixed(2)}',
+                                    style: AppTextStyles.almaraiRegular14
+                                        .copyWith(
+                                            color: context.colors.textMuted,
+                                            fontSize: 12.sp),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],
@@ -978,15 +1199,11 @@ class _InvoiceMetaSection extends StatelessWidget {
   final DateTime date;
   final VoidCallback onPickDate;
   final String invoiceNumber;
-  final String saleType;
-  final ValueChanged<String> onSaleTypeChanged;
 
   const _InvoiceMetaSection({
     required this.date,
     required this.onPickDate,
     required this.invoiceNumber,
-    required this.saleType,
-    required this.onSaleTypeChanged,
   });
 
   @override
@@ -1014,34 +1231,6 @@ class _InvoiceMetaSection extends StatelessWidget {
                 label: 'رقم الفاتورة',
                 value: invoiceNumber,
                 icon: Icons.tag_rounded,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 12.h),
-        Text(
-          'نوع البيع',
-          style: AppTextStyles.almaraiRegular14
-              .copyWith(color: colors.textMuted, fontSize: 12.sp),
-        ),
-        SizedBox(height: 8.h),
-        Row(
-          children: [
-            Expanded(
-              child: _SaleTypeOption(
-                label: 'نقدي',
-                icon: Icons.payments_outlined,
-                selected: saleType == 'نقدي',
-                onTap: () => onSaleTypeChanged('نقدي'),
-              ),
-            ),
-            SizedBox(width: 10.w),
-            Expanded(
-              child: _SaleTypeOption(
-                label: 'آجل',
-                icon: Icons.schedule_outlined,
-                selected: saleType == 'آجل',
-                onTap: () => onSaleTypeChanged('آجل'),
               ),
             ),
           ],
@@ -1139,52 +1328,6 @@ class _StaticField extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SaleTypeOption extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _SaleTypeOption({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Material(
-      color: selected ? colors.primary : colors.background,
-      borderRadius: BorderRadius.circular(12.r),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12.r),
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 10.h),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon,
-                  size: 15.sp,
-                  color: selected ? Colors.white : colors.textMuted),
-              SizedBox(width: 6.w),
-              Text(
-                label,
-                style: AppTextStyles.cairoMedium16.copyWith(
-                  color: selected ? Colors.white : colors.text,
-                  fontSize: 12.sp,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1547,6 +1690,82 @@ class _InvoicePagination extends StatelessWidget {
   }
 }
 
+class _QuantityField extends StatefulWidget {
+  final int quantity;
+  final ValueChanged<int> onQuantityChanged;
+
+  const _QuantityField({
+    required this.quantity,
+    required this.onQuantityChanged,
+  });
+
+  @override
+  State<_QuantityField> createState() => _QuantityFieldState();
+}
+
+class _QuantityFieldState extends State<_QuantityField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '${widget.quantity}');
+  }
+
+  @override
+  void didUpdateWidget(covariant _QuantityField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final parsed = int.tryParse(_controller.text);
+    if (parsed != widget.quantity) {
+      _controller.text = '${widget.quantity}';
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      width: 46.w,
+      height: 30.h,
+      margin: EdgeInsets.symmetric(horizontal: 4.w),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: colors.border),
+      ),
+      alignment: Alignment.center,
+      child: TextField(
+        controller: _controller,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        textAlignVertical: TextAlignVertical.center,
+        style: AppTextStyles.cairoMedium16
+            .copyWith(color: colors.text, fontSize: 12.sp),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+        ],
+        decoration: const InputDecoration(
+          isDense: true,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
+        onChanged: (value) {
+          final qty = int.tryParse(value.trim());
+          if (qty != null && qty >= 0) {
+            widget.onQuantityChanged(qty);
+          }
+        },
+      ),
+    );
+  }
+}
+
 class _StepButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -1631,11 +1850,13 @@ class _LineItemTile extends StatelessWidget {
                 ),
                 SizedBox(height: 5.h),
                 SizedBox(
-                  height: 36.h,
-                  width: 120.w,
+                  height: 40.h,
+                  width: 150.w,
                   child: TextFormField(
                     initialValue: item.unitPrice.toStringAsFixed(2),
                     enabled: !loadingCustomerPrices,
+                    style: AppTextStyles.cairoMedium16
+                        .copyWith(color: colors.text, fontSize: 13.sp),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
@@ -1645,10 +1866,12 @@ class _LineItemTile extends StatelessWidget {
                       final price = double.tryParse(value);
                       if (price != null && price >= 0) onPriceChanged(price);
                     },
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'سعر البيع',
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10.w, vertical: 10.h),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -1658,12 +1881,9 @@ class _LineItemTile extends StatelessWidget {
           _StepButton(
               icon: Icons.remove_rounded,
               onTap: () => onQuantityChanged(item.quantity - 1)),
-          Container(
-            width: 30.w,
-            alignment: Alignment.center,
-            child: Text('${item.quantity}',
-                style: AppTextStyles.cairoMedium16
-                    .copyWith(color: colors.text, fontSize: 12.sp)),
+          _QuantityField(
+            quantity: item.quantity,
+            onQuantityChanged: onQuantityChanged,
           ),
           _StepButton(
               icon: Icons.add_rounded,
@@ -2117,7 +2337,6 @@ class _AccountSummarySection extends StatelessWidget {
   final TextEditingController paidController;
   final ValueChanged<String> onPaidChanged;
   final double remaining;
-  final String saleType;
 
   const _AccountSummarySection({
     required this.previousBalance,
@@ -2125,22 +2344,42 @@ class _AccountSummarySection extends StatelessWidget {
     required this.paidController,
     required this.onPaidChanged,
     required this.remaining,
-    required this.saleType,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final totalDue = previousBalance + invoiceTotal;
-    final isSettled = remaining <= 0;
+    final payableDue = totalDue > 0 ? totalDue : 0.0;
+    final hasCredit = previousBalance < 0;
+    final coveredByCredit = totalDue <= 0.005;
+    final isSettled = remaining <= 0.005;
     final paid = double.tryParse(paidController.text) ?? 0;
-    final isCash = saleType == 'نقدي';
+    final isFullyDeferred = paid <= 0.005;
 
-    final String? warning = isCash && (paid - invoiceTotal).abs() > 0.01
-        ? 'المبلغ المدفوع في حالة الدفع النقدي يجب أن يطابق إجمالي الفاتورة (${_money(invoiceTotal)}) تماماً'
-        : !isCash && paid > totalDue + 0.01
-            ? 'المبلغ المدفوع يتجاوز إجمالي المستحق على العميل'
-            : null;
+    final String infoText;
+    final Color infoColor;
+    final IconData infoIcon;
+    if (coveredByCredit) {
+      infoText =
+          'مفيش مبلغ مطلوب دفعه — هيتخصم ${_money(invoiceTotal)} من رصيد العميل الدائن، ويفضل له ${_money(-totalDue)}.';
+      infoColor = colors.primary;
+      infoIcon = Icons.account_balance_wallet_outlined;
+    } else if (hasCredit) {
+      infoText =
+          'هيتخصم ${_money(-previousBalance)} من رصيد العميل الدائن، والباقي ${_money(totalDue)} هيتضاف لرصيده المستحق.';
+      infoColor = colors.statOrange;
+      infoIcon = Icons.schedule_rounded;
+    } else {
+      infoText =
+          'العميل لم يدفع أي مبلغ — سيتم تسجيل الفاتورة كفاتورة آجلة بالكامل وإضافة ${_money(totalDue)} إلى رصيد العميل المستحق.';
+      infoColor = colors.statOrange;
+      infoIcon = Icons.schedule_rounded;
+    }
+
+    final String? warning = paid > payableDue + 0.01
+        ? 'المبلغ المدفوع يتجاوز إجمالي المستحق على العميل'
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2152,29 +2391,32 @@ class _AccountSummarySection extends StatelessWidget {
         SizedBox(height: 12.h),
         _TotalsRow(label: 'قيمة الفاتورة الحالية', value: _money(invoiceTotal)),
         SizedBox(height: 8.h),
-        _TotalsRow(label: 'حساب سابق', value: _money(previousBalance)),
+        _TotalsRow(
+          label: hasCredit ? 'رصيد العميل السابق (دائن)' : 'الحساب السابق',
+          value: _money(previousBalance.abs()),
+        ),
         SizedBox(height: 10.h),
         Divider(height: 1, color: colors.border),
         SizedBox(height: 10.h),
-        _TotalsRow(label: 'إجمالي المستحق على العميل', value: _money(totalDue)),
+        _TotalsRow(
+          label: totalDue < 0
+              ? 'رصيد العميل بعد الفاتورة (دائن)'
+              : 'إجمالي المستحق على العميل',
+          value: _money(totalDue.abs()),
+        ),
         SizedBox(height: 14.h),
-        Row(
-          children: [
-            Text('المدفوع الآن',
-                style: AppTextStyles.almaraiRegular14
-                    .copyWith(color: colors.textMuted, fontSize: 12.sp)),
-            if (isCash) ...[
-              SizedBox(width: 8.w),
-              Text('(نقدي - ملزم بتسديد كامل الفاتورة)',
-                  style: AppTextStyles.almaraiRegular14
-                      .copyWith(color: colors.statOrange, fontSize: 10.sp)),
-            ],
-          ],
+        Text(
+          'المدفوع الآن',
+          style: AppTextStyles.almaraiRegular14
+              .copyWith(color: colors.textMuted, fontSize: 12.sp),
         ),
         SizedBox(height: 6.h),
         TextField(
           controller: paidController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+          ],
           onChanged: onPaidChanged,
           style: AppTextStyles.cairoMedium16.copyWith(color: colors.text),
           decoration: InputDecoration(
@@ -2203,17 +2445,15 @@ class _AccountSummarySection extends StatelessWidget {
             ),
             contentPadding:
                 EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-            suffixIcon: isCash
-                ? TextButton(
-                    onPressed: () {
-                      paidController.text = invoiceTotal.toStringAsFixed(2);
-                      onPaidChanged(paidController.text);
-                    },
-                    child: Text('تعبئة كاملة',
-                        style: AppTextStyles.cairoMedium16
-                            .copyWith(color: colors.primary, fontSize: 11.sp)),
-                  )
-                : null,
+            suffixIcon: TextButton(
+              onPressed: () {
+                paidController.text = payableDue.toStringAsFixed(2);
+                onPaidChanged(paidController.text);
+              },
+              child: Text('تعبئة كاملة',
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(color: colors.primary, fontSize: 11.sp)),
+            ),
           ),
         ),
         if (warning != null) ...[
@@ -2232,6 +2472,31 @@ class _AccountSummarySection extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+        if (isFullyDeferred) ...[
+          SizedBox(height: 10.h),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: infoColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: infoColor.withOpacity(0.4)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(infoIcon, size: 16.sp, color: infoColor),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    infoText,
+                    style: AppTextStyles.almaraiRegular14
+                        .copyWith(color: infoColor, fontSize: 11.sp),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
         SizedBox(height: 14.h),

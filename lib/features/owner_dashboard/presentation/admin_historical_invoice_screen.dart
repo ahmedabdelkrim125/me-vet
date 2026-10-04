@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -220,10 +221,10 @@ class _AdminHistoricalInvoiceScreenState
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
         title: Text(
           'فاتورة تاريخية — ${widget.customer.name}',
           style: AppTextStyles.cairoBold18
@@ -269,8 +270,8 @@ class _AdminHistoricalInvoiceScreenState
                 Row(
                   children: [
                     Text('الأصناف (${_lines.length})',
-                        style: AppTextStyles.cairoBold18.copyWith(
-                            color: AppColors.primary, fontSize: 14.sp)),
+                        style: AppTextStyles.cairoBold18
+                            .copyWith(color: colors.text, fontSize: 14.sp)),
                     const Spacer(),
                     TextButton.icon(
                       onPressed: _addProduct,
@@ -374,8 +375,9 @@ class _SaleTypeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Material(
-      color: selected ? AppColors.primaryGreen : Colors.white,
+      color: selected ? AppColors.primaryGreen : colors.surface,
       borderRadius: BorderRadius.circular(12.r),
       child: InkWell(
         borderRadius: BorderRadius.circular(12.r),
@@ -386,13 +388,12 @@ class _SaleTypeButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
-                color:
-                    selected ? AppColors.primaryGreen : AppColors.cardBorder),
+                color: selected ? AppColors.primaryGreen : colors.border),
           ),
           child: Text(
             label,
             style: AppTextStyles.cairoMedium16.copyWith(
-              color: selected ? Colors.white : AppColors.primary,
+              color: selected ? Colors.white : colors.text,
               fontSize: 13.sp,
             ),
           ),
@@ -412,13 +413,14 @@ class _LineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       margin: EdgeInsets.only(top: 8.h),
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: colors.border),
       ),
       child: InkWell(
         onTap: onTap,
@@ -436,14 +438,14 @@ class _LineRow extends StatelessWidget {
                   SizedBox(height: 2.h),
                   Text(
                       '${line.quantity} × ${line.unitPrice.toStringAsFixed(2)} ج.م',
-                      style: AppTextStyles.almaraiRegular14.copyWith(
-                          color: AppColors.navInactive, fontSize: 11.sp)),
+                      style: AppTextStyles.almaraiRegular14
+                          .copyWith(color: colors.textMuted, fontSize: 11.sp)),
                 ],
               ),
             ),
             Text('${line.total.toStringAsFixed(0)} ج.م',
                 style: AppTextStyles.cairoMedium16
-                    .copyWith(color: AppColors.primary, fontSize: 12.5.sp)),
+                    .copyWith(color: colors.text, fontSize: 12.5.sp)),
             IconButton(
               onPressed: onRemove,
               icon: Icon(Icons.close_rounded,
@@ -468,6 +470,7 @@ class _TotalsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     Widget row(String label, String value, {bool bold = false}) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 3.h),
@@ -476,11 +479,11 @@ class _TotalsCard extends StatelessWidget {
           children: [
             Text(label,
                 style: AppTextStyles.almaraiRegular14
-                    .copyWith(color: AppColors.navInactive, fontSize: 12.sp)),
+                    .copyWith(color: colors.textMuted, fontSize: 12.sp)),
             Text(value,
                 style: bold
                     ? AppTextStyles.cairoBold18
-                        .copyWith(color: AppColors.primary, fontSize: 15.sp)
+                        .copyWith(color: colors.text, fontSize: 15.sp)
                     : AppTextStyles.cairoMedium16.copyWith(fontSize: 12.sp)),
           ],
         ),
@@ -490,9 +493,9 @@ class _TotalsCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
@@ -530,9 +533,10 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       maxChildSize: 0.95,
       minChildSize: 0.5,
       builder: (context, scrollController) {
+        final colors = context.colors;
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
           ),
           child: Column(
@@ -542,7 +546,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: AppColors.cardBorder,
+                  color: colors.border,
                   borderRadius: BorderRadius.circular(4.r),
                 ),
               ),
@@ -554,7 +558,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                     hintText: 'ابحث عن منتج...',
                     prefixIcon: const Icon(Icons.search_rounded),
                     filled: true,
-                    fillColor: AppColors.backgroundLight,
+                    fillColor: colors.background,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.r),
                       borderSide: BorderSide.none,
@@ -574,7 +578,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                           style: AppTextStyles.cairoMedium16
                               .copyWith(fontSize: 13.sp)),
                       trailing: Text('${p.basePrice.toStringAsFixed(0)} ج.م',
-                          style: const TextStyle(color: AppColors.primary)),
+                          style: TextStyle(color: colors.text)),
                       onTap: () => Navigator.pop(context, p),
                     );
                   },

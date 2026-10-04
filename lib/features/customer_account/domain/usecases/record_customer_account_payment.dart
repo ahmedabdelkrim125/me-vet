@@ -27,4 +27,24 @@ class RecordCustomerAccountPayment {
       notes: notes,
     );
   }
+
+  Future<CollectionReceipt> split({
+    required String customerId,
+    required String customerName,
+    required List<PaymentSplitEntry> payments,
+    String? notes,
+  }) {
+    if (payments.isEmpty) {
+      throw const AppException('لازم تحدد طريقة دفع واحدة على الأقل');
+    }
+    if (payments.any((p) => p.amount <= 0)) {
+      throw const AppException('قيمة كل طريقة دفع لازم تكون أكبر من صفر');
+    }
+    return _repository.recordAccountPaymentSplit(
+      customerId: customerId,
+      customerName: customerName,
+      payments: payments,
+      notes: notes,
+    );
+  }
 }

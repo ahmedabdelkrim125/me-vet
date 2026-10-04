@@ -14,15 +14,19 @@ import '../cubit/customer_account_cubit.dart';
 import '../cubit/customer_account_state.dart';
 import '../widgets/return_item_selector.dart';
 import '../widgets/return_summary.dart';
+import 'sales_return_search_screen.dart';
 
 class SalesReturnScreen extends StatefulWidget {
   final String customerId;
   final String customerName;
 
+  final String? initialInvoiceCode;
+
   const SalesReturnScreen({
     super.key,
     required this.customerId,
     required this.customerName,
+    this.initialInvoiceCode,
   });
 
   @override
@@ -41,7 +45,12 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInvoices();
+    if (widget.initialInvoiceCode != null) {
+      _loadingInvoices = false;
+      _selectInvoice(widget.initialInvoiceCode!);
+    } else {
+      _loadInvoices();
+    }
   }
 
   @override
@@ -67,11 +76,11 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
     }
   }
 
-  Future<void> _selectInvoice(InvoiceRecordModel invoice) async {
+  Future<void> _selectInvoice(String invoiceCode) async {
     setState(() => _loadingDetail = true);
     try {
-      final detail = await InvoicesRepository.instance
-          .getInvoiceDetailByCode(invoice.code);
+      final detail =
+          await InvoicesRepository.instance.getInvoiceDetailByCode(invoiceCode);
       if (!mounted) return;
 
       await context
@@ -88,7 +97,21 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
       if (!mounted) return;
       setState(() => _loadingDetail = false);
       showAppError(context, e);
+      if (_invoices == null) _loadInvoices();
     }
+  }
+
+  Future<void> _openProductSearch() async {
+    final invoiceCode = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => SalesReturnSearchScreen(
+          customerId: widget.customerId,
+          customerName: widget.customerName,
+        ),
+      ),
+    );
+    if (invoiceCode == null || !mounted) return;
+    await _selectInvoice(invoiceCode);
   }
 
   double get _returnTotal {
@@ -133,9 +156,24 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('مرتجع مبيعات'),
+        title: Text('مرتجع مبيعات',
+            style: AppTextStyles.cairoBold18.copyWith(color: colors.text)),
         backgroundColor: colors.surface,
-        foregroundColor: colors.primary,
+        foregroundColor: colors.text,
+        iconTheme: IconThemeData(color: colors.text),
+        actionsIconTheme: IconThemeData(color: colors.text),
+        actions: [
+          if (_selectedInvoice == null && widget.initialInvoiceCode == null)
+            IconButton(
+              icon: Icon(
+                Icons.search_rounded,
+                color: colors.text,
+                size: 24.w,
+              ),
+              tooltip: 'بحث مرتجع بالمنتج',
+              onPressed: _openProductSearch,
+            ),
+        ],
       ),
       body: BlocConsumer<CustomerAccountCubit, CustomerAccountState>(
         listenWhen: (p, c) => p.actionStatus != c.actionStatus,
@@ -162,7 +200,7 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
             return _InvoicePicker(
               invoices: _invoices,
               isLoading: _loadingInvoices || _loadingDetail,
-              onSelect: _selectInvoice,
+              onSelect: (invoice) => _selectInvoice(invoice.code),
             );
           }
 

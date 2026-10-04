@@ -10,6 +10,7 @@ import '../../presentation/cubit/customer_account_state.dart';
 import '../widgets/account_summary_card.dart';
 import '../widgets/collection_receipt_preview.dart';
 import '../widgets/payment_dialog.dart';
+import '../widgets/refund_credit_dialog.dart';
 import '../widgets/transaction_list.dart';
 import 'customer_invoices_screen.dart';
 import 'customer_statement_pdf_screen.dart';
@@ -92,6 +93,7 @@ class _CustomerAccountView extends StatelessWidget {
                         _ActionsBar(
                           customerId: state.customerId,
                           customerName: state.customerName,
+                          balance: state.balance,
                         ),
                         SizedBox(height: 16.h),
                         Text(
@@ -160,17 +162,19 @@ class _Header extends StatelessWidget {
 class _ActionsBar extends StatelessWidget {
   final String customerId;
   final String customerName;
+  final double balance;
 
   const _ActionsBar({
     required this.customerId,
     required this.customerName,
+    required this.balance,
   });
 
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<CustomerAccountCubit>();
 
-    return Row(
+    final actions = Row(
       children: [
         Expanded(
           child: OutlinedButton(
@@ -209,6 +213,39 @@ class _ActionsBar extends StatelessWidget {
         ),
       ],
     );
+
+    if (balance >= 0) return actions;
+
+    return Column(
+      children: [
+        actions,
+        SizedBox(height: 10.h),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _refund(context, cubit),
+            icon: const Icon(Icons.payments_outlined, size: 18),
+            label: Text('رد رصيد للعميل (${balance.abs().toStringAsFixed(0)} ج.م)'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _refund(
+    BuildContext context,
+    CustomerAccountCubit cubit,
+  ) async {
+    final done = await showRefundCreditDialog(
+      context,
+      customerId: customerId,
+      customerName: customerName,
+      credit: balance.abs(),
+    );
+    if (done == true && context.mounted) {
+      showAppSuccess(context, 'تم رد المبلغ للعميل');
+      await cubit.refresh();
+    }
   }
 
   Future<void> _collect(
@@ -241,8 +278,6 @@ class _ActionsBar extends StatelessWidget {
       ),
     );
   }
-
-  /// The complete statement (invoices + collections + returns) as a PDF.
   void _openStatementPdf(BuildContext context, CustomerAccountCubit cubit) {
     Navigator.of(context).push(
       MaterialPageRoute(

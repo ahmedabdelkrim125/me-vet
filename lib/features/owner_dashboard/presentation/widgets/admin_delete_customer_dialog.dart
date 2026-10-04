@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -62,6 +63,7 @@ class _AdminDeleteCustomerDialogState extends State<AdminDeleteCustomerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return PopScope(
       canPop: !_isDeleting,
       child: AlertDialog(
@@ -78,7 +80,7 @@ class _AdminDeleteCustomerDialogState extends State<AdminDeleteCustomerDialog> {
               'هيتمسح "${widget.customer.name}" نهائيًا مع كل فواتيره وزياراته '
               'وتحصيلاته ومرتجعاته. الإجراء ده مينفعش يتراجع عنه.',
               style: AppTextStyles.almaraiRegular14
-                  .copyWith(color: AppColors.navInactive, fontSize: 12.5.sp),
+                  .copyWith(color: colors.textMuted, fontSize: 12.5.sp),
             ),
             SizedBox(height: 14.h),
             Text(

@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'dart:typed_data';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
@@ -12,9 +13,14 @@ import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:mivet_app/features/rep_session/data/rep_session_store.dart';
 import 'package:printing/printing.dart';
 
+import '../../../customer_account/data/repositories/payment_breakdown_repository.dart';
+import '../../../customer_account/domain/entities/payment_breakdown.dart';
+import '../../../customer_account/domain/entities/payment_method.dart';
+import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
 import '../../../invoices/domain/invoice_pdf_builder.dart';
 import '../data/invoices_repository.dart';
 import 'edit_invoice_screen.dart';
+import 'package:mivet_app/core/utils/pdf_export.dart';
 
 class InvoiceDetailScreen extends StatefulWidget {
   final String invoiceCode;
@@ -34,8 +40,10 @@ class InvoiceDetailScreen extends StatefulWidget {
 
 class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
   InvoiceFullDetail? _detail;
+  List<PaymentBreakdownLine> _oldDebtLines = const [];
   bool _loading = true;
   bool _hasError = false;
+  double _applicableCredit = 0;
 
   @override
   void initState() {
@@ -53,12 +61,41 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
         _loading = false;
         _hasError = false;
       });
+      unawaited(_loadOldDebt(detail.id));
+      unawaited(_loadApplicableCredit(detail));
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
         _hasError = true;
       });
+    }
+  }
+
+  Future<void> _loadApplicableCredit(InvoiceFullDetail detail) async {
+    if (detail.remaining <= 0) {
+      if (mounted) setState(() => _applicableCredit = 0);
+      return;
+    }
+    try {
+      final credit =
+          await InvoicesRepository.instance.getInvoiceApplicableCredit(detail.id);
+      if (!mounted) return;
+      setState(() => _applicableCredit = credit);
+    } catch (_) {
+      if (mounted) setState(() => _applicableCredit = 0);
+    }
+  }
+
+  Future<void> _loadOldDebt(String invoiceId) async {
+    try {
+      final lines =
+          await PaymentBreakdownRepository.instance.getForInvoice(invoiceId);
+      if (!mounted) return;
+      setState(() {
+        _oldDebtLines = lines.where((l) => !l.isOwnInvoice).toList();
+      });
+    } catch (_) {
     }
   }
 
@@ -97,10 +134,14 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     return '';
   }
 
+  double _discountOf(InvoiceFullDetail detail) {
+    final fromSubtotal = detail.subtotal - detail.totalAmount;
+    return detail.discountAmount > fromSubtotal
+        ? detail.discountAmount
+        : (fromSubtotal > 0 ? fromSubtotal : 0.0);
+  }
+
   Future<Uint8List> _buildPdf(InvoiceFullDetail detail) async {
-    // اسم الشخص اللي عمل الفاتورة فعليًا، مش الشخص اللي بيشوفها دلوقتي.
-    // بيرجع لاسم الجلسة الحالية بس لو الفاتورة قديمة من قبل ما كان
-    // بيتسجل مين عملها.
     final actualCreatorName = detail.creatorName?.trim();
     final repName = (actualCreatorName != null && actualCreatorName.isNotEmpty)
         ? '$actualCreatorName${detail.isFromAdmin ? ' (إدارة)' : ''}'
@@ -122,12 +163,277 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
             )
             .toList(),
         invoiceTotal: detail.totalAmount,
+        discountAmount: _discountOf(detail),
         previousBalance: widget.previousBalanceAtView,
         totalDue: detail.totalAmount + widget.previousBalanceAtView,
         paidNow: detail.paidNow,
-        remaining: detail.remaining,
+        remaining: detail.remaining < 0 ? 0 : detail.remaining,
+        oldDebtCollected: _oldDebtLines
+            .map(
+              (l) => InvoicePdfOldDebtLine(
+                invoiceCode: l.invoiceCode ?? 'رصيد سابق',
+                amount: l.amount,
+              ),
+            )
+            .toList(),
       ),
     );
+  }
+
+  Future<void> _collectPayment() async {
+    final detail = _detail;
+    if (detail == null) return;
+
+    final remaining = detail.remaining < 0 ? 0.0 : detail.remaining;
+    final amountController = TextEditingController(
+      text: remaining.toStringAsFixed(0),
+    );
+    PaymentMethod method = PaymentMethod.cash;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('تعديل المبلغ المدفوع'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('المتبقي حاليًا: ${remaining.toStringAsFixed(0)} ج.م'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                autofocus: true,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                ],
+                decoration: const InputDecoration(
+                  labelText: 'المبلغ المحصّل دلوقتي',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              PaymentMethodSelector(
+                value: method,
+                onChanged: (value) => setDialogState(() => method = value),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('تأكيد التحصيل'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final amount = double.tryParse(amountController.text.trim());
+    if (amount == null || amount <= 0) {
+      showAppError(context, 'المبلغ غير صحيح');
+      return;
+    }
+
+    try {
+      await InvoicesRepository.instance.collectAgainstInvoice(
+        invoiceId: detail.id,
+        amount: amount,
+        method: method,
+      );
+      if (!mounted) return;
+      setState(() => _loading = true);
+      await _load();
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    }
+  }
+
+  Future<void> _applyCredit() async {
+    final detail = _detail;
+    if (detail == null || _applicableCredit <= 0) return;
+
+    final maxAmount = _applicableCredit;
+    final controller = TextEditingController(text: maxAmount.toStringAsFixed(0));
+
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final parsed = double.tryParse(controller.text.trim());
+          final valid = parsed != null && parsed > 0 && parsed <= maxAmount;
+
+          return AlertDialog(
+            title: const Text('سداد من رصيد العميل'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('المتبقي على الفاتورة: ${detail.remaining.toStringAsFixed(0)} ج.م'),
+                const SizedBox(height: 4),
+                Text('رصيد العميل المتاح: ${maxAmount.toStringAsFixed(0)} ج.م'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                  onChanged: (_) => setDialogState(() {}),
+                  decoration: InputDecoration(
+                    labelText: 'المبلغ المسدد من الرصيد',
+                    suffixText: 'ج.م',
+                    border: const OutlineInputBorder(),
+                    errorText: parsed != null && parsed > maxAmount
+                        ? 'أكبر من الرصيد المتاح'
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'المبلغ هيتحسب مدفوع على الفاتورة من فلوس العميل الموجودة عندنا، ومش هيدخل خزنة جديدة.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.colors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed:
+                    valid ? () => Navigator.pop(dialogContext, parsed) : null,
+                child: const Text('تأكيد السداد'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+
+    if (amount == null || !mounted) return;
+
+    try {
+      await InvoicesRepository.instance.applyCustomerCreditToInvoice(
+        invoiceId: detail.id,
+        amount: amount,
+      );
+      if (!mounted) return;
+      showAppSuccess(context, 'تم سداد الفاتورة من رصيد العميل');
+      setState(() => _loading = true);
+      await _load();
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    }
+  }
+
+  Future<void> _adjustOverpayment() async {
+    final detail = _detail;
+    if (detail == null) return;
+
+    final total = detail.totalAmount;
+    final paid = detail.paidNow;
+    final controller = TextEditingController(text: total.toStringAsFixed(0));
+
+    final newPaid = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final parsed = double.tryParse(controller.text.trim());
+          final valid =
+              parsed != null && parsed >= 0 && parsed <= total && parsed < paid;
+          final overLimit = parsed != null && parsed > total;
+          final excess = valid ? paid - parsed : 0.0;
+
+          return AlertDialog(
+            title: const Text('تعديل المبلغ المدفوع'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('إجمالي الفاتورة: ${total.toStringAsFixed(0)} ج.م'),
+                const SizedBox(height: 4),
+                Text('المدفوع حاليًا: ${paid.toStringAsFixed(0)} ج.م'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                  onChanged: (_) => setDialogState(() {}),
+                  decoration: InputDecoration(
+                    labelText: 'المبلغ المدفوع الجديد',
+                    suffixText: 'ج.م',
+                    border: const OutlineInputBorder(),
+                    errorText: overLimit
+                        ? 'أكبر من إجمالي الفاتورة'
+                        : (parsed != null && parsed >= paid
+                            ? 'لازم يكون أقل من المدفوع حاليًا'
+                            : null),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (valid)
+                  Text(
+                    '${excess.toStringAsFixed(0)} ج.م هيفضلوا رصيد دائن للعميل، يقدر ياخد بيهم منتجات في فواتير جاية أو يتردوله.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.colors.textMuted,
+                    ),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed:
+                    valid ? () => Navigator.pop(dialogContext, parsed) : null,
+                child: const Text('تأكيد التعديل'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+
+    if (newPaid == null || !mounted) return;
+
+    try {
+      await InvoicesRepository.instance.releaseInvoiceOverpayment(
+        invoiceId: detail.id,
+        newPaid: newPaid,
+      );
+      if (!mounted) return;
+      showAppSuccess(context, 'تم تعديل المبلغ المدفوع');
+      setState(() => _loading = true);
+      await _load();
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    }
   }
 
   Future<void> _printPdf() async {
@@ -148,10 +454,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
 
     try {
       final bytes = await _buildPdf(detail);
-      await Printing.sharePdf(
-        bytes: bytes,
-        filename: '${detail.code}.pdf',
-      );
+      await PdfExport.share(bytes, '${detail.code}.pdf');
     } catch (e) {
       if (mounted) showAppError(context, e);
     }
@@ -183,7 +486,14 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
                             ),
                           ),
                         )
-                      : _DetailBody(detail: _detail!),
+                      : _DetailBody(
+                          detail: _detail!,
+                          oldDebtLines: _oldDebtLines,
+                          onCollectPayment: _collectPayment,
+                          onAdjustOverpayment: _adjustOverpayment,
+                          applicableCredit: _applicableCredit,
+                          onApplyCredit: _applyCredit,
+                        ),
             ),
             if (!_loading && _detail != null)
               _FooterActions(
@@ -251,8 +561,20 @@ class _Header extends StatelessWidget {
 
 class _DetailBody extends StatelessWidget {
   final InvoiceFullDetail detail;
+  final List<PaymentBreakdownLine> oldDebtLines;
+  final VoidCallback onCollectPayment;
+  final VoidCallback onAdjustOverpayment;
+  final double applicableCredit;
+  final VoidCallback onApplyCredit;
 
-  const _DetailBody({required this.detail});
+  const _DetailBody({
+    required this.detail,
+    required this.onCollectPayment,
+    required this.onAdjustOverpayment,
+    required this.applicableCredit,
+    required this.onApplyCredit,
+    this.oldDebtLines = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -294,10 +616,6 @@ class _DetailBody extends StatelessWidget {
                   '${detail.date.year}/${detail.date.month.toString().padLeft(2, '0')}/${detail.date.day.toString().padLeft(2, '0')}',
             ),
             _InfoRow(
-              label: 'نوع البيع',
-              value: detail.saleType,
-            ),
-            _InfoRow(
               label: 'الحالة',
               value: detail.statusLabel,
             ),
@@ -331,15 +649,76 @@ class _DetailBody extends StatelessWidget {
               highlight: true,
             ),
             _InfoRow(
-              label: 'المدفوع',
+              label: 'المدفوع الآن',
               value: '${detail.paidNow.toStringAsFixed(0)} ج.م',
             ),
             _InfoRow(
-              label: 'المتبقي',
-              value: '${detail.remaining.toStringAsFixed(0)} ج.م',
+              label: 'المتبقي على العميل',
+              value:
+                  '${(detail.remaining < 0 ? 0 : detail.remaining).toStringAsFixed(0)} ج.م',
             ),
           ],
         ),
+        if (detail.remaining > 0) ...[
+          SizedBox(height: 8.h),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onCollectPayment,
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: const Text('تعديل المبلغ المدفوع'),
+            ),
+          ),
+          if (applicableCredit > 0) ...[
+            SizedBox(height: 8.h),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onApplyCredit,
+                icon: const Icon(Icons.account_balance_wallet_outlined,
+                    size: 16),
+                label: Text(
+                    'سداد من رصيد العميل (${applicableCredit.toStringAsFixed(0)} ج.م)'),
+              ),
+            ),
+          ],
+        ] else if (detail.paidNow > detail.totalAmount) ...[
+          SizedBox(height: 8.h),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onAdjustOverpayment,
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: const Text('تعديل المبلغ المدفوع'),
+            ),
+          ),
+        ],
+        if (oldDebtLines.isNotEmpty) ...[
+          SizedBox(height: 16.h),
+          Text(
+            'دين قديم اتحصّل مع الفاتورة دي',
+            style: AppTextStyles.cairoMedium16.copyWith(
+              color: colors.text,
+              fontSize: 13.sp,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          _InfoCard(
+            children: [
+              for (final line in oldDebtLines)
+                _InfoRow(
+                  label: line.invoiceCode ?? 'رصيد سابق',
+                  value: '${line.amount.toStringAsFixed(0)} ج.م',
+                ),
+              _InfoRow(
+                label: 'إجمالي التحصيل مع الفاتورة',
+                value:
+                    '${(detail.paidNow + oldDebtLines.fold(0.0, (sum, l) => sum + l.amount)).toStringAsFixed(0)} ج.م',
+                highlight: true,
+              ),
+            ],
+          ),
+        ],
         if (detail.notes != null && detail.notes!.isNotEmpty) ...[
           SizedBox(height: 16.h),
           _InfoCard(
@@ -347,6 +726,18 @@ class _DetailBody extends StatelessWidget {
               _InfoRow(
                 label: 'ملاحظات',
                 value: detail.notes!,
+              ),
+            ],
+          ),
+        ],
+        if (detail.lastEditReason != null &&
+            detail.lastEditReason!.isNotEmpty) ...[
+          SizedBox(height: 16.h),
+          _InfoCard(
+            children: [
+              _InfoRow(
+                label: 'ملاحظة آخر تعديل',
+                value: detail.lastEditReason!,
               ),
             ],
           ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/const/app_images.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
@@ -28,14 +27,6 @@ class CollectionReceipt extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Image.asset(
-                AppImages.logoSplash,
-                height: 60.h,
-                fit: BoxFit.contain,
-              ),
-            ),
-            SizedBox(height: 8.h),
             Text(
               'إيصال تحصيل',
               textAlign: TextAlign.center,
@@ -51,10 +42,19 @@ class CollectionReceipt extends StatelessWidget {
               label: 'المبلغ المحصل',
               value: '${_formatAmount(data.amount)} ج.م',
             ),
-            _ReceiptRow(
-              label: 'طريقة الدفع',
-              value: data.paymentMethod.displayLabel,
-            ),
+            if (data.paymentBreakdown != null &&
+                data.paymentBreakdown!.length > 1)
+              ...data.paymentBreakdown!.map(
+                (entry) => _ReceiptRow(
+                  label: entry.method.displayLabel,
+                  value: '${_formatAmount(entry.amount)} ج.م',
+                ),
+              )
+            else
+              _ReceiptRow(
+                label: 'طريقة الدفع',
+                value: data.paymentMethod.displayLabel,
+              ),
             _ReceiptRow(
               label: 'الرصيد بعد التحصيل',
               value: '${_formatAmount(data.balanceAfterCollection)} ج.م',
@@ -122,9 +122,11 @@ String _formatDate(DateTime date) {
 }
 
 String _formatTime(DateTime date) {
-  final hour = date.hour.toString().padLeft(2, '0');
+  final hour24 = date.hour;
+  final period = hour24 >= 12 ? 'PM' : 'AM';
+  final hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
   final minute = date.minute.toString().padLeft(2, '0');
-  return '$hour:$minute';
+  return '$hour12:$minute $period';
 }
 
 String _formatAmount(double value) {

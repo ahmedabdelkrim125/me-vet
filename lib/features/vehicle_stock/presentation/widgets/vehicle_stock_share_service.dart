@@ -7,12 +7,28 @@ import '../../../inventory/domain/models/product_catalog.dart';
 import '../../../inventory/domain/models/vehicle_stock_added_today_model.dart';
 import '../../../inventory/domain/models/vehicle_stock_model.dart';
 import 'vehicle_stock_report_builder.dart';
+import 'package:mivet_app/core/utils/pdf_export.dart';
 
 class VehicleStockShareService {
   VehicleStockShareService._();
 
   static const int imageReportProductThreshold = 12;
   static const double imageReportDpi = 200;
+
+  /// Keeps only the digits from a plate number so the generated file name
+  /// stays plain ASCII — mixing Arabic plate letters with underscores and
+  /// digits renders as a garbled, unreadable name in share sheets and file
+  /// managers because of bidi (RTL/LTR) reordering.
+  static String _plateDigits(String plateNumber) {
+    final digits = plateNumber.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits.isEmpty ? 'unknown' : digits;
+  }
+
+  static String _timestamp() {
+    final now = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${now.year}${two(now.month)}${two(now.day)}_${two(now.hour)}${two(now.minute)}';
+  }
 
   static Future<void> shareVehicleStockReport({
     required String representativeName,
@@ -23,7 +39,7 @@ class VehicleStockShareService {
     final reportableStock =
         stock.where((item) => item.product != null).toList();
     final fileNameBase =
-        'vehicle_stock_${vehicle.plateNumber.replaceAll(' ', '_')}';
+        'VehicleStockReport_${_plateDigits(vehicle.plateNumber)}_${_timestamp()}';
 
     if (reportableStock.length <= imageReportProductThreshold) {
       final sourceBytes = await VehicleStockReportBuilder.buildImageSource(
@@ -51,7 +67,7 @@ class VehicleStockShareService {
     required ProductCatalog catalog,
   }) async {
     final fileNameBase =
-        'today_stock_${vehicle.plateNumber.replaceAll(' ', '_')}';
+        'VehicleStockAddedToday_${_plateDigits(vehicle.plateNumber)}_${_timestamp()}';
 
     if (todayStock.length <= imageReportProductThreshold) {
       final sourceBytes = await VehicleStockReportBuilder.buildTodayImageSource(
@@ -106,10 +122,7 @@ class VehicleStockShareService {
     Uint8List pdfBytes,
     String fileNameBase,
   ) async {
-    await Printing.sharePdf(
-      bytes: pdfBytes,
-      filename: '$fileNameBase.pdf',
-    );
+    await PdfExport.share(pdfBytes, '$fileNameBase.pdf');
   }
 
   /// Separate, optional "Save" action: opens the native print/preview

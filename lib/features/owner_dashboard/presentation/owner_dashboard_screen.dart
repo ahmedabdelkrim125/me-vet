@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/routing/routes.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/extensions.dart';
@@ -116,10 +117,10 @@ class _OwnerDashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
         title: Text(
           'لوحة الأونر',
           style: AppTextStyles.cairoBold18
@@ -182,13 +183,13 @@ class _OwnerDashboardView extends StatelessWidget {
                           Icon(
                             Icons.people_outline_rounded,
                             size: 64.sp,
-                            color: AppColors.navInactive,
+                            color: colors.textMuted,
                           ),
                           SizedBox(height: 16.h),
                           Text(
                             'لا يوجد مندوبين بعد',
                             style: AppTextStyles.almaraiRegular14.copyWith(
-                              color: AppColors.navInactive,
+                              color: colors.textMuted,
                               fontSize: 14.sp,
                             ),
                             textAlign: TextAlign.center,

@@ -67,13 +67,11 @@ class PastInvoiceSummaryModel {
 class IssuedInvoiceInfo {
   final String invoiceNumber;
   final double amount;
-  final String saleType;
   final DateTime date;
 
   const IssuedInvoiceInfo({
     required this.invoiceNumber,
     required this.amount,
-    required this.saleType,
     required this.date,
   });
 }

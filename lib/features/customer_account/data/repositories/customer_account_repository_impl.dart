@@ -86,7 +86,9 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
       );
     }
 
-    final collectedAt = DateTime.tryParse(collectedAtRaw);
+    // الوقت بييجي UTC من Supabase (timestamptz)؛ لازم يتحول للتوقيت المحلي
+    // عشان يطابق وقت التحصيل الفعلي في إيصال التحصيل.
+    final collectedAt = DateTime.tryParse(collectedAtRaw)?.toLocal();
 
     if (collectedAt == null) {
       throw const CollectionReceiptBuildFailure(
@@ -124,6 +126,82 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
       collectedAt: collectedAt,
       notes: notes,
       collectionCode: code,
+    );
+  }
+
+  @override
+  Future<CollectionReceipt> recordAccountPaymentSplit({
+    required String customerId,
+    required String customerName,
+    required List<PaymentSplitEntry> payments,
+    String? notes,
+  }) async {
+    final summary = await _remote.recordCustomerAccountPaymentSplit(
+      customerId: customerId,
+      payments: payments,
+      notes: notes,
+    );
+
+    final repId = summary['rep_id'] as String?;
+    final collectedAtRaw = summary['collected_at'] as String?;
+    final code = summary['code'] as String?;
+    final rawTotal = summary['total_amount'];
+    final rawPayments = summary['payments'];
+
+    if (repId == null || collectedAtRaw == null) {
+      throw const CollectionReceiptBuildFailure('بيانات الإيصال غير مكتملة');
+    }
+
+    // الوقت بييجي UTC من Supabase (timestamptz)؛ لازم يتحول للتوقيت المحلي
+    // عشان يطابق وقت التحصيل الفعلي في إيصال التحصيل.
+    final collectedAt = DateTime.tryParse(collectedAtRaw)?.toLocal();
+    if (collectedAt == null) {
+      throw const CollectionReceiptBuildFailure('بيانات الإيصال غير مكتملة');
+    }
+
+    final totalAmount = rawTotal is num
+        ? rawTotal.toDouble()
+        : double.tryParse('$rawTotal') ??
+            payments.fold<double>(0, (sum, p) => sum + p.amount);
+
+    final breakdown = (rawPayments as List? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map((row) {
+      final method = paymentMethodFromBackend(
+            row['payment_method'] as String?,
+          ) ??
+          payments.first.method;
+      final amount = row['amount'] is num
+          ? (row['amount'] as num).toDouble()
+          : double.tryParse('${row['amount']}') ?? 0;
+      return PaymentSplitEntry(method: method, amount: amount);
+    }).toList();
+
+    final results = await Future.wait<dynamic>([
+      _remote.getCustomerCurrentBalance(customerId: customerId),
+      _remote.getRepresentativeName(repId: repId),
+    ]);
+
+    final balance = results[0] as double?;
+    final representativeName = results[1] as String?;
+
+    if (balance == null || representativeName == null) {
+      throw const CollectionReceiptBuildFailure(
+        'تعذر جلب بيانات الإيصال بعد نجاح التحصيل',
+      );
+    }
+
+    return CollectionReceipt(
+      customerName: customerName,
+      representativeName: representativeName,
+      amount: totalAmount,
+      balanceAfterCollection: balance,
+      paymentMethod:
+          breakdown.isNotEmpty ? breakdown.first.method : payments.first.method,
+      collectedAt: collectedAt,
+      notes: notes,
+      collectionCode: code,
+      paymentBreakdown: breakdown.isNotEmpty ? breakdown : null,
     );
   }
 

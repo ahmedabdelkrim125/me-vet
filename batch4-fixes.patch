@@ -1,0 +1,421 @@
+diff --git a/.vscode/launch.json b/.vscode/launch.json
+deleted file mode 100644
+index 61f3797..0000000
+--- a/.vscode/launch.json
++++ /dev/null
+@@ -1,18 +0,0 @@
+-{
+-  "version": "0.2.0",
+-  "configurations": [
+-    {
+-      "name": "mivet_app",
+-      "request": "launch",
+-      "type": "dart",
+-      "toolArgs": ["--dart-define=use_arabic=true"]
+-    },
+-    {
+-      "name": "mivet_app (release)",
+-      "request": "launch",
+-      "type": "dart",
+-      "flutterMode": "release",
+-      "toolArgs": ["--dart-define=use_arabic=true"]
+-    }
+-  ]
+-}
+diff --git a/assets/fonts/Cairo-Bold.ttf b/assets/fonts/Cairo-Bold.ttf
+index 237b2537557c32d34fb7bed96d859718c04d54ce..7fd959811ffcb46fb679ed3c2c7a6149e5b3f0ad 100644
+GIT binary patch
+delta 847
+zcmYLFTS!z<6y58d<BX<c>ExI?reS3?Sy;vpR#rlmg4SsD5jCTu&WEGpgU}urfn}u-
+z-1-Q5*h_kS1Q%>FD|;AeKC-})C=^Tl2<oFKxaPD+k`AoB&t7}&y$+{iEU0BH=yX*5
+zpOr*P^p?C_`&3173z0vIsPNMkd%>p0CAp!5!epXwTdsXY>aEMo+(#o3Iqdlx^S`|v
+zwh}5GTxS${oZisMUY%%mCsByC)LHFieh$$eo~Pi_vbvJ(YrE5k;$1|(Nq4c+Wvv_h
+zMfHR*7OZhI6Iy4u#s-;OC%HW}wGVoCu^A?a!iLH!ik!bYddx)TA4G<7kF(Y*cEHGe
+zH|rD1ou1-#7JD<%I|utc^;T5ZjJZZqh(?l#EQ+_P*y}blHSqjb)*A^NMPk-Un=5V6
+zzVP&)Bm^6=Jm$i|Kpy`x@WG!wm1;D}OconR39v+JI+E1{Skz%Sw7$6aVTt^I%nOEz
+zV_>g|WJol>ERG8!#i^~4my90$uzps*r0y|QtAnPN$UJ?gUZNk+8}*BNtNu`*&?nV1
+z^U72us+HHN?NL=W-oy(K!&rky%7`+qd{?H}$|cG<R{g^P*6|Vh#f|CwTAgc-ju$VO
+zddcXS?gj+CqMu{Gcq4{Xl*ZJH&Y4yqi?*3c+!bx&x#$s}#W<0iCBtL{=Li`i7jjOX
+z(eXV&E|ylADs6K8f0lWEyIjjiml-lsX33nHZs0ESWWL-j&3mLnx};l{Nw2JtwepZW
+z!Xrnuz0s>gfd%nMzyd6T6)9MbN>rf+)mVkq{2OW5j7(%B2V1cX4LF8I9LEWqL=#To
+z9M0o1uHYK3;wEn44sPQao})|cj5Xu2Iutva*oJ%Xp&j?pj{)@H6?)N!m+1Dv-*8tp
+tla?nd4cZf*?$bJFbp>l5Z3asa{C*18Y|4B^8!Z?q)UGeJg{$YV;V)Zy*z5oR
+
+delta 891
+zcmYL{Ye-a45XWcEIlEd)tCqTnncBlF+saHtDk?I?ARn6seW}$pH*$4Ti6q26WNqbE
+zb~XE8sU?Nlllvi4qmqy^dr)8xL^hQY5)vthj<(G;r3*82{xiRG=H5G}VMy0Gq&pu}
+z&JqBaF*!ZW{HM^`0FdPd$QejBXKistrTG9vHvt$D(#)%3TN+(d#}5Fo*SvG{&hPI&
+z#*n^5dQ-05;utPdvjOHF2bh(TXDN12-jC|@D0=7Rm+sF<e7+8#?J?Pe&1%`V<k6K>
+zC<ok2K)j7IKBanUhU-Z$w%JRLboB0W0)+Mg`1a)&=30Jr_5=fnbO3#U-EzdiGtrCq
+zP~yW2EOzUL1!fn(?8nrv%TZWdGPKWa0!ZiwSil@bR)<YrSwXxn@m_7{skkd#;0*}q
+z@qj_GVT6)|QQ^QNQmXqWD)t!G{{+rQhz57a<)c$^MV(1mjls3Khj4@9M2os+(#X`G
+z!4AD@dH>W~c`_%+CysiUka~bg8Jtred_dY|nLH)WNSCaVHL_kd%Ukk};xrWFnDX1u
+zxF|#Jl6mr=JUUIClL}EcWUIU*@5zU9L{2KV{qotLaV5n6dVsD&_eA$ldmr7T=JkO}
+zmw!<r>!vmJMQti6_=b(MUz~B80YA)-k*CQ_S*5m#)=u6&6$fi00?`=8X|nti8U3(-
+z4<F!e(r!M?M>Hm+oWGr^X^}shQM`+H^B(@{pXR;%4OQRrKJwbBU-$?gr8vre@Ch0r
+zo7qRX-vWeQ_=*5w{GTNzfQ;^r2ofP8Ohk&MRE?e@G$ED?lZX}ZB2jD<Tf{bzDt3rW
+zku7#>h}f-W&Rxrs!Y~{cVhoLAB^F@`7GoU7<2pQnPCSXHu@cYVRcyj**n&5)6}y>>
+zon=+*0;^#cnZl|ul5WL#(C7JW*p3hI6~4wEe1X0A5})C7_y&Q>7%scOglc5XzW1YZ
+hFu~w6{dJx?h^;;3hx62}?ysThcF#bLY7LWZe*t36`cD7=
+
+diff --git a/assets/fonts/Cairo-Regular.ttf b/assets/fonts/Cairo-Regular.ttf
+index db3e3c519429f543003e045cd9671af508c45660..de788119cb8fcb15e76f71ff2495a4b6f3d54d57 100644
+GIT binary patch
+delta 883
+zcmYLGYfO|!6uoEWvM7?SQ3{j--8DWVK7!UR%|@+|_$UcPR-=hV78l&4EPgC#sBJ@|
+zLGgjHerjS<wYJ8n?GKXA;A(uJBEc;}YZPgkM({yQ^amyyO}^FbT~p#D_ntZTo;i0i
+zv+qIDi@~IQ>5Z}1L@IM}X-V1sJI*&m@v%e|Rg243ENY%oGKS!9AaZ(2%4X%C-qi9V
+z5t@mpyv+B7@A+4MPa_zu!i(02{KlAAw@vgxJJIO84gNYq>f#j}796#q`s=DmT#!$c
+z8z73D4OaRC(=Xn3QX?T%1oMJYNx9@$Cj*LvPYj0Y8wxj7%oqNID7CM8<9h$=XtaPR
+z;{}nUCgg80^l~IiKPY-vjXzYm;GwUd=w7DGyJKvutA7|6m`Qa18BvZh!j(qQv8PGS
+z3#Vj)WbIxud-bcQH`h76FG*_|L^P0f<eLNzJ?{M{?s~i2v5mb#9i$RfBGZehrVBad
+zzbLl`v-?xs@_tg+5^0hXzG=jx<rc^ml1$m=h4IIdL-u#}LHn3#q}7>^(|#UbYOl1b
+z>@9Y)ebhc_U$URrG4s@i)n<D7NwG6~(!(Bc5(8vO%)@0hpoY}2dMl#>x<+#N|JWir
+zS$eZR^$!0u-5Hs=x>HJB647_vgrHmZNbb?Mb)QJG8g=_fD}lOggy~k@raN?0Khi@)
+zoWiL*PH-G&@dUxCBRbi;crxd4K6_Yx>iuH5JAW?W<%L|tOSpKXm)LVD`*;;+tl@GF
+zaFDCn;CgQ0Z~1#UvegP_&e4rI$b}1^U^?<J6EjeYFzQi<IhZT2@hJ*XgfCHyrC5e0
+zY)3P8U?+BA4|d})e!_A5f)n@^r*Q_q<2PJK2X3HKwWz)72en@vRELzQ4qyV@xPo?E
+z!&Tf<F7=u6r~>?D#y;+Kx8WQjxPbHMK`)~C1KqfVF5HYD-qgx1Wcj$(VXci=5vwER
+h?kMZI$B~nSc$}P;SAC?cmn(u5*7<23r+FBK{{g;Q<RJh6
+
+delta 874
+zcmYLHYe>{V5TDuIJ59y&m7Y?jmYHQ&n2ALc+C%9>maiZJJ4?OL(|?|ZAz~kTT&b1*
+zD<dlDL19)J|ER0*gA!6^4?^rg)TI(a1||yTS~h1!3%{NH&HQF(*_qKVx>J3+Q-M`%
+z4FEGHZ%s|F?=k!W$Q%X8$xBYpOtMF%dICf{01OGK>C0l9%4*L8;70)1m7bB9@uT2<
+zH1Tu9H|(~Wm4Qkv3&5ZFtdxASO(DMz#RJH?=NBHxixjJ30USFC_bj>QJ(28E4paf|
+zB0;=`JRWWOY)YU9!2*l5w0wP8&RT#uP5`go!s6ZL@vg2_03riGUt~3xD?AO|NI!@4
+zVMS(Z?z;YrcK{wws9uj!Y%A^G<1_&z3<Jz%N=dF_(bpU%y%*`-95{8jRn&qzAmG##
+z7*q>}s~a&Y40w3TeWkT7+puN~I3FZ6I72R0Oxq<FOzLtBYS0u+RPAWieoh*hHWsAl
+zwcxis?rOVtpl2M_Fd@|dliKIq7_?VfWu-hOt7WaMlV@b3Y?8NSi)uI6a9Eu%T%Ny8
+zZkPG8KvvACPD+(jH)OMHk#}XA9F)J*J3fW%_lO$ed)-g>Sl6y=bG=7L4Wr+ft#<g9
+ztY)2brn(qINWs@^gpG5?sRw*NKS=wb8PvFv=xpbYrfpxtz5q0aa{4^}f#B-!^x~hm
+zlem))@IjX*q>8_p3H^;f{l|C*@8n(l<zLRb`D@C1!+U9W-TIXe@*%QAe3Va83)#Os
+z@=XX3df_Gfgz>+ZG=2n{9T6x(M5u@m3n@zTM$1LSVqp@oB3`T(YekaSBsPmJB28q8
+z9n*>(TAKd~zA+TTa301`JC<SzmZA;gFdkRp5wzn`JdQP3jaTp*Ud5Yu3!AZ%)v^<;
+zj@7d>>?~8+X^fz$7zz9m?7&C(5MSae?84{RjW6&iK7(&CTOGzl^-O3+*5vizfEg1E
+T+V{`;xtjk}UXGR<syY4u22b?n
+
+diff --git a/codemagic.yaml b/codemagic.yaml
+index 8f2afaa..01b6481 100644
+--- a/codemagic.yaml
++++ b/codemagic.yaml
+@@ -20,7 +20,7 @@ workflows:
+         script: flutter pub get
+ 
+       - name: Build Android APK
+-        script: flutter build apk --release --dart-define=use_arabic=true
++        script: flutter build apk --release
+ 
+     artifacts:
+       - build/app/outputs/flutter-apk/app-release.apk
+diff --git a/lib/core/utils/pdf_export.dart b/lib/core/utils/pdf_export.dart
+new file mode 100644
+index 0000000..45cb0e5
+--- /dev/null
++++ b/lib/core/utils/pdf_export.dart
+@@ -0,0 +1,47 @@
++import 'dart:io';
++import 'dart:typed_data';
++
++import 'package:path_provider/path_provider.dart';
++import 'package:share_plus/share_plus.dart';
++
++class PdfExport {
++  PdfExport._();
++
++  static Future<void> share(Uint8List bytes, String fileName) async {
++    final file = await _writeTemp(bytes, fileName);
++    await SharePlus.instance.share(
++      ShareParams(
++        files: [
++          XFile(
++            file.path,
++            mimeType: 'application/pdf',
++            name: file.uri.pathSegments.last,
++          ),
++        ],
++      ),
++    );
++  }
++
++  static Future<File> _writeTemp(Uint8List bytes, String fileName) async {
++    if (bytes.isEmpty) {
++      throw StateError('ملف الـ PDF فاضي، جرّب تاني');
++    }
++
++    final dir = await getTemporaryDirectory();
++    final file = File('${dir.path}/${_safeName(fileName)}');
++    await file.writeAsBytes(bytes, flush: true);
++
++    if (await file.length() != bytes.length) {
++      throw StateError('تعذر حفظ ملف الـ PDF على الجهاز');
++    }
++    return file;
++  }
++
++  static String _safeName(String fileName) {
++    var name = fileName.replaceAll(RegExp(r'[^A-Za-z0-9_.\-]'), '_');
++    name = name.replaceAll(RegExp(r'_+'), '_');
++    if (name.replaceAll(RegExp(r'[_.]'), '').isEmpty) name = 'document.pdf';
++    if (!name.toLowerCase().endsWith('.pdf')) name = '$name.pdf';
++    return name;
++  }
++}
+diff --git a/lib/features/customer-visits/customers/screens/invoice_detail_screen.dart b/lib/features/customer-visits/customers/screens/invoice_detail_screen.dart
+index 8863777..4b8ead5 100644
+--- a/lib/features/customer-visits/customers/screens/invoice_detail_screen.dart
++++ b/lib/features/customer-visits/customers/screens/invoice_detail_screen.dart
+@@ -21,6 +21,7 @@ import '../../../customer_account/presentation/widgets/payment_method_selector.d
+ import '../../../invoices/domain/invoice_pdf_builder.dart';
+ import '../data/invoices_repository.dart';
+ import 'edit_invoice_screen.dart';
++import 'package:mivet_app/core/utils/pdf_export.dart';
+ 
+ class InvoiceDetailScreen extends StatefulWidget {
+   final String invoiceCode;
+@@ -120,6 +121,13 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
+     return '';
+   }
+ 
++  double _discountOf(InvoiceFullDetail detail) {
++    final fromSubtotal = detail.subtotal - detail.totalAmount;
++    return detail.discountAmount > fromSubtotal
++        ? detail.discountAmount
++        : (fromSubtotal > 0 ? fromSubtotal : 0.0);
++  }
++
+   Future<Uint8List> _buildPdf(InvoiceFullDetail detail) async {
+     // اسم الشخص اللي عمل الفاتورة فعليًا، مش الشخص اللي بيشوفها دلوقتي.
+     // بيرجع لاسم الجلسة الحالية بس لو الفاتورة قديمة من قبل ما كان
+@@ -145,7 +153,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
+             )
+             .toList(),
+         invoiceTotal: detail.totalAmount,
+-        discountAmount: detail.discountAmount,
++        discountAmount: _discountOf(detail),
+         previousBalance: widget.previousBalanceAtView,
+         totalDue: detail.totalAmount + widget.previousBalanceAtView,
+         paidNow: detail.paidNow,
+@@ -262,10 +270,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
+ 
+     try {
+       final bytes = await _buildPdf(detail);
+-      await Printing.sharePdf(
+-        bytes: bytes,
+-        filename: '${detail.code}.pdf',
+-      );
++      await PdfExport.share(bytes, '${detail.code}.pdf');
+     } catch (e) {
+       if (mounted) showAppError(context, e);
+     }
+diff --git a/lib/features/customer_account/presentation/screens/sales_return_screen.dart b/lib/features/customer_account/presentation/screens/sales_return_screen.dart
+index 1a00ad4..6ad11f0 100644
+--- a/lib/features/customer_account/presentation/screens/sales_return_screen.dart
++++ b/lib/features/customer_account/presentation/screens/sales_return_screen.dart
+@@ -14,6 +14,7 @@ import '../cubit/customer_account_cubit.dart';
+ import '../cubit/customer_account_state.dart';
+ import '../widgets/return_item_selector.dart';
+ import '../widgets/return_summary.dart';
++import 'sales_return_search_screen.dart';
+ 
+ class SalesReturnScreen extends StatefulWidget {
+   final String customerId;
+@@ -149,6 +150,18 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
+         title: const Text('مرتجع مبيعات'),
+         backgroundColor: colors.surface,
+         foregroundColor: colors.primary,
++        actions: [
++          if (_selectedInvoice == null && widget.initialInvoiceCode == null)
++            IconButton(
++              icon: const Icon(Icons.search_rounded),
++              tooltip: 'بحث مرتجع بالمنتج',
++              onPressed: () => Navigator.of(context).push(
++                MaterialPageRoute(
++                  builder: (_) => const SalesReturnSearchScreen(),
++                ),
++              ),
++            ),
++        ],
+       ),
+       body: BlocConsumer<CustomerAccountCubit, CustomerAccountState>(
+         listenWhen: (p, c) => p.actionStatus != c.actionStatus,
+diff --git a/lib/features/daily_report/presentation/screens/daily_report_screen.dart b/lib/features/daily_report/presentation/screens/daily_report_screen.dart
+index f5ecb1a..870c02a 100644
+--- a/lib/features/daily_report/presentation/screens/daily_report_screen.dart
++++ b/lib/features/daily_report/presentation/screens/daily_report_screen.dart
+@@ -1,6 +1,6 @@
+ import 'package:flutter/material.dart';
+ import 'package:flutter_bloc/flutter_bloc.dart';
+-import 'package:printing/printing.dart';
++import 'package:mivet_app/core/errors/app_toast.dart';
+ import 'package:skeletonizer/skeletonizer.dart';
+ import '../../../../core/const/app_images.dart';
+ import '../../../../core/di/service_locator.dart';
+@@ -8,7 +8,6 @@ import '../../../../core/theme/app_color_scheme_extension.dart';
+ import '../../../../core/theme/app_colors.dart';
+ import '../../../../core/theme/app_text_styles.dart';
+ import '../../../../core/utils/responsive_extension.dart';
+-import '../../../customer_account/presentation/screens/sales_return_search_screen.dart';
+ import '../../../home/presentation/widgets/add_expense_dialog.dart';
+ import 'widgets/daily_invoices_section.dart';
+ import '../../domain/models/report_period_type.dart';
+@@ -16,6 +15,7 @@ import '../../domain/models/representative_report_model.dart';
+ import '../../domain/report_pdf_builder.dart';
+ import '../cubit/daily_report_cubit.dart';
+ import '../cubit/daily_report_state.dart';
++import 'package:mivet_app/core/utils/pdf_export.dart';
+ 
+ class DailyReportScreen extends StatelessWidget {
+   final String? selectedRepId;
+@@ -100,15 +100,6 @@ class _DailyReportBody extends StatelessWidget {
+         centerTitle: true,
+         iconTheme: IconThemeData(color: colors.text),
+         actions: [
+-          IconButton(
+-            icon: Icon(Icons.search_rounded, color: colors.text, size: 24.w),
+-            tooltip: 'بحث مرتجع بالمنتج',
+-            onPressed: () => Navigator.of(context).push(
+-              MaterialPageRoute(
+-                builder: (_) => const SalesReturnSearchScreen(),
+-              ),
+-            ),
+-          ),
+           IconButton(
+             icon: Icon(Icons.add_card_rounded,
+                 color: AppColors.primaryGreen, size: 24.w),
+@@ -783,8 +774,12 @@ class _ExportButtons extends StatelessWidget {
+             child: InkWell(
+               borderRadius: BorderRadius.circular(14.r),
+               onTap: () async {
+-                final bytes = await ReportPdfBuilder.build(report);
+-                await Printing.sharePdf(bytes: bytes, filename: 'report.pdf');
++                try {
++                  final bytes = await ReportPdfBuilder.build(report);
++                  await PdfExport.share(bytes, 'report.pdf');
++                } catch (e) {
++                  if (context.mounted) showAppError(context, e);
++                }
+               },
+               child: Container(
+                 alignment: Alignment.center,
+diff --git a/lib/features/daily_report/presentation/screens/widgets/daily_invoices_section.dart b/lib/features/daily_report/presentation/screens/widgets/daily_invoices_section.dart
+index afd6bdb..06c5429 100644
+--- a/lib/features/daily_report/presentation/screens/widgets/daily_invoices_section.dart
++++ b/lib/features/daily_report/presentation/screens/widgets/daily_invoices_section.dart
+@@ -1,5 +1,4 @@
+ import 'package:flutter/material.dart';
+-import 'package:printing/printing.dart';
+ import 'package:mivet_app/core/errors/app_toast.dart';
+ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+ import 'package:mivet_app/core/theme/app_colors.dart';
+@@ -10,6 +9,7 @@ import 'package:mivet_app/features/customer-visits/customers/domain/models/invoi
+ import 'package:mivet_app/features/customer-visits/customers/screens/invoice_detail_screen.dart';
+ 
+ import '../../../domain/daily_invoices_pdf_builder.dart';
++import 'package:mivet_app/core/utils/pdf_export.dart';
+ 
+ class DailyInvoicesSection extends StatefulWidget {
+   const DailyInvoicesSection({super.key});
+@@ -81,9 +81,9 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
+ 
+       final bytes = await DailyInvoicesPdfBuilder.build(entries, _from);
+       if (!mounted) return;
+-      await Printing.sharePdf(
+-        bytes: bytes,
+-        filename: 'الفواتير-اليومية-${_from.year}-${_from.month}-${_from.day}.pdf',
++      await PdfExport.share(
++        bytes,
++        'daily-invoices-${_from.year}-${_from.month}-${_from.day}.pdf',
+       );
+     } catch (e) {
+       if (mounted) showAppError(context, e);
+diff --git a/lib/features/home/presentation/widgets/quick_invoice_dialog.dart b/lib/features/home/presentation/widgets/quick_invoice_dialog.dart
+index 2ff6d18..10736a5 100644
+--- a/lib/features/home/presentation/widgets/quick_invoice_dialog.dart
++++ b/lib/features/home/presentation/widgets/quick_invoice_dialog.dart
+@@ -21,6 +21,7 @@ import '../../domain/models/quick_invoice_models.dart';
+ import '../../../customer_account/domain/entities/payment_method.dart';
+ import '../../../customer_account/presentation/widgets/payment_method_selector.dart';
+ import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
++import 'package:mivet_app/core/utils/pdf_export.dart';
+ 
+ List<InvoiceCustomerModel> _customersFromRepository() {
+   return CustomersRepository.instance.customers
+@@ -543,8 +544,12 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
+ 
+   Future<void> _shareInvoiceOnWhatsapp() async {
+     if (!_canBuildPdf()) return;
+-    final bytes = await _buildInvoicePdfBytes();
+-    await Printing.sharePdf(bytes: bytes, filename: '$invoiceNumber.pdf');
++    try {
++      final bytes = await _buildInvoicePdfBytes();
++      await PdfExport.share(bytes, '$invoiceNumber.pdf');
++    } catch (e) {
++      if (mounted) showAppError(context, e);
++    }
+   }
+ 
+   @override
+diff --git a/lib/features/invoices/domain/invoice_pdf_builder.dart b/lib/features/invoices/domain/invoice_pdf_builder.dart
+index f43fddc..383a920 100644
+--- a/lib/features/invoices/domain/invoice_pdf_builder.dart
++++ b/lib/features/invoices/domain/invoice_pdf_builder.dart
+@@ -69,6 +69,8 @@ class InvoicePdfData {
+ 
+   double get subtotalBeforeDiscount => invoiceTotal + discountAmount;
+ 
++  double get totalAfterDiscount => invoiceTotal;
++
+   double get discountPercent =>
+       subtotalBeforeDiscount > 0 ? discountAmount / subtotalBeforeDiscount * 100 : 0;
+ 
+@@ -289,11 +291,13 @@ class InvoicePdfBuilder {
+     pw.Font regularFont,
+   ) {
+     final headers = [
++      'الإجمالي بعد الخصم',
+       'نسبة الخصم',
+       'قيمة الخصم',
+       'الإجمالي قبل الخصم',
+     ];
+     final values = [
++      '${_formatAmount(data.totalAfterDiscount)} ج.م',
+       '${_formatPercent(data.discountPercent)}%',
+       '${_formatAmount(data.discountAmount)} ج.م',
+       '${_formatAmount(data.subtotalBeforeDiscount)} ج.م',
+diff --git a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_share_service.dart b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_share_service.dart
+index f4929c9..233b548 100644
+--- a/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_share_service.dart
++++ b/lib/features/vehicle_stock/presentation/widgets/vehicle_stock_share_service.dart
+@@ -7,6 +7,7 @@ import '../../../inventory/domain/models/product_catalog.dart';
+ import '../../../inventory/domain/models/vehicle_stock_added_today_model.dart';
+ import '../../../inventory/domain/models/vehicle_stock_model.dart';
+ import 'vehicle_stock_report_builder.dart';
++import 'package:mivet_app/core/utils/pdf_export.dart';
+ 
+ class VehicleStockShareService {
+   VehicleStockShareService._();
+@@ -121,10 +122,7 @@ class VehicleStockShareService {
+     Uint8List pdfBytes,
+     String fileNameBase,
+   ) async {
+-    await Printing.sharePdf(
+-      bytes: pdfBytes,
+-      filename: '$fileNameBase.pdf',
+-    );
++    await PdfExport.share(pdfBytes, '$fileNameBase.pdf');
+   }
+ 
+   /// Separate, optional "Save" action: opens the native print/preview
+diff --git a/pubspec.yaml b/pubspec.yaml
+index a5e5cb9..1cf931a 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -42,6 +42,7 @@ dependencies:
+   curved_navigation_bar: ^1.0.6
+   flutter_secure_storage: ^11.0.0
+   share_plus: ^13.3.0
++  path_provider: ^2.1.5
+   gal: ^2.3.3
+   timezone: ^0.11.1
+   connectivity_plus: ^7.3.1

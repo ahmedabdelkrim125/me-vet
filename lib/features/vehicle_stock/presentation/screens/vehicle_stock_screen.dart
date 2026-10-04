@@ -161,11 +161,11 @@ class _VehicleStockViewState extends State<_VehicleStockView>
 
             final total = state.vehicleStock.length;
             final available = state.vehicleStock
-                .where((item) => item.quantity > item.minThreshold)
+                .where((item) => item.quantity >= item.minThreshold)
                 .length;
             final low = state.vehicleStock
                 .where((item) =>
-                    item.quantity > 0 && item.quantity <= item.minThreshold)
+                    item.quantity > 0 && item.quantity < item.minThreshold)
                 .length;
             final outOfStock =
                 state.vehicleStock.where((item) => item.quantity == 0).length;
