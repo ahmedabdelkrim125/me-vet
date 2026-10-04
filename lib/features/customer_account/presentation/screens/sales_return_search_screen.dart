@@ -1,8 +1,5 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mivet_app/core/di/service_locator.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
@@ -10,13 +7,16 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/features/customer-visits/customers/data/invoices_repository.dart';
 
 import '../../domain/entities/invoice_product_search_result.dart';
-import '../cubit/customer_account_cubit.dart';
-import 'sales_return_screen.dart';
 
-/// بحث عن منتج عشان تعمل مرتجع بيع من غير ما تحتاج تعرف العميل أو رقم
-/// الفاتورة الأول — بيدوّر في فواتير كل العملاء اللي عندك صلاحية عليهم.
 class SalesReturnSearchScreen extends StatefulWidget {
-  const SalesReturnSearchScreen({super.key});
+  final String customerId;
+  final String customerName;
+
+  const SalesReturnSearchScreen({
+    super.key,
+    required this.customerId,
+    required this.customerName,
+  });
 
   @override
   State<SalesReturnSearchScreen> createState() =>
@@ -53,7 +53,11 @@ class _SalesReturnSearchScreenState extends State<SalesReturnSearchScreen> {
     setState(() => _loading = true);
     try {
       final results =
-          await InvoicesRepository.instance.searchInvoicesByProduct(value);
+          await InvoicesRepository.instance.searchCustomerInvoiceItems(
+        customerId: widget.customerId,
+        customerName: widget.customerName,
+        query: value,
+      );
       if (!mounted) return;
       setState(() {
         _results = results;
@@ -67,22 +71,8 @@ class _SalesReturnSearchScreenState extends State<SalesReturnSearchScreen> {
     }
   }
 
-  Future<void> _openResult(InvoiceProductSearchResult result) async {
-    final cubit = sl<CustomerAccountCubit>()
-      ..init(customerId: result.customerId, customerName: result.customerName);
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-          value: cubit,
-          child: SalesReturnScreen(
-            customerId: result.customerId,
-            customerName: result.customerName,
-            initialInvoiceCode: result.invoiceCode,
-          ),
-        ),
-      ),
-    );
+  void _openResult(InvoiceProductSearchResult result) {
+    Navigator.of(context).pop(result.invoiceCode);
   }
 
   @override
@@ -92,9 +82,12 @@ class _SalesReturnSearchScreenState extends State<SalesReturnSearchScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('بحث مرتجع بالمنتج'),
+        title: Text('بحث في فواتير ${widget.customerName}',
+            style: AppTextStyles.cairoBold18.copyWith(color: colors.text)),
         backgroundColor: colors.surface,
-        foregroundColor: colors.primary,
+        foregroundColor: colors.text,
+        iconTheme: IconThemeData(color: colors.text),
+        actionsIconTheme: IconThemeData(color: colors.text),
       ),
       body: Column(
         children: [
@@ -125,7 +118,7 @@ class _SalesReturnSearchScreenState extends State<SalesReturnSearchScreen> {
     if (!_searched) {
       return Center(
         child: Text(
-          'ابحث باسم المنتج عشان تشوف الفواتير اللي فيها',
+          'ابحث باسم المنتج عشان تشوف فواتير العميل اللي فيها',
           style:
               AppTextStyles.almaraiRegular14.copyWith(color: colors.textMuted),
         ),
@@ -134,7 +127,7 @@ class _SalesReturnSearchScreenState extends State<SalesReturnSearchScreen> {
     if (_results.isEmpty) {
       return Center(
         child: Text(
-          'مفيش فواتير فيها المنتج ده لسه قابلة للإرجاع',
+          'مفيش فواتير للعميل ده فيها المنتج ده',
           style:
               AppTextStyles.almaraiRegular14.copyWith(color: colors.textMuted),
         ),
@@ -154,16 +147,15 @@ class _SalesReturnSearchScreenState extends State<SalesReturnSearchScreen> {
           child: ListTile(
             onTap: () => _openResult(r),
             title: Text(
-              '${r.productName}  •  ${r.customerName}',
+              r.productName,
               style: AppTextStyles.cairoMedium16
                   .copyWith(color: colors.text, fontSize: 13.sp),
             ),
             subtitle: Text(
               'فاتورة ${r.invoiceCode}  —  $dateLabel\n'
-              'الكمية: ${r.quantity}'
-              '${r.returnedQuantity > 0 ? ' (مرتجع منها ${r.returnedQuantity} بالفعل)' : ''}',
+              'الكمية: ${r.quantity}  —  السعر: ${r.unitPrice.toStringAsFixed(0)} ج.م',
             ),
-            isThreeLine: r.returnedQuantity > 0,
+            isThreeLine: true,
             trailing: const Icon(Icons.chevron_left),
           ),
         );

@@ -97,10 +97,21 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
       if (!mounted) return;
       setState(() => _loadingDetail = false);
       showAppError(context, e);
-      // لو الفاتورة اللي جاية من البحث فشلت، نرجع لقائمة فواتير العميل
-      // العادية عشان المستخدم يقدر يكمل بدل ما يتوه في شاشة فاضية.
       if (_invoices == null) _loadInvoices();
     }
+  }
+
+  Future<void> _openProductSearch() async {
+    final invoiceCode = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => SalesReturnSearchScreen(
+          customerId: widget.customerId,
+          customerName: widget.customerName,
+        ),
+      ),
+    );
+    if (invoiceCode == null || !mounted) return;
+    await _selectInvoice(invoiceCode);
   }
 
   double get _returnTotal {
@@ -145,9 +156,12 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('مرتجع مبيعات'),
+        title: Text('مرتجع مبيعات',
+            style: AppTextStyles.cairoBold18.copyWith(color: colors.text)),
         backgroundColor: colors.surface,
-        foregroundColor: colors.primary,
+        foregroundColor: colors.text,
+        iconTheme: IconThemeData(color: colors.text),
+        actionsIconTheme: IconThemeData(color: colors.text),
         actions: [
           if (_selectedInvoice == null && widget.initialInvoiceCode == null)
             IconButton(
@@ -157,11 +171,7 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
                 size: 24.w,
               ),
               tooltip: 'بحث مرتجع بالمنتج',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const SalesReturnSearchScreen(),
-                ),
-              ),
+              onPressed: _openProductSearch,
             ),
         ],
       ),

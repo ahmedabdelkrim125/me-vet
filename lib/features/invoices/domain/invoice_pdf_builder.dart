@@ -20,8 +20,6 @@ class InvoicePdfLineItem {
   });
 }
 
-/// One older invoice paid off together with the current invoice's own
-/// payment, as part of the same collection.
 class InvoicePdfOldDebtLine {
   final String invoiceCode;
   final double amount;
@@ -45,9 +43,6 @@ class InvoicePdfData {
   final double remaining;
   final double discountAmount;
 
-  /// Older invoices collected together with this invoice's own payment, if
-  /// any (e.g. the customer had an old debt and it was collected alongside
-  /// this invoice in one payment).
   final List<InvoicePdfOldDebtLine> oldDebtCollected;
 
   const InvoicePdfData({
@@ -256,8 +251,6 @@ class InvoicePdfBuilder {
     return widgets;
   }
 
-  /// ملخص الفاتورة: نفس أسلوب باقي الـ PDFs في التطبيق (عنوان أخضر فوق،
-  /// وجدول رفيع بهيدر كحلي وصف قيم واحد) بدل مربعات كبيرة منفصلة.
   static pw.Widget _buildSummaryTable(
     InvoicePdfData data,
     pw.Font boldFont,
@@ -265,20 +258,23 @@ class InvoicePdfBuilder {
   ) {
     final hasOldDebt = data.oldDebtCollected.isNotEmpty;
 
+    final hasCredit = data.previousBalance < 0;
+    final dueIsCredit = data.totalDue < 0;
+
     final headers = [
       'المتبقي على العميل',
       if (hasOldDebt) 'دين قديم متحصّل معها',
       'المدفوع من الفاتورة',
-      'إجمالي المستحق على العميل',
-      'الحساب السابق',
+      dueIsCredit ? 'رصيد العميل بعد الفاتورة (دائن)' : 'إجمالي المستحق على العميل',
+      hasCredit ? 'رصيد العميل السابق (دائن)' : 'الحساب السابق',
       'قيمة الفاتورة الحالية',
     ];
     final values = [
       _formatAmount(data.remaining),
       if (hasOldDebt) _formatAmount(data.oldDebtTotal),
       _formatAmount(data.paidNow),
-      _formatAmount(data.totalDue),
-      _formatAmount(data.previousBalance),
+      _formatAmount(data.totalDue.abs()),
+      _formatAmount(data.previousBalance.abs()),
       _formatAmount(data.invoiceTotal),
     ].map((v) => '$v ج.م').toList();
 
@@ -317,7 +313,6 @@ class InvoicePdfBuilder {
     return text;
   }
 
-  /// نفس أسلوب "تحصيلات العملاء" في تقرير المندوب اليومي.
   static pw.Widget _buildOldDebtTable(
     InvoicePdfData data,
     pw.Font boldFont,
@@ -347,8 +342,6 @@ class InvoicePdfBuilder {
     );
   }
 
-  /// الجدول الموحّد المستخدم في كل الـ PDFs بالتطبيق: عنوان أخضر (اختياري)،
-  /// جدول بهيدر كحلي وصفوف رفيعة.
   static pw.Widget _buildStyledTable(
     String? title,
     List<String> headers,

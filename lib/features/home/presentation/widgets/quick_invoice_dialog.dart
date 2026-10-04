@@ -84,9 +84,9 @@ class _VehicleStockInfo {
 
 _VehicleStockInfo _resolveVehicleStockInfo(VehicleStockState state) {
   final known = state.selectedVehicleId != null &&
-      state.status != VehicleStockStatus.initial &&
-      state.status != VehicleStockStatus.loading &&
-      state.status != VehicleStockStatus.error;
+      (state.status == VehicleStockStatus.loaded ||
+          state.status == VehicleStockStatus.success ||
+          state.status == VehicleStockStatus.loadingAction);
 
   if (!known) {
     return _VehicleStockInfo(
@@ -154,7 +154,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     customer = widget.initialCustomer;
     CustomersRepository.instance.initialize();
     if (customer != null) _loadCustomerPrices(customer!.customer.id);
-    if (_vehicleStockCubit.state.status == VehicleStockStatus.initial) {
+    final stockStatus = _vehicleStockCubit.state.status;
+    if (stockStatus != VehicleStockStatus.loading &&
+        stockStatus != VehicleStockStatus.loadingStock) {
       _vehicleStockCubit.loadVehicles();
     }
   }
@@ -181,6 +183,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
   double get previousBalance => customer?.customer.currentBalance ?? 0;
   double get paidNow => double.tryParse(paidNowController.text) ?? 0;
   double get totalDue => previousBalance + grandTotal;
+  double get payableDue => totalDue > 0 ? totalDue : 0;
+  double get creditUsed =>
+      previousBalance < 0 ? min(-previousBalance, grandTotal) : 0;
   double get remainingBalance {
     final value = totalDue - paidNow;
     return value < 0 ? 0 : value;
@@ -326,11 +331,11 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
       _toast('المبلغ المدفوع غير صحيح');
       return;
     }
-    if (paid > totalDue + 0.01) {
+    if (paid > payableDue + 0.01) {
       _toast('المبلغ المدفوع يتجاوز إجمالي المستحق على العميل');
       return;
     }
-    if (paid <= 0.005) {
+    if (paid <= 0.005 && payableDue > 0.005) {
       final confirmed = await _confirmFullyDeferredInvoice();
       if (!confirmed || !mounted) return;
     }
@@ -365,7 +370,7 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     try {
       final customerId = customer!.customer.id;
 
-      await InvoicesRepository.instance.issueInvoice(
+      final issued = await InvoicesRepository.instance.issueInvoice(
         customerId: customerId,
         items: lineItems
             .map((item) => InvoiceLineInput(
@@ -393,6 +398,19 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
             ? null
             : notesController.text.trim(),
       );
+
+      if (previousBalance < 0) {
+        try {
+          final applicable = await InvoicesRepository.instance
+              .getInvoiceApplicableCredit(issued.id);
+          if (applicable > 0.005) {
+            await InvoicesRepository.instance.applyCustomerCreditToInvoice(
+              invoiceId: issued.id,
+              amount: applicable,
+            );
+          }
+        } catch (_) {}
+      }
 
       await CustomersRepository.instance.refresh();
 
@@ -422,8 +440,6 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
     );
   }
 
-  /// تنبيه قبل إصدار فاتورة بدون أي تحصيل (المدفوع الآن = 0):
-  /// الفاتورة هتتسجل آجلة بالكامل والمبلغ كاملًا هيتضاف لرصيد العميل.
   Future<bool> _confirmFullyDeferredInvoice() async {
     final colors = context.colors;
     final confirmed = await showDialog<bool>(
@@ -459,7 +475,9 @@ class _QuickInvoiceDialogState extends State<QuickInvoiceDialog> {
             ),
             SizedBox(height: 8.h),
             Text(
-              'سيتم تسجيل الفاتورة كفاتورة آجلة بالكامل، وإضافة مبلغ ${_money(totalDue)} بالكامل إلى رصيد العميل المستحق.',
+              previousBalance < 0
+                  ? 'سيتم خصم ${_money(creditUsed)} من رصيد العميل الدائن، وإضافة ${_money(totalDue)} إلى رصيده المستحق.'
+                  : 'سيتم تسجيل الفاتورة كفاتورة آجلة بالكامل، وإضافة مبلغ ${_money(totalDue)} بالكامل إلى رصيد العميل المستحق.',
               style: AppTextStyles.almaraiRegular14
                   .copyWith(color: colors.statOrange, fontSize: 12.sp),
             ),
@@ -1672,8 +1690,6 @@ class _InvoicePagination extends StatelessWidget {
   }
 }
 
-/// حقل إدخال يدوي لكمية المنتج بجانب أزرار + و -،
-/// لتسهيل إدخال الكميات الكبيرة مباشرة (مثل 1000) بدل الضغط المتكرر.
 class _QuantityField extends StatefulWidget {
   final int quantity;
   final ValueChanged<int> onQuantityChanged;
@@ -1700,8 +1716,6 @@ class _QuantityFieldState extends State<_QuantityField> {
   void didUpdateWidget(covariant _QuantityField oldWidget) {
     super.didUpdateWidget(oldWidget);
     final parsed = int.tryParse(_controller.text);
-    // حدّث نص الحقل لو الكمية تغيّرت من الأزرار أو من مصدر خارجي،
-    // وسيب النص كما هو لو المستخدم بيكتبه حاليًا.
     if (parsed != widget.quantity) {
       _controller.text = '${widget.quantity}';
     }
@@ -2336,11 +2350,34 @@ class _AccountSummarySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final totalDue = previousBalance + invoiceTotal;
+    final payableDue = totalDue > 0 ? totalDue : 0.0;
+    final hasCredit = previousBalance < 0;
+    final coveredByCredit = totalDue <= 0.005;
     final isSettled = remaining <= 0.005;
     final paid = double.tryParse(paidController.text) ?? 0;
     final isFullyDeferred = paid <= 0.005;
 
-    final String? warning = paid > totalDue + 0.01
+    final String infoText;
+    final Color infoColor;
+    final IconData infoIcon;
+    if (coveredByCredit) {
+      infoText =
+          'مفيش مبلغ مطلوب دفعه — هيتخصم ${_money(invoiceTotal)} من رصيد العميل الدائن، ويفضل له ${_money(-totalDue)}.';
+      infoColor = colors.primary;
+      infoIcon = Icons.account_balance_wallet_outlined;
+    } else if (hasCredit) {
+      infoText =
+          'هيتخصم ${_money(-previousBalance)} من رصيد العميل الدائن، والباقي ${_money(totalDue)} هيتضاف لرصيده المستحق.';
+      infoColor = colors.statOrange;
+      infoIcon = Icons.schedule_rounded;
+    } else {
+      infoText =
+          'العميل لم يدفع أي مبلغ — سيتم تسجيل الفاتورة كفاتورة آجلة بالكامل وإضافة ${_money(totalDue)} إلى رصيد العميل المستحق.';
+      infoColor = colors.statOrange;
+      infoIcon = Icons.schedule_rounded;
+    }
+
+    final String? warning = paid > payableDue + 0.01
         ? 'المبلغ المدفوع يتجاوز إجمالي المستحق على العميل'
         : null;
 
@@ -2354,11 +2391,19 @@ class _AccountSummarySection extends StatelessWidget {
         SizedBox(height: 12.h),
         _TotalsRow(label: 'قيمة الفاتورة الحالية', value: _money(invoiceTotal)),
         SizedBox(height: 8.h),
-        _TotalsRow(label: 'الحساب السابق', value: _money(previousBalance)),
+        _TotalsRow(
+          label: hasCredit ? 'رصيد العميل السابق (دائن)' : 'الحساب السابق',
+          value: _money(previousBalance.abs()),
+        ),
         SizedBox(height: 10.h),
         Divider(height: 1, color: colors.border),
         SizedBox(height: 10.h),
-        _TotalsRow(label: 'إجمالي المستحق على العميل', value: _money(totalDue)),
+        _TotalsRow(
+          label: totalDue < 0
+              ? 'رصيد العميل بعد الفاتورة (دائن)'
+              : 'إجمالي المستحق على العميل',
+          value: _money(totalDue.abs()),
+        ),
         SizedBox(height: 14.h),
         Text(
           'المدفوع الآن',
@@ -2402,7 +2447,7 @@ class _AccountSummarySection extends StatelessWidget {
                 EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
             suffixIcon: TextButton(
               onPressed: () {
-                paidController.text = totalDue.toStringAsFixed(2);
+                paidController.text = payableDue.toStringAsFixed(2);
                 onPaidChanged(paidController.text);
               },
               child: Text('تعبئة كاملة',
@@ -2434,21 +2479,20 @@ class _AccountSummarySection extends StatelessWidget {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
             decoration: BoxDecoration(
-              color: colors.statOrange.withOpacity(0.12),
+              color: infoColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: colors.statOrange.withOpacity(0.4)),
+              border: Border.all(color: infoColor.withOpacity(0.4)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.schedule_rounded,
-                    size: 16.sp, color: colors.statOrange),
+                Icon(infoIcon, size: 16.sp, color: infoColor),
                 SizedBox(width: 8.w),
                 Expanded(
                   child: Text(
-                    'العميل لم يدفع أي مبلغ — سيتم تسجيل الفاتورة كفاتورة آجلة بالكامل وإضافة ${_money(totalDue)} إلى رصيد العميل المستحق.',
+                    infoText,
                     style: AppTextStyles.almaraiRegular14
-                        .copyWith(color: colors.statOrange, fontSize: 11.sp),
+                        .copyWith(color: infoColor, fontSize: 11.sp),
                   ),
                 ),
               ],
