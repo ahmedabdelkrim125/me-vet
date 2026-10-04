@@ -62,6 +62,7 @@ class VehicleStockReportBuilder {
       title: 'تقرير الإضافة اليومي',
       sectionsBuilder: () => buildTodayStockReportSections(stock, catalog),
       singlePage: false,
+      metaTimeText: todayReportTimeRangeLabel(stock),
     );
     return document.save();
   }
@@ -78,6 +79,7 @@ class VehicleStockReportBuilder {
       title: 'تقرير الإضافة اليومي',
       sectionsBuilder: () => buildTodayStockReportSections(stock, catalog),
       singlePage: true,
+      metaTimeText: todayReportTimeRangeLabel(stock),
     );
     return document.save();
   }
@@ -88,6 +90,7 @@ class VehicleStockReportBuilder {
     required String title,
     required List<ReportSection> Function() sectionsBuilder,
     required bool singlePage,
+    String? metaTimeText,
   }) async {
     final document = pw.Document();
 
@@ -117,7 +120,12 @@ class VehicleStockReportBuilder {
             children: [
               buildReportTitle(title, boldFont),
               pw.SizedBox(height: 18),
-              buildReportMetaRow(representativeName, vehicle, boldFont),
+              buildReportMetaRow(
+                representativeName,
+                vehicle,
+                boldFont,
+                timeText: metaTimeText,
+              ),
               pw.SizedBox(height: 20),
               for (final section in sections) ...[
                 buildReportSectionTable(section, boldFont, regularFont),
@@ -150,7 +158,12 @@ class VehicleStockReportBuilder {
               if (isFirstPage) ...[
                 buildReportTitle(title, boldFont),
                 pw.SizedBox(height: 18),
-                buildReportMetaRow(representativeName, vehicle, boldFont),
+                buildReportMetaRow(
+                  representativeName,
+                  vehicle,
+                  boldFont,
+                  timeText: metaTimeText,
+                ),
                 pw.SizedBox(height: 20),
               ],
               for (final section in pageSections) ...[

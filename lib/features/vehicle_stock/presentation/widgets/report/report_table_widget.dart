@@ -11,10 +11,12 @@ pw.Widget buildReportSectionTable(
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
-      pw.Text(section.category,
-          style:
-              pw.TextStyle(font: boldFont, fontSize: 14, color: reportGreen)),
-      pw.SizedBox(height: 8),
+      if (section.category.isNotEmpty) ...[
+        pw.Text(section.category,
+            style:
+                pw.TextStyle(font: boldFont, fontSize: 14, color: reportGreen)),
+        pw.SizedBox(height: 8),
+      ],
       pw.Table(
         border: pw.TableBorder.all(color: reportBorder, width: 0.6),
         columnWidths: section.columnWidths,

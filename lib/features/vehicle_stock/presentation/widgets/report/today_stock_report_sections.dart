@@ -8,26 +8,17 @@ List<ReportSection> buildTodayStockReportSections(
   List<VehicleStockAddedTodayModel> stock,
   ProductCatalog catalog,
 ) {
-  final grouped = <String, List<VehicleStockAddedTodayModel>>{};
-  for (final item in stock) {
-    final categoryName =
-        sanitizeReportText(catalog.categoryName(item.category));
-    grouped.putIfAbsent(categoryName, () => []).add(item);
-  }
-  final sections = <ReportSection>[];
-  for (final entry in grouped.entries) {
-    sections.add(buildTodayStockReportSection(entry.key, entry.value));
-  }
-  return sections;
+  if (stock.isEmpty) return <ReportSection>[];
+  final sorted = [...stock]..sort((a, b) => a.addedAt.compareTo(b.addedAt));
+  return [buildTodayStockReportSection('', sorted)];
 }
 
 ReportSection buildTodayStockReportSection(
-  String categoryName,
+  String title,
   List<VehicleStockAddedTodayModel> items,
 ) {
   final headers = [
     'الكمية الحالية',
-    'وقت الإضافة',
     'الكمية المضافة',
     'اسم الصنف',
     'م',
@@ -37,17 +28,29 @@ ReportSection buildTodayStockReportSection(
     final item = items[i];
     rows.add([
       '${item.currentQuantity}',
-      formatReportTime(item.addedAt),
       '${item.quantityAdded}',
       sanitizeReportText(item.productName),
       '${i + 1}',
     ]);
   }
-  return ReportSection(categoryName, headers, rows, const {
+  return ReportSection(title, headers, rows, const {
     0: pw.FlexColumnWidth(1.4),
-    1: pw.FlexColumnWidth(1.6),
-    2: pw.FlexColumnWidth(1.4),
-    3: pw.FlexColumnWidth(3),
-    4: pw.FlexColumnWidth(0.6),
+    1: pw.FlexColumnWidth(1.4),
+    2: pw.FlexColumnWidth(3.6),
+    3: pw.FlexColumnWidth(0.7),
   });
+}
+
+String? todayReportTimeRangeLabel(List<VehicleStockAddedTodayModel> stock) {
+  if (stock.isEmpty) return null;
+  var first = stock.first.addedAt;
+  var last = first;
+  for (final item in stock) {
+    if (item.addedAt.isBefore(first)) first = item.addedAt;
+    if (item.addedAt.isAfter(last)) last = item.addedAt;
+  }
+  final from = formatReportTime12(first);
+  final to = formatReportTime12(last);
+  if (from == to) return 'وقت الإضافة : $from';
+  return 'وقت الإضافة : من $from إلى $to';
 }

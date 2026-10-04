@@ -225,7 +225,8 @@ class _ActionsBar extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: () => _refund(context, cubit),
             icon: const Icon(Icons.payments_outlined, size: 18),
-            label: Text('رد رصيد للعميل (${balance.abs().toStringAsFixed(0)} ج.م)'),
+            label: Text(
+                'رد رصيد للعميل (${balance.abs().toStringAsFixed(0)} ج.م)'),
           ),
         ),
       ],
@@ -278,6 +279,7 @@ class _ActionsBar extends StatelessWidget {
       ),
     );
   }
+
   void _openStatementPdf(BuildContext context, CustomerAccountCubit cubit) {
     Navigator.of(context).push(
       MaterialPageRoute(

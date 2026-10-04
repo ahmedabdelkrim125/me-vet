@@ -78,8 +78,8 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
       return;
     }
     try {
-      final credit =
-          await InvoicesRepository.instance.getInvoiceApplicableCredit(detail.id);
+      final credit = await InvoicesRepository.instance
+          .getInvoiceApplicableCredit(detail.id);
       if (!mounted) return;
       setState(() => _applicableCredit = credit);
     } catch (_) {
@@ -95,8 +95,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
       setState(() {
         _oldDebtLines = lines.where((l) => !l.isOwnInvoice).toList();
       });
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _editInvoice() async {
@@ -262,7 +261,8 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     if (detail == null || _applicableCredit <= 0) return;
 
     final maxAmount = _applicableCredit;
-    final controller = TextEditingController(text: maxAmount.toStringAsFixed(0));
+    final controller =
+        TextEditingController(text: maxAmount.toStringAsFixed(0));
 
     final amount = await showDialog<double>(
       context: context,
@@ -277,7 +277,8 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('المتبقي على الفاتورة: ${detail.remaining.toStringAsFixed(0)} ج.م'),
+                Text(
+                    'المتبقي على الفاتورة: ${detail.remaining.toStringAsFixed(0)} ج.م'),
                 const SizedBox(height: 4),
                 Text('رصيد العميل المتاح: ${maxAmount.toStringAsFixed(0)} ج.م'),
                 const SizedBox(height: 12),
@@ -675,8 +676,8 @@ class _DetailBody extends StatelessWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: onApplyCredit,
-                icon: const Icon(Icons.account_balance_wallet_outlined,
-                    size: 16),
+                icon:
+                    const Icon(Icons.account_balance_wallet_outlined, size: 16),
                 label: Text(
                     'سداد من رصيد العميل (${applicableCredit.toStringAsFixed(0)} ج.م)'),
               ),

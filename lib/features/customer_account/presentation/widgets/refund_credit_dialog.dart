@@ -158,7 +158,8 @@ class _RefundCreditDialogState extends State<_RefundCreditDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
+          onPressed:
+              _submitting ? null : () => Navigator.of(context).pop(false),
           child: const Text('إلغاء'),
         ),
         ElevatedButton(

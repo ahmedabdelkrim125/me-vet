@@ -35,29 +35,19 @@ ReportSection buildStockReportSection(
   String categoryName,
   List<VehicleStockModel> items,
 ) {
-  final headers = ['حالة المخزون', 'الحد الأدنى', 'الكمية', 'اسم الصنف', 'م'];
+  final headers = ['الكمية', 'اسم الصنف', 'م'];
   final rows = <List<String>>[];
   for (var i = 0; i < items.length; i++) {
     final item = items[i];
     rows.add([
-      stockStatusLabel(item),
-      '${item.minThreshold}',
       '${item.quantity}',
       sanitizeReportText(item.product!.name),
       '${i + 1}',
     ]);
   }
   return ReportSection(categoryName, headers, rows, const {
-    0: pw.FlexColumnWidth(1.6),
-    1: pw.FlexColumnWidth(1.4),
-    2: pw.FlexColumnWidth(1.4),
-    3: pw.FlexColumnWidth(3),
-    4: pw.FlexColumnWidth(0.6),
+    0: pw.FlexColumnWidth(1.4),
+    1: pw.FlexColumnWidth(4),
+    2: pw.FlexColumnWidth(0.7),
   });
-}
-
-String stockStatusLabel(VehicleStockModel stock) {
-  if (stock.quantity == 0) return 'نفذ من المخزون';
-  if (stock.isLowStock) return 'منخفض';
-  return 'متوفر';
 }

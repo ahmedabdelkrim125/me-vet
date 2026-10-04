@@ -27,6 +27,7 @@ import '../widgets/stock_movement_log_sheet.dart';
 import '../widgets/vehicle_setup_form.dart';
 import '../widgets/category_filter_tab.dart';
 import '../widgets/existing_product_picker_sheet.dart';
+import '../widgets/multi_product_picker_sheet.dart';
 
 class VehicleStockScreen extends StatefulWidget {
   const VehicleStockScreen({super.key});
@@ -658,7 +659,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
   }
 
   Future<void> _openProductFlow(BuildContext context, String vehicleId) async {
-    final choice = await showModalBottomSheet<bool>(
+    final choice = await showModalBottomSheet<String>(
       context: context,
       builder: (sheetContext) => SafeArea(
         child: Wrap(
@@ -666,19 +667,28 @@ class _VehicleStockViewState extends State<_VehicleStockView>
             ListTile(
               leading: const Icon(Icons.search_rounded),
               title: const Text('اختيار صنف موجود'),
-              onTap: () => Navigator.pop(sheetContext, true),
+              onTap: () => Navigator.pop(sheetContext, 'existing'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.checklist_rounded),
+              title: const Text('اختيار عدة أصناف'),
+              onTap: () => Navigator.pop(sheetContext, 'multi'),
             ),
             ListTile(
               leading: const Icon(Icons.add_box_outlined),
               title: const Text('إنشاء صنف جديد'),
-              onTap: () => Navigator.pop(sheetContext, false),
+              onTap: () => Navigator.pop(sheetContext, 'new'),
             ),
           ],
         ),
       ),
     );
     if (!context.mounted || choice == null) return;
-    if (choice) {
+    if (choice == 'multi') {
+      await _openMultiProductFlow(context, vehicleId);
+      return;
+    }
+    if (choice == 'existing') {
       final product = await showModalBottomSheet<ProductModel>(
         context: context,
         isScrollControlled: true,
@@ -703,6 +713,49 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                 minThreshold: product.minStockThreshold,
               ),
     );
+  }
+
+  Future<void> _openMultiProductFlow(
+    BuildContext context,
+    String vehicleId,
+  ) async {
+    final cubit = context.read<VehicleStockCubit>();
+    final currentStock = {
+      for (final stock in cubit.state.vehicleStock) stock.productId: stock,
+    };
+    final myProducts = [
+      for (final stock in currentStock.values)
+        if (stock.product != null && !stock.product!.isDeleted) stock.product!,
+    ];
+    final entries = await showModalBottomSheet<List<ProductQuantityEntry>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => MultiProductPickerSheet(
+        products: myProducts,
+        catalog: _catalog,
+        currentQuantities: {
+          for (final entry in currentStock.entries)
+            entry.key: entry.value.quantity,
+        },
+      ),
+    );
+    if (entries == null || entries.isEmpty) return;
+    final failed = await cubit.loadStockBatch(
+      vehicleId: vehicleId,
+      items: entries
+          .map((entry) => VehicleStockBatchItem(
+                productId: entry.product.id,
+                productName: entry.product.name,
+                quantity: entry.quantity,
+                minThreshold: currentStock[entry.product.id]?.minThreshold ??
+                    entry.product.minStockThreshold,
+              ))
+          .toList(),
+    );
+    if (failed.isNotEmpty && context.mounted) {
+      showAppError(context, Exception('تعذر إضافة: ${failed.join('، ')}'));
+    }
   }
 
   Future<void> _loadProduct(

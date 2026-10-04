@@ -31,8 +31,9 @@ List<List<ReportSection>> paginateReportSections(
       final chunkRows = remainingRows.sublist(0, takeCount);
       remainingRows = remainingRows.sublist(takeCount);
 
-      final label =
-          isFirstPart ? section.category : '${section.category} (تابع)';
+      final label = section.category.isEmpty || isFirstPart
+          ? section.category
+          : '${section.category} (تابع)';
       currentPage.add(
         ReportSection(label, section.headers, chunkRows, section.columnWidths),
       );

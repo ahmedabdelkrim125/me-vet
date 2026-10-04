@@ -12,6 +12,20 @@ import 'package:mivet_app/features/inventory/domain/usecases/update_vehicle_stoc
 import 'package:mivet_app/features/inventory/domain/usecases/get_vehicle_stock_added_today_report.dart';
 import 'vehicle_stock_state.dart';
 
+class VehicleStockBatchItem {
+  final String productId;
+  final String productName;
+  final int quantity;
+  final int minThreshold;
+
+  const VehicleStockBatchItem({
+    required this.productId,
+    required this.productName,
+    required this.quantity,
+    required this.minThreshold,
+  });
+}
+
 class VehicleStockCubit extends Cubit<VehicleStockState> {
   final GetVehicles _getVehicles;
   final GetVehicleStock _getVehicleStock;
@@ -186,6 +200,42 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
           errorMessage: mapErrorToAppException(e).message));
       rethrow;
     }
+  }
+
+  Future<List<String>> loadStockBatch({
+    required String vehicleId,
+    required List<VehicleStockBatchItem> items,
+  }) async {
+    if (isClosed || items.isEmpty) return const [];
+    emit(state.copyWith(
+        status: VehicleStockStatus.loadingAction,
+        clearError: true,
+        clearSuccess: true));
+    final failed = <String>[];
+    var succeeded = 0;
+    for (final item in items) {
+      try {
+        await _loadVehicleStock(
+          vehicleId: vehicleId,
+          productId: item.productId,
+          quantity: item.quantity,
+          minThreshold: item.minThreshold,
+        );
+        succeeded++;
+      } catch (_) {
+        failed.add(item.productName);
+      }
+    }
+    if (isClosed) return failed;
+    if (succeeded > 0) {
+      emit(state.copyWith(
+          status: VehicleStockStatus.success,
+          successMessage: succeeded == 1
+              ? 'تم تحميل المخزون للعربية بنجاح'
+              : 'تم تحميل $succeeded أصناف للعربية بنجاح'));
+    }
+    await loadSelectedVehicleData();
+    return failed;
   }
 
   Future<void> deductStock({

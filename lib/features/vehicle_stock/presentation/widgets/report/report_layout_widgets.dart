@@ -15,8 +15,9 @@ pw.Widget buildReportTitle(String title, pw.Font boldFont) {
 pw.Widget buildReportMetaRow(
   String representativeName,
   DeliveryVehicleModel vehicle,
-  pw.Font boldFont,
-) {
+  pw.Font boldFont, {
+  String? timeText,
+}) {
   return pw.Row(
     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -34,9 +35,21 @@ pw.Widget buildReportMetaRow(
               style: pw.TextStyle(font: boldFont, fontSize: 11)),
         ],
       ),
-      pw.Text(
-        'تاريخ التقرير : ${formatReportDate(DateTime.now())}',
-        style: pw.TextStyle(font: boldFont, fontSize: 11),
+      pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.end,
+        children: [
+          pw.Text(
+            'تاريخ التقرير : ${formatReportDate(DateTime.now())}',
+            style: pw.TextStyle(font: boldFont, fontSize: 11),
+          ),
+          if (timeText != null) ...[
+            pw.SizedBox(height: 4),
+            pw.Text(
+              timeText,
+              style: pw.TextStyle(font: boldFont, fontSize: 11),
+            ),
+          ],
+        ],
       ),
     ],
   );

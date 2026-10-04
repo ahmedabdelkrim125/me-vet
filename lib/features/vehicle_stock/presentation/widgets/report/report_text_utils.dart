@@ -6,5 +6,8 @@ String sanitizeReportText(String text) =>
 String formatReportDate(DateTime date) =>
     '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
 
-String formatReportTime(DateTime date) =>
-    '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+String formatReportTime12(DateTime date) {
+  final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+  final period = date.hour < 12 ? 'ص' : 'م';
+  return '$hour:${date.minute.toString().padLeft(2, '0')} $period';
+}
