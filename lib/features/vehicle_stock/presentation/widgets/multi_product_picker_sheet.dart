@@ -41,8 +41,7 @@ class _MultiProductPickerSheetState extends State<MultiProductPickerSheet> {
   @override
   void initState() {
     super.initState();
-    _products = [...widget.products]
-      ..sort((a, b) => a.name.compareTo(b.name));
+    _products = [...widget.products]..sort((a, b) => a.name.compareTo(b.name));
     _search.addListener(_onSearchChanged);
   }
 
@@ -271,8 +270,8 @@ class _MultiProductPickerSheetState extends State<MultiProductPickerSheet> {
                     if (subtitle.isNotEmpty)
                       Text(
                         subtitle,
-                        style: AppTextStyles.almaraiRegular14.copyWith(
-                            color: colors.textMuted, fontSize: 10.sp),
+                        style: AppTextStyles.almaraiRegular14
+                            .copyWith(color: colors.textMuted, fontSize: 10.sp),
                       ),
                   ],
                 ),
@@ -299,8 +298,8 @@ class _MultiProductPickerSheetState extends State<MultiProductPickerSheet> {
                       hintText: 'الكمية',
                       hintStyle: AppTextStyles.almaraiRegular14
                           .copyWith(color: colors.textMuted, fontSize: 11.sp),
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 6.w, vertical: 8.h),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.r),
                         borderSide: BorderSide(color: colors.border),

@@ -120,10 +120,6 @@ class InvoicePdfBuilder {
                   pw.SizedBox(height: 18),
                   ..._buildChunkWidgets(chunks, boldFont, regularFont),
                   pw.SizedBox(height: 16),
-                  if (data.hasDiscount) ...[
-                    _buildDiscountTable(data, boldFont, regularFont),
-                    pw.SizedBox(height: 14),
-                  ],
                   _buildSummaryTable(data, boldFont, regularFont),
                   if (data.oldDebtCollected.isNotEmpty) ...[
                     pw.SizedBox(height: 14),
@@ -256,63 +252,30 @@ class InvoicePdfBuilder {
     pw.Font boldFont,
     pw.Font regularFont,
   ) {
-    final hasOldDebt = data.oldDebtCollected.isNotEmpty;
-
     final hasCredit = data.previousBalance < 0;
     final dueIsCredit = data.totalDue < 0;
 
-    final headers = [
-      'المتبقي على العميل',
-      if (hasOldDebt) 'دين قديم متحصّل معها',
-      'المدفوع من الفاتورة',
-      dueIsCredit
-          ? 'رصيد العميل بعد الفاتورة (دائن)'
-          : 'إجمالي المستحق على العميل',
-      hasCredit ? 'رصيد العميل السابق (دائن)' : 'الحساب السابق',
-      'قيمة الفاتورة الحالية',
-    ];
-    final values = [
-      _formatAmount(data.remaining),
-      if (hasOldDebt) _formatAmount(data.oldDebtTotal),
-      _formatAmount(data.paidNow),
-      _formatAmount(data.totalDue.abs()),
-      _formatAmount(data.previousBalance.abs()),
-      _formatAmount(data.invoiceTotal),
-    ].map((v) => '$v ج.م').toList();
+    final columns = <MapEntry<String, String>>[
+      if (data.hasDiscount)
+        MapEntry('الخصم', _formatAmount(data.discountAmount)),
+      MapEntry('إجمالي الفاتورة', _formatAmount(data.invoiceTotal)),
+      MapEntry(
+        hasCredit ? 'رصيد العميل السابق (دائن)' : 'الحساب السابق',
+        _formatAmount(data.previousBalance.abs()),
+      ),
+      MapEntry(
+        dueIsCredit ? 'رصيد العميل بعد الفاتورة (دائن)' : 'إجمالي الحساب',
+        _formatAmount(data.totalDue.abs()),
+      ),
+      MapEntry('المبلغ المدفوع', _formatAmount(data.paidNow)),
+      MapEntry('المبلغ المتبقي', _formatAmount(data.remaining)),
+    ].reversed.toList();
+
+    final headers = columns.map((c) => c.key).toList();
+    final values = columns.map((c) => '${c.value} ج.م').toList();
 
     return _buildStyledTable(
         'ملخص الفاتورة', headers, [values], boldFont, regularFont);
-  }
-
-  static pw.Widget _buildDiscountTable(
-    InvoicePdfData data,
-    pw.Font boldFont,
-    pw.Font regularFont,
-  ) {
-    final headers = [
-      'الإجمالي بعد الخصم',
-      'نسبة الخصم',
-      'قيمة الخصم',
-      'الإجمالي قبل الخصم',
-    ];
-    final values = [
-      '${_formatAmount(data.totalAfterDiscount)} ج.م',
-      '${_formatPercent(data.discountPercent)}%',
-      '${_formatAmount(data.discountAmount)} ج.م',
-      '${_formatAmount(data.subtotalBeforeDiscount)} ج.م',
-    ];
-
-    return _buildStyledTable('الخصم', headers, [values], boldFont, regularFont);
-  }
-
-  static String _formatPercent(double value) {
-    var text = value.toStringAsFixed(2);
-    if (text.contains('.')) {
-      text = text
-          .replaceFirst(RegExp(r'0+$'), '')
-          .replaceFirst(RegExp(r'\.$'), '');
-    }
-    return text;
   }
 
   static pw.Widget _buildOldDebtTable(
