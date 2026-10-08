@@ -4,7 +4,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import 'package:mivet_app/features/customer-visits/customers/data/invoices_repository.dart';
+import 'package:mivet_app/features/invoices/data/invoices_repository.dart';
 
 class ReturnItemSelector extends StatefulWidget {
   final InvoiceItemRow item;

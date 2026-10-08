@@ -1,9 +1,6 @@
 import '../../domain/entities/customer_transaction.dart';
 import '../../domain/entities/payment_method.dart';
 
-/// Parses one row of `get_customer_ledger`'s result set. Model extends the
-/// entity so a `List<CustomerTransactionModel>` can be used wherever
-/// `List<CustomerTransaction>` is expected, with no separate mapping step.
 class CustomerTransactionModel extends CustomerTransaction {
   const CustomerTransactionModel({
     required super.id,

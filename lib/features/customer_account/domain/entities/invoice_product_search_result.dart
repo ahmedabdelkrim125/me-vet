@@ -1,6 +1,3 @@
-/// One line found while searching invoices by product name, for the sales
-/// return search screen — enough to show the result and, once picked, open
-/// that exact invoice for return without needing its code by heart.
 class InvoiceProductSearchResult {
   final String invoiceItemId;
   final String invoiceId;

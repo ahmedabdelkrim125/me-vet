@@ -1,5 +1,3 @@
-/// A catalog record stored in Supabase. [code] is what products persist and
-/// [name] is the human-readable Arabic label shown in the application.
 class ProductCatalogItem {
   final String code;
   final String name;

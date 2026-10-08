@@ -5,8 +5,8 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/core/di/service_locator.dart';
-import 'package:mivet_app/features/customer-visits/customers/data/invoices_repository.dart';
-import 'package:mivet_app/features/customer-visits/customers/domain/models/invoice_record_model.dart';
+import 'package:mivet_app/features/invoices/data/invoices_repository.dart';
+import 'package:mivet_app/features/invoices/domain/models/invoice_record_model.dart';
 import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_cubit.dart';
 
 import '../../domain/entities/sales_return.dart';

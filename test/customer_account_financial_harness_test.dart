@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:mivet_app/features/customer-visits/customers/domain/models/invoice_line_input.dart';
-import 'package:mivet_app/features/customer-visits/customers/domain/models/invoice_record_model.dart';
+import 'package:mivet_app/features/invoices/domain/models/invoice_line_input.dart';
+import 'package:mivet_app/features/invoices/domain/models/invoice_record_model.dart';
 import 'package:supabase/supabase.dart';
 import 'package:test/test.dart';
 

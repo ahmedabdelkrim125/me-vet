@@ -322,13 +322,6 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// Asks the user for their account password before a destructive action.
-///
-/// The [TextEditingController] lives in this [State] on purpose: the framework
-/// disposes it only after the dialog route has finished its closing animation.
-/// (Disposing it right after `await showDialog(...)` returns is too early —
-/// the dialog is still on screen while it fades out and rebuilds, which throws
-/// "A TextEditingController was used after being disposed".)
 class _PasswordConfirmationDialog extends StatefulWidget {
   final String email;
 
@@ -365,7 +358,6 @@ class _PasswordConfirmationDialogState
       );
       if (mounted) Navigator.of(context).pop(true);
     } on AuthRetryableFetchException catch (error) {
-      // No / bad network — not a wrong password.
       if (!mounted) return;
       setState(() => _verifying = false);
       showAppError(context, error);

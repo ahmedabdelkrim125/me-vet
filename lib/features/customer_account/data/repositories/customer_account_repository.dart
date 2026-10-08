@@ -2,7 +2,7 @@ import '../../domain/entities/customer_ledger.dart';
 import '../../domain/entities/payment_method.dart';
 import '../../domain/entities/sales_return.dart';
 import '../../domain/entities/collection_receipt.dart';
-import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
+import '../../../customer_visits/customers/domain/models/collection_record_model.dart';
 
 abstract class CustomerAccountRepository {
   Future<CustomerLedger> getLedger({
@@ -28,8 +28,6 @@ abstract class CustomerAccountRepository {
     String? notes,
   });
 
-  /// Same as [recordAccountPayment] but splits the collected amount across
-  /// more than one payment method within a single collection operation.
   Future<CollectionReceipt> recordAccountPaymentSplit({
     required String customerId,
     required String customerName,

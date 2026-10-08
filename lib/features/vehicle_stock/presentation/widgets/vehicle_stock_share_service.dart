@@ -15,10 +15,6 @@ class VehicleStockShareService {
   static const int imageReportProductThreshold = 12;
   static const double imageReportDpi = 200;
 
-  /// Keeps only the digits from a plate number so the generated file name
-  /// stays plain ASCII — mixing Arabic plate letters with underscores and
-  /// digits renders as a garbled, unreadable name in share sheets and file
-  /// managers because of bidi (RTL/LTR) reordering.
   static String _plateDigits(String plateNumber) {
     final digits = plateNumber.replaceAll(RegExp(r'[^0-9]'), '');
     return digits.isEmpty ? 'unknown' : digits;
@@ -115,9 +111,6 @@ class VehicleStockShareService {
     );
   }
 
-  /// Opens the OS share sheet directly for the given PDF bytes. This is the
-  /// only step that runs when the person taps "Share" — no print/save
-  /// dialog is opened first.
   static Future<void> sharePdfBytes(
     Uint8List pdfBytes,
     String fileNameBase,
@@ -125,11 +118,6 @@ class VehicleStockShareService {
     await PdfExport.share(pdfBytes, '$fileNameBase.pdf');
   }
 
-  /// Separate, optional "Save" action: opens the native print/preview
-  /// dialog, which exposes a real "Save as PDF" / "Save to Files"
-  /// destination on both iOS and Android. Not called by the share flow —
-  /// wire this to its own "Save PDF" control if/when one is added to the
-  /// UI.
   static Future<void> savePdfBytes(
     Uint8List pdfBytes,
     String fileNameBase,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../customer-visits/customers/screens/customers_screen.dart';
+import '../../customer_visits/customers/presentation/screens/customers_screen.dart';
 import '../../daily_report/presentation/screens/daily_report_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
@@ -128,8 +128,6 @@ class _MainScreenState extends State<MainScreen> {
     final mediaQuery = MediaQuery.of(context);
     final keyboardOpen = mediaQuery.viewInsets.bottom > 0;
 
-    // Push the page content above the floating dock so nothing is hidden
-    // behind it (pages already use SafeArea, which reads this padding).
     final bodyMediaQuery = keyboardOpen
         ? mediaQuery
         : mediaQuery.copyWith(

@@ -9,14 +9,6 @@ import 'dock_surface.dart';
 import 'nav_item_model.dart';
 import 'nav_items.dart';
 
-/// Floating bottom dock for phones.
-///
-/// Layout (RTL): [ navigation pill with 4 pages ]  [ detached settings ].
-/// Every page always shows its icon AND its name.
-///
-/// This widget is meant to be placed in a [Stack] on top of the page body
-/// (see `MainScreen`), NOT in `Scaffold.bottomNavigationBar`, so the pages
-/// scroll underneath it and it really floats.
 class AppBottomNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTabChange;
@@ -30,9 +22,6 @@ class AppBottomNavBar extends StatelessWidget {
   static double get barHeight => 66.h;
   static double get _bottomMargin => 12.h;
 
-  /// Total vertical space the dock occupies at the bottom of the screen
-  /// (bar + floating margin + system safe area). Used by `MainScreen` to
-  /// keep page content from hiding behind the dock.
   static double totalHeight(BuildContext context) =>
       barHeight + _bottomMargin + MediaQuery.paddingOf(context).bottom;
 

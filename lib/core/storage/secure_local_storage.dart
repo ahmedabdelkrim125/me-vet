@@ -2,17 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Persists the Supabase session in the platform secure storage.
-///
-/// Supabase swallows storage errors (it only logs a warning), so a failed
-/// write silently leaves an OLD refresh token on disk and the user gets logged
-/// out on the next cold start. Every operation here is therefore logged, and
-/// a failed write is retried once.
 class SecureLocalStorage extends LocalStorage {
   final _storage = const FlutterSecureStorage();
 
-  /// Last session string we know about. Only used as a fallback when the
-  /// secure storage throws while the app is running.
   String? _lastKnownSession;
 
   SecureLocalStorage();

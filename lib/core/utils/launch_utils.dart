@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// دوال مشتركة لفتح المكالمة / واتساب / الخرائط من أي مكان في التطبيق.
-/// كل دالة بتوريك SnackBar واضح لو العملية فشلت (رقم فاضي، مفيش تطبيق
-/// يقدر يفتح الرابط، إلخ) بدل ما تفشل بصمت.
 class LaunchUtils {
   LaunchUtils._();
 
@@ -45,8 +42,6 @@ class LaunchUtils {
     await _launch(context, uri, 'تعذر فتح تطبيق الخرائط');
   }
 
-  /// بيفتح الخرائط بالظبط على نقطة محددة بالإحداثيات (lat/lng)، مش بحث
-  /// نصي عن اسم/عنوان — أدق بكتير لو العميل عنده موقع GPS محفوظ.
   static Future<void> openMapAtCoordinates(
     BuildContext context,
     double latitude,
@@ -59,8 +54,6 @@ class LaunchUtils {
     await _launch(context, uri, 'تعذر فتح تطبيق الخرائط');
   }
 
-  /// يحوّل رقم مصري محلي (01xxxxxxxxx) لصيغة دولية (+20) عشان wa.me
-  /// يقبله. لو الرقم أصلًا دولي (+ أو 00) بيسيبه زي ما هو.
   static String _normalizePhone(String phone) {
     var digits = phone.trim().replaceAll(RegExp(r'[^0-9+]'), '');
     if (digits.startsWith('+')) digits = digits.substring(1);

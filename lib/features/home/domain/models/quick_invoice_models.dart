@@ -1,4 +1,4 @@
-import 'package:mivet_app/features/customer-visits/customers/domain/models/customer_model.dart';
+import 'package:mivet_app/features/customer_visits/customers/domain/models/customer_model.dart';
 
 class InvoiceCustomerModel {
   final CustomerModel customer;
@@ -12,7 +12,6 @@ class InvoiceCustomerModel {
     this.notPurchasedRecently = const [],
   });
 
-  /// Remaining credit the customer can still purchase on.
   double get availableCredit => (customer.creditLimit - customer.currentBalance)
       .clamp(0, customer.creditLimit);
 }
@@ -47,7 +46,6 @@ class InvoiceLineItemModel {
   double get total => unitPrice * quantity;
 }
 
-/// A single row inside the "كشف حساب - آخر 6 شهور" statement sheet.
 class PastInvoiceSummaryModel {
   final String invoiceNumber;
   final DateTime date;
@@ -62,8 +60,6 @@ class PastInvoiceSummaryModel {
   });
 }
 
-/// معلومات الفاتورة بعد إصدارها — بترجع عن طريق onIssued عشان أي
-/// حد مستخدم للـ dialog يقدر يحدّث رصيد العميل ويسجل الفاتورة.
 class IssuedInvoiceInfo {
   final String invoiceNumber;
   final double amount;

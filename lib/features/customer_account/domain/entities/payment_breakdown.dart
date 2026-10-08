@@ -1,14 +1,8 @@
-/// One line of a payment: how much of the money went where.
 class PaymentBreakdownLine {
   final double amount;
 
-  /// `true` when the line paid the invoice that was issued together with the
-  /// payment (`new_invoice_payment`), `false` when it collected an older debt
-  /// (`old_debt_payment`).
   final bool isOwnInvoice;
 
-  /// Code of the invoice this line was applied to. `null` when the money was
-  /// not matched to any invoice (an old balance without an invoice).
   final String? invoiceCode;
 
   const PaymentBreakdownLine({
@@ -17,8 +11,6 @@ class PaymentBreakdownLine {
     this.invoiceCode,
   });
 
-  /// Parses the rows of `get_invoice_payment_breakdown` (one invoice's own
-  /// payment group, no `group_id`/`payment_code`/`collected_at` columns).
   static List<PaymentBreakdownLine> listFromRows(List<dynamic> rows) {
     return [
       for (final raw in rows)
@@ -31,13 +23,9 @@ class PaymentBreakdownLine {
   }
 }
 
-/// A whole payment (one `split_group_id`): the total the customer paid, and
-/// the lines it was split into. Built from `get_customer_payment_breakdown`.
 class PaymentBreakdown {
   final String groupId;
 
-  /// Base code of the payment (`PAY-2026-000349`). Matches the `referenceCode`
-  /// of the payment row in the customer ledger.
   final String code;
   final DateTime collectedAt;
   final List<PaymentBreakdownLine> lines;
@@ -57,7 +45,6 @@ class PaymentBreakdown {
   List<PaymentBreakdownLine> get oldDebtLines =>
       lines.where((l) => !l.isOwnInvoice).toList();
 
-  /// Code of the invoice issued together with this payment, if any.
   String? get ownInvoiceCode {
     for (final l in lines) {
       if (l.isOwnInvoice && l.invoiceCode != null) return l.invoiceCode;
@@ -65,8 +52,6 @@ class PaymentBreakdown {
     return null;
   }
 
-  /// Groups the flat rows of `get_customer_payment_breakdown` by payment.
-  /// Keeps the order of the rows (newest payment first).
   static List<PaymentBreakdown> fromRows(List<dynamic> rows) {
     final order = <String>[];
     final byGroup = <String, List<Map<String, dynamic>>>{};

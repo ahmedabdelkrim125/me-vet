@@ -10,9 +10,6 @@ class CollectionReceipt {
   final String? notes;
   final String? collectionCode;
 
-  /// When the collection was split across more than one payment method,
-  /// this holds each method's share; otherwise it's null and [paymentMethod]
-  /// alone describes the payment.
   final List<PaymentSplitEntry>? paymentBreakdown;
 
   const CollectionReceipt({

@@ -4,9 +4,9 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import 'package:mivet_app/features/customer-visits/customers/data/invoices_repository.dart';
-import 'package:mivet_app/features/customer-visits/customers/domain/models/invoice_record_model.dart';
-import 'package:mivet_app/features/customer-visits/customers/screens/invoice_detail_screen.dart';
+import 'package:mivet_app/features/invoices/data/invoices_repository.dart';
+import 'package:mivet_app/features/invoices/domain/models/invoice_record_model.dart';
+import 'package:mivet_app/features/invoices/presentation/screens/invoice_detail_screen.dart';
 
 import '../../../domain/daily_invoices_pdf_builder.dart';
 import 'package:mivet_app/core/utils/pdf_export.dart';

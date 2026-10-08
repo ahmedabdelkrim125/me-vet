@@ -30,8 +30,6 @@ class DockSurface extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        // A black shadow on a dark background just looks like a dirty smudge
-        // around the dock, so in dark mode we rely on the border instead.
         boxShadow: isDark
             ? null
             : [

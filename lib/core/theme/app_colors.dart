@@ -16,7 +16,6 @@ abstract class AppColors {
   static const Color statusNotReached = Color(0xFFE0473F);
   static const Color cardBorder = Color(0xFFE7EFEC);
 
-  // "Charcoal Noir" — نفس عائلة لون الـ dark mode الأساسي (AppColorScheme.dark)
   static const Color backgroundDark = Color(0xFF141210);
   static const Color surfaceDark = Color(0xFF1C1917);
   static const Color cardBorderDark = Color(0xFF322E2A);

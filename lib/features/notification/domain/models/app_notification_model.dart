@@ -67,7 +67,6 @@ class AppNotificationModel {
         jsonDecode(raw) as Map<String, dynamic>);
   }
 
-  /// يبني الموديل من صف جدول `notifications` في Supabase.
   factory AppNotificationModel.fromSupabaseRow(Map<String, dynamic> row) {
     return AppNotificationModel(
       id: row['id'] as String,

@@ -1,15 +1,7 @@
-/// A locally saved sales-rep profile.
-///
-/// This is intentionally lightweight — no password, no server call — it's a
-/// device-level "who is using this tablet right now" switcher, similar to
-/// profile switching on a shared family device. Wire [creditLimit]-style
-/// server auth later if the business needs real accounts; this model only
-/// tracks what the UI needs to greet the rep and remember their device.
 class RepProfileModel {
   final String id;
   final String name;
 
-  /// Index into the shared avatar preset list (see RepAvatarPicker.presets).
   final int avatarIndex;
 
   final DateTime createdAt;

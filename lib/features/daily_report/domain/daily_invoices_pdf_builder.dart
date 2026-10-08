@@ -24,8 +24,6 @@ class DailyInvoicePdfEntry {
   });
 }
 
-/// كل فواتير اليوم في ملف واحد، بنفس أسلوب باقي الـ PDFs في التطبيق: عنوان
-/// أخضر فوق كل جدول، هيدر كحلي رفيع.
 class DailyInvoicesPdfBuilder {
   DailyInvoicesPdfBuilder._();
 

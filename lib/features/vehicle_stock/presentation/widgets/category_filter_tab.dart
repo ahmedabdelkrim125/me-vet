@@ -55,7 +55,6 @@ class CategoryFilterTab extends StatelessWidget {
                 PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
                   splashRadius: 14.r,
-                  // تم إزالة BoxConstraints ليأخذ الـ PopupMenu الحجم الطبيعي للـ Items
                   icon: Icon(
                     Icons.more_vert_rounded,
                     size: 16.sp,

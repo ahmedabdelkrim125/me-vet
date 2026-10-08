@@ -23,9 +23,6 @@ class NotificationRepository {
 
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
-  /// أول مرة بس: بتجيب الإشعارات وتفتح الاشتراك اللحظي (Realtime).
-  /// النداءات اللي بعد كده مبتعملش حاجة — استخدم [refresh] لو عايز
-  /// تجبر تحديث فوري (زي أول ما شاشة الإشعارات تتفتح).
   Future<void> initialize() async {
     if (_initialized) return;
     await _fetch();
@@ -33,9 +30,6 @@ class NotificationRepository {
     _initialized = true;
   }
 
-  /// بيعيد تحميل الإشعارات من Supabase — استخدمها لما تفتح شاشة
-  /// الإشعارات عشان تتأكد إن أي إشعار وصل والتطبيق كان مقفول/في شاشة
-  /// تانية يبان فورًا.
   Future<void> refresh() => _fetch();
 
   Future<void> _fetch() async {
@@ -62,8 +56,6 @@ class NotificationRepository {
     }
   }
 
-  /// أي إضافة/تعديل/حذف على صف إشعارات اليوزر الحالي (سواء من التطبيق
-  /// نفسه أو من trigger في السيرفر) بيوصلنا هنا لحظيًا، فبنعيد التحميل.
   void _listenForRealtimeChanges() {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
@@ -97,10 +89,6 @@ class NotificationRepository {
     notificationsNotifier.value = <AppNotificationModel>[];
   }
 
-  /// إنشاء إشعار للمستخدم الحالي نفسه — مستخدمة دلوقتي من
-  /// MockInventoryRepository بس (تنبيهات المخزون لسه محلية). الإشعارات
-  /// الحقيقية التانية (حد الائتمان مثلًا) بتتسجل من trigger في
-  /// Supabase مباشرة، مش من هنا.
   Future<void> push({
     required NotificationType type,
     required String title,
@@ -118,8 +106,6 @@ class NotificationRepository {
         'message': message,
         if (relatedId != null) 'related_id': relatedId,
       });
-      // في الأغلب الـ Realtime subscription هيلقطها لوحده، بس بنعمل
-      // fetch يدوي كمان للأمان لو الـ Realtime لسه ما اتفعّلش.
       await _fetch();
     } catch (e) {
       debugPrint('[Notifications] push فشل: $e');
@@ -129,8 +115,6 @@ class NotificationRepository {
   Future<void> markAsRead(String id) async {
     final index = _notifications.indexWhere((n) => n.id == id);
     if (index != -1) {
-      // تحديث محلي فوري عشان الواجهة تستجيب على طول من غير ما تستنى
-      // رحلة الشبكة، والتحديث الحقيقي في Supabase بيحصل بعدها.
       _notifications[index] = _notifications[index].copyWith(isRead: true);
       notificationsNotifier.value =
           List<AppNotificationModel>.from(_notifications);

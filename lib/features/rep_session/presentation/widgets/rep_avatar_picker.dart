@@ -9,9 +9,6 @@ class RepAvatarPreset {
   const RepAvatarPreset(this.icon, this.color);
 }
 
-/// Shared avatar presets. Index into this list is what gets persisted on
-/// [RepProfileModel.avatarIndex], so saved-rep cards and the picker always
-/// agree on what a given rep looks like.
 const List<RepAvatarPreset> kRepAvatarPresets = [
   RepAvatarPreset(CupertinoIcons.person_alt_circle_fill, AppColors.primary),
   RepAvatarPreset(
@@ -67,7 +64,6 @@ class RepAvatarPicker extends StatelessWidget {
   }
 }
 
-/// Renders a single persisted avatar (used on saved-rep cards).
 class RepAvatarView extends StatelessWidget {
   final int avatarIndex;
   final double size;
