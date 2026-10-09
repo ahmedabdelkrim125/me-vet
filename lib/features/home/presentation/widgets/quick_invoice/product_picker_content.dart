@@ -28,7 +28,8 @@ class ProductPickerContent extends StatelessWidget {
           final visible = state.visibleProducts;
 
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: DraggableScrollableSheet(
               initialChildSize: 0.9,
               maxChildSize: 0.95,
@@ -37,7 +38,8 @@ class ProductPickerContent extends StatelessWidget {
                 return Container(
                   decoration: BoxDecoration(
                     color: colors.surface,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(28.r)),
                   ),
                   child: Column(
                     children: [
@@ -62,8 +64,8 @@ class ProductPickerContent extends StatelessWidget {
                                 'منتجات عربيتك',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.cairoBold18
-                                    .copyWith(color: colors.text, fontSize: 15.sp),
+                                style: AppTextStyles.cairoBold18.copyWith(
+                                    color: colors.text, fontSize: 15.sp),
                               ),
                             ),
                             IconButton(
@@ -97,15 +99,18 @@ class ProductPickerContent extends StatelessWidget {
                       ),
                       Expanded(
                         child: visible.isEmpty
-                            ? ProductPickerEmptyState(hasStock: state.allProducts.isNotEmpty)
+                            ? ProductPickerEmptyState(
+                                hasStock: state.allProducts.isNotEmpty)
                             : ListView.builder(
                                 controller: scrollController,
                                 keyboardDismissBehavior:
                                     ScrollViewKeyboardDismissBehavior.onDrag,
-                                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+                                padding:
+                                    EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
                                 itemCount: visible.length,
                                 itemBuilder: (context, index) =>
-                                    ProductPickerRow(product: visible[index], state: state),
+                                    ProductPickerRow(
+                                        product: visible[index], state: state),
                               ),
                       ),
                       ProductPickerFooter(state: state),

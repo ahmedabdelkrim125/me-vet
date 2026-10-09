@@ -10,7 +10,7 @@ class InvoiceFinancialCard extends StatelessWidget {
 
   const InvoiceFinancialCard({
     super.key,
-        required this.title,
+    required this.title,
     required this.value,
     required this.icon,
     required this.color,

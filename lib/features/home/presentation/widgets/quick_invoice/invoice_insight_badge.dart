@@ -11,7 +11,7 @@ class InvoiceInsightBadge extends StatelessWidget {
 
   const InvoiceInsightBadge({
     super.key,
-        required this.title,
+    required this.title,
     required this.items,
     required this.color,
     required this.icon,

@@ -52,8 +52,7 @@ class QuickInvoiceCubit extends Cubit<QuickInvoiceState> {
     }
   }
 
-  void setInvoiceDate(DateTime date) =>
-      emit(state.copyWith(invoiceDate: date));
+  void setInvoiceDate(DateTime date) => emit(state.copyWith(invoiceDate: date));
 
   Future<List<InvoiceCustomerModel>?> loadCustomers() async {
     await _customersRepository.initialize();
@@ -81,7 +80,8 @@ class QuickInvoiceCubit extends Cubit<QuickInvoiceState> {
       final prices =
           await _invoicesRepository.getCustomerProductPrices(customerId);
       if (isClosed || requestId != _customerPricesRequestId) return;
-      emit(state.copyWith(customerPrices: prices, loadingCustomerPrices: false));
+      emit(
+          state.copyWith(customerPrices: prices, loadingCustomerPrices: false));
     } catch (error) {
       if (isClosed || requestId != _customerPricesRequestId) return;
       emit(state.copyWith(loadingCustomerPrices: false, error: error));
@@ -385,7 +385,9 @@ class QuickInvoiceCubit extends Cubit<QuickInvoiceState> {
 
   int _clampPage(int page, int itemCount) {
     if (itemCount == 0) return 1;
-    return page.clamp(1, (itemCount / QuickInvoiceState.pageSize).ceil()).toInt();
+    return page
+        .clamp(1, (itemCount / QuickInvoiceState.pageSize).ceil())
+        .toInt();
   }
 
   @override

@@ -30,7 +30,8 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
 
   Future<void> load() async {
     try {
-      final detail = await _invoicesRepository.getInvoiceDetailByCode(invoiceCode);
+      final detail =
+          await _invoicesRepository.getInvoiceDetailByCode(invoiceCode);
       if (isClosed) return;
       emit(state.copyWith(status: InvoiceDetailStatus.loaded, detail: detail));
       unawaited(_loadOldDebt(detail.id));

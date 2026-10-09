@@ -42,7 +42,8 @@ class EditInvoiceCubit extends Cubit<EditInvoiceState> {
 
   Future<void> load() async {
     try {
-      final prices = await _invoicesRepository.getCustomerProductPrices(customerId);
+      final prices =
+          await _invoicesRepository.getCustomerProductPrices(customerId);
       for (final item in invoice.items) {
         _draft.items.add(
           InvoiceItemDraft(
@@ -51,8 +52,9 @@ class EditInvoiceCubit extends Cubit<EditInvoiceState> {
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            previousCustomerPrice:
-                item.productId == null ? null : prices[item.productId]?.lastPrice,
+            previousCustomerPrice: item.productId == null
+                ? null
+                : prices[item.productId]?.lastPrice,
           ),
         );
       }
@@ -86,9 +88,11 @@ class EditInvoiceCubit extends Cubit<EditInvoiceState> {
 
   void changePage(int page) => emit(state.copyWith(currentPage: page));
 
-  void increaseQuantity(InvoiceItemDraft item) => setQuantity(item, item.quantity + 1);
+  void increaseQuantity(InvoiceItemDraft item) =>
+      setQuantity(item, item.quantity + 1);
 
-  void decreaseQuantity(InvoiceItemDraft item) => setQuantity(item, item.quantity - 1);
+  void decreaseQuantity(InvoiceItemDraft item) =>
+      setQuantity(item, item.quantity - 1);
 
   void setQuantity(InvoiceItemDraft item, int value) {
     if (value < 1) return;
@@ -110,7 +114,8 @@ class EditInvoiceCubit extends Cubit<EditInvoiceState> {
   }
 
   void addProduct(ProductModel product) {
-    final index = _draft.items.indexWhere((item) => item.productId == product.id);
+    final index =
+        _draft.items.indexWhere((item) => item.productId == product.id);
     if (index >= 0) {
       _draft.items[index].quantity++;
       emit(state.copyWith(items: List.of(_draft.items)));
@@ -132,7 +137,8 @@ class EditInvoiceCubit extends Cubit<EditInvoiceState> {
     ));
   }
 
-  Future<VehicleStockPickerData?> loadVehicleStockForPicker(String? myId) async {
+  Future<VehicleStockPickerData?> loadVehicleStockForPicker(
+      String? myId) async {
     try {
       await _vehicleStockCubit.loadVehicles();
       if (myId != null) {

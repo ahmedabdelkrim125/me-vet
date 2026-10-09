@@ -13,7 +13,7 @@ class InvoiceMetaSection extends StatelessWidget {
 
   const InvoiceMetaSection({
     super.key,
-        required this.date,
+    required this.date,
     required this.onPickDate,
     required this.invoiceNumber,
   });

@@ -10,7 +10,7 @@ class InvoicePagination extends StatelessWidget {
 
   const InvoicePagination({
     super.key,
-        required this.itemCount,
+    required this.itemCount,
     required this.currentPage,
     required this.onPageChanged,
   });

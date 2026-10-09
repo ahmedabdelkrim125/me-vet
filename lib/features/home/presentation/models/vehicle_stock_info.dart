@@ -24,8 +24,9 @@ class VehicleStockInfo {
       return VehicleStockInfo(
         known: false,
         quantities: const {},
-        errorMessage:
-            state.status == VehicleStockStatus.error ? state.errorMessage : null,
+        errorMessage: state.status == VehicleStockStatus.error
+            ? state.errorMessage
+            : null,
       );
     }
 

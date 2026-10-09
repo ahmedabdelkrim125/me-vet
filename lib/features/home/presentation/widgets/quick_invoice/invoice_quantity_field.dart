@@ -10,7 +10,7 @@ class InvoiceQuantityField extends StatefulWidget {
 
   const InvoiceQuantityField({
     super.key,
-        required this.quantity,
+    required this.quantity,
     required this.onQuantityChanged,
   });
 

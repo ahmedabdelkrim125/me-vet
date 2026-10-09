@@ -16,6 +16,8 @@ Future<bool> showProductDetailSheet(
   BuildContext context,
   ProductModel product, {
   ProductCatalog catalog = ProductCatalog.empty,
+  int? minThreshold,
+  Future<void> Function(int minThreshold)? onSaveMinThreshold,
 }) async {
   final changed = await showModalBottomSheet<bool>(
     context: context,
@@ -24,6 +26,8 @@ Future<bool> showProductDetailSheet(
     builder: (context) => ProductDetailSheet(
       product: product,
       catalog: catalog,
+      minThreshold: minThreshold,
+      onSaveMinThreshold: onSaveMinThreshold,
     ),
   );
   return changed ?? false;
@@ -32,11 +36,15 @@ Future<bool> showProductDetailSheet(
 class ProductDetailSheet extends StatefulWidget {
   final ProductModel product;
   final ProductCatalog catalog;
+  final int? minThreshold;
+  final Future<void> Function(int minThreshold)? onSaveMinThreshold;
 
   const ProductDetailSheet({
     super.key,
     required this.product,
     this.catalog = ProductCatalog.empty,
+    this.minThreshold,
+    this.onSaveMinThreshold,
   });
 
   @override
@@ -54,7 +62,12 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   }
 
   Future<void> _editProduct() async {
-    final updated = await showAddProductSheet(context, productToEdit: _product);
+    final updated = await showAddProductSheet(
+      context,
+      productToEdit: _product,
+      vehicleMinThreshold: widget.minThreshold,
+      onSaveVehicleMinThreshold: widget.onSaveMinThreshold,
+    );
     if (!mounted || updated == null) return;
     Navigator.of(context).pop(true);
   }
@@ -201,7 +214,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
               _DetailRow(
                   icon: Icons.warning_amber_rounded,
                   label: 'الحد الأدنى للمخزون',
-                  value: '${product.minStockThreshold}'),
+                  value: '${widget.minThreshold ?? product.minStockThreshold}'),
               _DetailRow(
                   icon: Icons.calendar_today_outlined,
                   label: 'تاريخ الإضافة',

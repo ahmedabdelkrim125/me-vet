@@ -46,6 +46,12 @@ abstract class VehicleStockRepository {
     String? note,
   });
 
+  Future<void> setVehicleMinThreshold({
+    required String vehicleId,
+    required String productId,
+    required int minThreshold,
+  });
+
   Future<List<VehicleStockAddedTodayModel>>
       getVehicleStockAddedTodayShareReport(
     String vehicleId,

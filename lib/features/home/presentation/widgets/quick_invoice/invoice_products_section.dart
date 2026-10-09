@@ -29,7 +29,7 @@ class InvoiceProductsSection extends StatelessWidget {
 
   const InvoiceProductsSection({
     super.key,
-        required this.items,
+    required this.items,
     required this.currentPage,
     required this.loadingCustomerPrices,
     required this.stockKnown,
@@ -127,7 +127,8 @@ class InvoiceProductsSection extends StatelessWidget {
           SizedBox(height: 10.h),
           Divider(height: 1, color: colors.border),
           SizedBox(height: 10.h),
-          InvoiceTotalsRow(label: 'الإجمالي قبل الخصم', value: formatMoney(subtotal)),
+          InvoiceTotalsRow(
+              label: 'الإجمالي قبل الخصم', value: formatMoney(subtotal)),
           SizedBox(height: 8.h),
           Row(
             children: [

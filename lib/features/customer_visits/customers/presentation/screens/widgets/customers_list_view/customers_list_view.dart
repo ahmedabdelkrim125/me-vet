@@ -92,7 +92,6 @@ class _CustomersListViewState extends State<CustomersListView>
 
   @override
   Widget build(BuildContext context) {
-
     return ValueListenableBuilder<List<CustomerModel>>(
       valueListenable: _repository.customersNotifier,
       builder: (context, _, __) {

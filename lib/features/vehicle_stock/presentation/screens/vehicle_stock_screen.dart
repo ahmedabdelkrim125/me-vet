@@ -105,11 +105,20 @@ class _VehicleStockViewState extends State<_VehicleStockView>
     }
   }
 
-  Future<void> _openProductDetail(ProductModel product) async {
+  Future<void> _openProductDetail(VehicleStockModel stock) async {
+    final product = stock.product;
+    if (product == null) return;
+    final cubit = context.read<VehicleStockCubit>();
     final changed = await showProductDetailSheet(
       context,
       product,
       catalog: _catalog,
+      minThreshold: stock.minThreshold,
+      onSaveMinThreshold: (value) => cubit.setMinThreshold(
+        vehicleId: stock.vehicleId,
+        productId: stock.productId,
+        minThreshold: value,
+      ),
     );
     if (changed && mounted) {
       await context.read<VehicleStockCubit>().refresh();
@@ -391,7 +400,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                         stock: filtered[i],
                         categoryName: _catalog
                             .categoryName(filtered[i].product!.category),
-                        onTap: () => _openProductDetail(filtered[i].product!),
+                        onTap: () => _openProductDetail(filtered[i]),
                         onEditQuantity: () => _editQuantity(
                           context,
                           selectedVehicle.id,

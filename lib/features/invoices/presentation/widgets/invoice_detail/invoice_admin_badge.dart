@@ -22,7 +22,8 @@ class InvoiceAdminBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified_user_outlined, color: colors.primary, size: 15.sp),
+          Icon(Icons.verified_user_outlined,
+              color: colors.primary, size: 15.sp),
           SizedBox(width: 6.w),
           Text(
             name == null || name.isEmpty

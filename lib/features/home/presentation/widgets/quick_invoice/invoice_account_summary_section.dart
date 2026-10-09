@@ -16,7 +16,7 @@ class InvoiceAccountSummarySection extends StatelessWidget {
 
   const InvoiceAccountSummarySection({
     super.key,
-        required this.previousBalance,
+    required this.previousBalance,
     required this.invoiceTotal,
     required this.paidController,
     required this.onPaidChanged,
@@ -66,7 +66,8 @@ class InvoiceAccountSummarySection extends StatelessWidget {
           title: 'ملخص الحساب',
         ),
         SizedBox(height: 12.h),
-        InvoiceTotalsRow(label: 'قيمة الفاتورة الحالية', value: formatMoney(invoiceTotal)),
+        InvoiceTotalsRow(
+            label: 'قيمة الفاتورة الحالية', value: formatMoney(invoiceTotal)),
         SizedBox(height: 8.h),
         InvoiceTotalsRow(
           label: hasCredit ? 'رصيد العميل السابق (دائن)' : 'الحساب السابق',

@@ -17,7 +17,7 @@ class InvoiceLineItemTile extends StatelessWidget {
 
   const InvoiceLineItemTile({
     super.key,
-        required this.item,
+    required this.item,
     required this.loadingCustomerPrices,
     required this.onPriceChanged,
     required this.onQuantityChanged,

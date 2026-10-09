@@ -8,7 +8,8 @@ class BreakdownLine extends StatelessWidget {
   final PaymentBreakdownLine line;
   final String amountText;
 
-  const BreakdownLine({super.key, required this.line, required this.amountText});
+  const BreakdownLine(
+      {super.key, required this.line, required this.amountText});
 
   @override
   Widget build(BuildContext context) {

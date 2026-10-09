@@ -41,8 +41,8 @@ class HistoricalLineRow extends StatelessWidget {
                     line.product.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.cairoMedium16
-                        .copyWith(fontSize: 12.5.sp),
+                    style:
+                        AppTextStyles.cairoMedium16.copyWith(fontSize: 12.5.sp),
                   ),
                   SizedBox(height: 2.h),
                   Text(

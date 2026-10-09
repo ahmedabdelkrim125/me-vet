@@ -106,7 +106,8 @@ class HistoricalInvoiceForm extends StatelessWidget {
                   const TextInputType.numberWithOptions(decimal: true),
               textDirection: TextDirection.ltr,
               onChanged: cubit.changePaidNow,
-              decoration: const InputDecoration(labelText: 'المدفوع الآن (ج.م)'),
+              decoration:
+                  const InputDecoration(labelText: 'المدفوع الآن (ج.م)'),
             ),
             if (state.paidNow > 0) ...[
               SizedBox(height: 12.h),

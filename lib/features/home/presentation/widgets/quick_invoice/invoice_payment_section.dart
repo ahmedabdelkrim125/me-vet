@@ -55,8 +55,7 @@ class InvoicePaymentSection extends StatelessWidget {
                   Expanded(
                     child: PaymentMethodSelector(
                       value: rows[i].method,
-                      onChanged: (method) =>
-                          cubit.selectSplitMethod(i, method),
+                      onChanged: (method) => cubit.selectSplitMethod(i, method),
                     ),
                   ),
                 ],

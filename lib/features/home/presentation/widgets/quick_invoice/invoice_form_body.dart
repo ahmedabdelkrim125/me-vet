@@ -26,8 +26,7 @@ class InvoiceFormBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<QuickInvoiceCubit>();
-    final repName =
-        context.watch<AuthCubit>().state.user?.name ?? 'غير معروف';
+    final repName = context.watch<AuthCubit>().state.user?.name ?? 'غير معروف';
 
     return BlocBuilder<QuickInvoiceCubit, QuickInvoiceState>(
       builder: (context, state) {

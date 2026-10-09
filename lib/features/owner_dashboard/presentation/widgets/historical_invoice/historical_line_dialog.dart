@@ -38,7 +38,8 @@ class _HistoricalLineDialogState extends State<HistoricalLineDialog> {
     final quantity = int.tryParse(_quantityController.text.trim()) ?? 0;
     final price = double.tryParse(_priceController.text.trim()) ?? 0;
     if (quantity <= 0 || price < 0) return;
-    Navigator.pop<HistoricalLineInput>(context, (quantity: quantity, price: price));
+    Navigator.pop<HistoricalLineInput>(
+        context, (quantity: quantity, price: price));
   }
 
   @override

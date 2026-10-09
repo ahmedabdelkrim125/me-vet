@@ -11,7 +11,7 @@ class InvoiceTappableField extends StatelessWidget {
 
   const InvoiceTappableField({
     super.key,
-        required this.label,
+    required this.label,
     required this.value,
     required this.icon,
     required this.onTap,

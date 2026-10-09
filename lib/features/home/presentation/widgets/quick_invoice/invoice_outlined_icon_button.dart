@@ -8,7 +8,7 @@ class InvoiceOutlinedIconButton extends StatelessWidget {
 
   const InvoiceOutlinedIconButton({
     super.key,
-        required this.icon,
+    required this.icon,
     required this.color,
     required this.onTap,
   });

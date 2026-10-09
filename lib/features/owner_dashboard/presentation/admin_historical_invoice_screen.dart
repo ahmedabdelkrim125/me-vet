@@ -12,7 +12,8 @@ class AdminHistoricalInvoiceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<HistoricalInvoiceCubit>(
-      create: (_) => HistoricalInvoiceCubit(customerId: customer.id)..loadCatalog(),
+      create: (_) =>
+          HistoricalInvoiceCubit(customerId: customer.id)..loadCatalog(),
       child: HistoricalInvoiceView(customerName: customer.name),
     );
   }

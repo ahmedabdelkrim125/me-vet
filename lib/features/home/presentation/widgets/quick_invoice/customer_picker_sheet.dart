@@ -85,11 +85,13 @@ class _CustomerPickerContent extends StatelessWidget {
                                 SizedBox(width: 10.w),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         c.customer.name,
-                                        style: AppTextStyles.cairoMedium16.copyWith(
+                                        style: AppTextStyles.cairoMedium16
+                                            .copyWith(
                                           color: colors.text,
                                           fontSize: 13.sp,
                                         ),
@@ -97,7 +99,8 @@ class _CustomerPickerContent extends StatelessWidget {
                                       SizedBox(height: 2.h),
                                       Text(
                                         c.customer.address,
-                                        style: AppTextStyles.almaraiRegular14.copyWith(
+                                        style: AppTextStyles.almaraiRegular14
+                                            .copyWith(
                                           color: colors.textMuted,
                                           fontSize: 11.sp,
                                         ),

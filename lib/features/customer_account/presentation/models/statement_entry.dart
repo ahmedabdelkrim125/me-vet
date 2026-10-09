@@ -21,7 +21,8 @@ class StatementEntry {
   final InvoiceRecordModel? invoice;
   final PaymentBreakdown? payment;
 
-  const StatementEntry.invoice(InvoiceRecordModel this.invoice) : payment = null;
+  const StatementEntry.invoice(InvoiceRecordModel this.invoice)
+      : payment = null;
   const StatementEntry.payment(PaymentBreakdown this.payment) : invoice = null;
 
   DateTime get date => invoice?.date ?? payment!.collectedAt;

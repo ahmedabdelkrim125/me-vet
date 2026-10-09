@@ -142,6 +142,21 @@ class VehicleStockRemoteDataSource {
     );
   }
 
+  Future<void> setVehicleMinThreshold({
+    required String vehicleId,
+    required String productId,
+    required int minThreshold,
+  }) async {
+    await _supabase.rpc(
+      'set_vehicle_min_threshold',
+      params: {
+        'p_vehicle_id': vehicleId,
+        'p_product_id': productId,
+        'p_min_threshold': minThreshold,
+      },
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getVehicleStockAddedTodayShareReport(
     String vehicleId,
   ) async {

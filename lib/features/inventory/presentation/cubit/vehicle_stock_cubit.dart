@@ -8,6 +8,7 @@ import 'package:mivet_app/features/inventory/domain/usecases/get_vehicle_stock.d
 import 'package:mivet_app/features/inventory/domain/usecases/get_vehicles.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/load_vehicle_stock.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/return_vehicle_stock.dart';
+import 'package:mivet_app/features/inventory/domain/usecases/set_vehicle_min_threshold.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/update_vehicle_stock_quantity.dart';
 import 'package:mivet_app/features/inventory/domain/usecases/get_vehicle_stock_added_today_report.dart';
 import 'vehicle_stock_state.dart';
@@ -35,6 +36,7 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
   final ReturnVehicleStock _returnVehicleStock;
   final CreateVehicleForCurrentRep _createVehicleForCurrentRep;
   final UpdateVehicleStockQuantity _updateVehicleStockQuantity;
+  final SetVehicleMinThreshold _setVehicleMinThreshold;
   final GetVehicleStockAddedTodayReport _getVehicleStockAddedTodayReport;
 
   VehicleStockCubit({
@@ -46,6 +48,7 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     required ReturnVehicleStock returnVehicleStock,
     required CreateVehicleForCurrentRep createVehicleForCurrentRep,
     required UpdateVehicleStockQuantity updateVehicleStockQuantity,
+    required SetVehicleMinThreshold setVehicleMinThreshold,
     required GetVehicleStockAddedTodayReport getVehicleStockAddedTodayReport,
   })  : _getVehicles = getVehicles,
         _getVehicleStock = getVehicleStock,
@@ -55,6 +58,7 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
         _returnVehicleStock = returnVehicleStock,
         _createVehicleForCurrentRep = createVehicleForCurrentRep,
         _updateVehicleStockQuantity = updateVehicleStockQuantity,
+        _setVehicleMinThreshold = setVehicleMinThreshold,
         _getVehicleStockAddedTodayReport = getVehicleStockAddedTodayReport,
         super(const VehicleStockState());
 
@@ -314,6 +318,36 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
       emit(state.copyWith(
           status: VehicleStockStatus.success,
           successMessage: 'تم تعديل كمية المخزون بنجاح'));
+      await loadSelectedVehicleData();
+    } catch (e) {
+      if (isClosed) return;
+      emit(state.copyWith(
+          status: VehicleStockStatus.error,
+          errorMessage: mapErrorToAppException(e).message));
+      rethrow;
+    }
+  }
+
+  Future<void> setMinThreshold({
+    required String vehicleId,
+    required String productId,
+    required int minThreshold,
+  }) async {
+    if (isClosed) return;
+    emit(state.copyWith(
+        status: VehicleStockStatus.loadingAction,
+        clearError: true,
+        clearSuccess: true));
+    try {
+      await _setVehicleMinThreshold(
+        vehicleId: vehicleId,
+        productId: productId,
+        minThreshold: minThreshold,
+      );
+      if (isClosed) return;
+      emit(state.copyWith(
+          status: VehicleStockStatus.success,
+          successMessage: 'تم تعديل الحد الأدنى بنجاح'));
       await loadSelectedVehicleData();
     } catch (e) {
       if (isClosed) return;

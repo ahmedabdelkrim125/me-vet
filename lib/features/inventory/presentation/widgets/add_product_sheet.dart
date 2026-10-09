@@ -3,7 +3,6 @@ import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-
 import '../../data/products_repository.dart';
 import '../../domain/models/product_catalog_item.dart';
 import '../../domain/models/product_model.dart';
@@ -13,6 +12,8 @@ Future<ProductModel?> showAddProductSheet(
   BuildContext context, {
   ProductModel? productToEdit,
   int? initialVehicleQuantity,
+  int? vehicleMinThreshold,
+  Future<void> Function(int minThreshold)? onSaveVehicleMinThreshold,
   Future<void> Function(ProductModel product, int quantity)? onCreated,
 }) =>
     showModalBottomSheet<ProductModel>(
@@ -22,6 +23,8 @@ Future<ProductModel?> showAddProductSheet(
       builder: (_) => _AddProductSheet(
         productToEdit: productToEdit,
         initialVehicleQuantity: initialVehicleQuantity,
+        vehicleMinThreshold: vehicleMinThreshold,
+        onSaveVehicleMinThreshold: onSaveVehicleMinThreshold,
         onCreated: onCreated,
       ),
     );
@@ -29,9 +32,16 @@ Future<ProductModel?> showAddProductSheet(
 class _AddProductSheet extends StatefulWidget {
   final ProductModel? productToEdit;
   final int? initialVehicleQuantity;
+  final int? vehicleMinThreshold;
+  final Future<void> Function(int minThreshold)? onSaveVehicleMinThreshold;
   final Future<void> Function(ProductModel product, int quantity)? onCreated;
-  const _AddProductSheet(
-      {this.productToEdit, this.initialVehicleQuantity, this.onCreated});
+  const _AddProductSheet({
+    this.productToEdit,
+    this.initialVehicleQuantity,
+    this.vehicleMinThreshold,
+    this.onSaveVehicleMinThreshold,
+    this.onCreated,
+  });
   @override
   State<_AddProductSheet> createState() => _AddProductSheetState();
 }
@@ -45,7 +55,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
   late final _wholesale = TextEditingController(
       text: widget.productToEdit?.wholesalePrice.toStringAsFixed(2) ?? '');
   late final _threshold = TextEditingController(
-      text: '${widget.productToEdit?.minStockThreshold ?? 5}');
+      text:
+          '${widget.vehicleMinThreshold ?? widget.productToEdit?.minStockThreshold ?? 5}');
   late final _quantity = TextEditingController(
       text: widget.initialVehicleQuantity?.toString() ?? '');
   List<ProductCatalogItem> _categories = const [];
@@ -53,6 +64,8 @@ class _AddProductSheetState extends State<_AddProductSheet> {
   DateTime? _expiryDate;
   bool _loadingCatalog = true, _saving = false;
   bool get _isEditing => widget.productToEdit != null;
+  bool get _editsVehicleThreshold =>
+      _isEditing && widget.onSaveVehicleMinThreshold != null;
 
   @override
   void initState() {
@@ -163,7 +176,9 @@ class _AddProductSheetState extends State<_AddProductSheet> {
               category: _category,
               retailPrice: retail,
               wholesalePrice: wholesale,
-              minStockThreshold: threshold,
+              minStockThreshold: _editsVehicleThreshold
+                  ? widget.productToEdit!.minStockThreshold
+                  : threshold,
               expiryDate: _expiryDate))
           : await _repository.createProduct(
               name: _name.text.trim(),
@@ -174,6 +189,9 @@ class _AddProductSheetState extends State<_AddProductSheet> {
               imagePath: image,
               expiryDate: _expiryDate);
       productCreated = !_isEditing;
+      if (_editsVehicleThreshold && threshold != widget.vehicleMinThreshold) {
+        await widget.onSaveVehicleMinThreshold!(threshold);
+      }
       if (!_isEditing && widget.onCreated != null) {
         await widget.onCreated!(product, quantity);
       }

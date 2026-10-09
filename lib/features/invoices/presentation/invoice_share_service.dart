@@ -95,9 +95,8 @@ class InvoiceShareService {
     final imageSubtitle = isLarge
         ? 'الفاتورة كبيرة، هتتقسم لصفحات متجاورة زي الكتاب المفتوح'
         : 'صورة واحدة تتفتح على أي موبايل';
-    final pdfSubtitle = isLarge
-        ? 'الأنسب للفواتير الكبيرة'
-        : 'ملف PDF يحتاج برنامج لفتحه';
+    final pdfSubtitle =
+        isLarge ? 'الأنسب للفواتير الكبيرة' : 'ملف PDF يحتاج برنامج لفتحه';
 
     return showModalBottomSheet<InvoiceShareFormat>(
       context: context,

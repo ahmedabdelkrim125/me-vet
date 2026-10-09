@@ -14,7 +14,7 @@ class InvoiceFooterActions extends StatelessWidget {
 
   const InvoiceFooterActions({
     super.key,
-        required this.canIssue,
+    required this.canIssue,
     required this.onSave,
     required this.onPrint,
     required this.onShareWhatsapp,
