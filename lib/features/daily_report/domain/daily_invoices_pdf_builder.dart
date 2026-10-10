@@ -34,6 +34,12 @@ class DailyInvoicesPdfBuilder {
   static final _green = PdfColor.fromInt(AppColors.primaryGreen.value);
   static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
 
+  /// Minimum free space (in PDF points) an invoice needs at the bottom of a page
+  /// to start there: invoice title + time, the table header row and at least one
+  /// (possibly two-line) item row. Below this, the invoice starts on a new page
+  /// so its title is never left alone at the bottom of a page.
+  static const double _minSpaceToStartInvoice = 130;
+
   static Future<Uint8List> build(
     List<DailyInvoicePdfEntry> entries,
     DateTime reportDate,
@@ -120,6 +126,7 @@ class DailyInvoicesPdfBuilder {
     ];
 
     return [
+      pw.NewPage(freeSpace: _minSpaceToStartInvoice),
       pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -165,48 +172,54 @@ class DailyInvoicesPdfBuilder {
     pw.Font boldFont,
     pw.Font regularFont,
   ) {
+    // IMPORTANT: pw.Table can be split across pages by MultiPage (it is a
+    // SpanningWidget), but a pw.Column cannot. Wrapping the table in a Column
+    // forced the whole table onto a new page when it did not fit in the space
+    // left, leaving a big blank gap right under the invoice header.
+    // So the table is returned directly; only the optional title uses a Column.
+    final table = pw.Table(
+      border: pw.TableBorder.all(color: _border, width: 0.6),
+      children: [
+        pw.TableRow(
+          repeat: true, // header row is repeated if the table continues on the next page
+          decoration: pw.BoxDecoration(color: _navy),
+          children: headers
+              .map((h) => pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(
+                        vertical: 6, horizontal: 4),
+                    child: pw.Text(h,
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                            font: boldFont,
+                            fontSize: 9,
+                            color: PdfColors.white)),
+                  ))
+              .toList(),
+        ),
+        for (final row in rows)
+          pw.TableRow(
+            children: row
+                .map((cell) => pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(
+                          vertical: 5, horizontal: 4),
+                      child: pw.Text(cell,
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(font: regularFont, fontSize: 9)),
+                    ))
+                .toList(),
+          ),
+      ],
+    );
+
+    if (title == null) return table;
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        if (title != null) ...[
-          pw.Text(title,
-              style: pw.TextStyle(font: boldFont, fontSize: 14, color: _green)),
-          pw.SizedBox(height: 8),
-        ],
-        pw.Table(
-          border: pw.TableBorder.all(color: _border, width: 0.6),
-          children: [
-            pw.TableRow(
-              repeat: true,
-              decoration: pw.BoxDecoration(color: _navy),
-              children: headers
-                  .map((h) => pw.Padding(
-                        padding: const pw.EdgeInsets.symmetric(
-                            vertical: 6, horizontal: 4),
-                        child: pw.Text(h,
-                            textAlign: pw.TextAlign.center,
-                            style: pw.TextStyle(
-                                font: boldFont,
-                                fontSize: 9,
-                                color: PdfColors.white)),
-                      ))
-                  .toList(),
-            ),
-            for (final row in rows)
-              pw.TableRow(
-                children: row
-                    .map((cell) => pw.Padding(
-                          padding: const pw.EdgeInsets.symmetric(
-                              vertical: 5, horizontal: 4),
-                          child: pw.Text(cell,
-                              textAlign: pw.TextAlign.center,
-                              style:
-                                  pw.TextStyle(font: regularFont, fontSize: 9)),
-                        ))
-                    .toList(),
-              ),
-          ],
-        ),
+        pw.Text(title,
+            style: pw.TextStyle(font: boldFont, fontSize: 14, color: _green)),
+        pw.SizedBox(height: 8),
+        table,
       ],
     );
   }
