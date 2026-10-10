@@ -201,6 +201,20 @@ class InvoicesRepository {
     );
   }
 
+  Future<double?> getBalanceBeforeInvoice(String invoiceId) async {
+    final row = await _supabase
+        .from('customer_transactions')
+        .select('balance_after, debit, credit')
+        .eq('transaction_type', 'invoice')
+        .eq('reference_id', invoiceId)
+        .maybeSingle();
+    if (row == null) return null;
+    final after = (row['balance_after'] as num).toDouble();
+    final debit = (row['debit'] as num?)?.toDouble() ?? 0;
+    final credit = (row['credit'] as num?)?.toDouble() ?? 0;
+    return after - debit + credit;
+  }
+
   Future<double> getInvoiceApplicableCredit(String invoiceId) async {
     final result = await _supabase.rpc(
       'get_invoice_applicable_credit',

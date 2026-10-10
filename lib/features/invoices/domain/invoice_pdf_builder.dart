@@ -67,6 +67,9 @@ class InvoicePdfData {
 
   double get totalAfterDiscount => invoiceTotal;
 
+  double get accountTotalBeforeDiscount =>
+      previousBalance + subtotalBeforeDiscount;
+
   double get discountPercent => subtotalBeforeDiscount > 0
       ? discountAmount / subtotalBeforeDiscount * 100
       : 0;
@@ -525,17 +528,18 @@ class InvoicePdfBuilder {
     pw.Font regularFont,
   ) {
     final hasCredit = data.previousBalance < 0;
-    final dueIsCredit = data.totalDue < 0;
+    final accountTotal = data.accountTotalBeforeDiscount;
+    final dueIsCredit = accountTotal < 0;
 
     final columns = <MapEntry<String, String>>[
-      MapEntry('إجمالي الفاتورة', _formatAmount(data.invoiceTotal)),
+      MapEntry('إجمالي الفاتورة', _formatAmount(data.subtotalBeforeDiscount)),
       MapEntry(
         hasCredit ? 'رصيد العميل السابق (دائن)' : 'الحساب السابق',
         _formatAmount(data.previousBalance.abs()),
       ),
       MapEntry(
         dueIsCredit ? 'رصيد العميل بعد الفاتورة (دائن)' : 'إجمالي الحساب',
-        _formatAmount(data.totalDue.abs()),
+        _formatAmount(accountTotal.abs()),
       ),
       MapEntry('المبلغ المدفوع', _formatAmount(data.paidNow)),
       if (data.hasDiscount)

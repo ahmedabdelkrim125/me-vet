@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mivet_app/core/errors/app_toast.dart';
+import '../../../../core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
-import 'package:mivet_app/core/utils/responsive_extension.dart';
+import '../../../../core/utils/responsive_extension.dart';
 import '../../data/products_repository.dart';
 import '../../domain/models/product_catalog_item.dart';
 import '../../domain/models/product_model.dart';

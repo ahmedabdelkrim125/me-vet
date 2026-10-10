@@ -128,6 +128,9 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
   Future<InvoicePdfData?> buildInvoiceData({String? fallbackRepName}) async {
     final detail = state.detail;
     if (detail == null) return null;
+    final previousBalance = await _resolvePreviousBalance(detail.id);
+    final invoiceRemaining = detail.remaining < 0 ? 0.0 : detail.remaining;
+    final accountRemaining = previousBalance + invoiceRemaining;
     final creatorName = detail.creatorName?.trim();
     final repName = (creatorName != null && creatorName.isNotEmpty)
         ? '$creatorName${detail.isFromAdmin ? ' (إدارة)' : ''}'
@@ -147,10 +150,10 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
           .toList(),
       invoiceTotal: detail.totalAmount,
       discountAmount: _discountOf(detail),
-      previousBalance: previousBalanceAtView,
-      totalDue: detail.totalAmount + previousBalanceAtView,
+      previousBalance: previousBalance,
+      totalDue: detail.totalAmount + previousBalance,
       paidNow: detail.paidNow,
-      remaining: detail.remaining < 0 ? 0 : detail.remaining,
+      remaining: accountRemaining < 0 ? 0 : accountRemaining,
       oldDebtCollected: state.oldDebtLines
           .map((line) => InvoicePdfOldDebtLine(
                 invoiceCode: line.invoiceCode ?? 'رصيد سابق',
@@ -158,6 +161,16 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
               ))
           .toList(),
     );
+  }
+
+  Future<double> _resolvePreviousBalance(String invoiceId) async {
+    try {
+      final balance =
+          await _invoicesRepository.getBalanceBeforeInvoice(invoiceId);
+      return balance ?? previousBalanceAtView;
+    } catch (_) {
+      return previousBalanceAtView;
+    }
   }
 
   Future<String> _resolveRepName(String? fallbackRepName) async {

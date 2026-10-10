@@ -1,16 +1,16 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mivet_app/core/errors/app_exception.dart';
-import 'package:mivet_app/features/inventory/domain/models/vehicle_stock_added_today_model.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/deduct_vehicle_stock.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/create_vehicle_for_current_rep.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/get_stock_movements.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/get_vehicle_stock.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/get_vehicles.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/load_vehicle_stock.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/return_vehicle_stock.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/set_vehicle_min_threshold.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/update_vehicle_stock_quantity.dart';
-import 'package:mivet_app/features/inventory/domain/usecases/get_vehicle_stock_added_today_report.dart';
+import '../../../../core/errors/app_exception.dart';
+import '../../domain/models/vehicle_stock_added_today_model.dart';
+import '../../domain/usecases/deduct_vehicle_stock.dart';
+import '../../domain/usecases/create_vehicle_for_current_rep.dart';
+import '../../domain/usecases/get_stock_movements.dart';
+import '../../domain/usecases/get_vehicle_stock.dart';
+import '../../domain/usecases/get_vehicles.dart';
+import '../../domain/usecases/load_vehicle_stock.dart';
+import '../../domain/usecases/return_vehicle_stock.dart';
+import '../../domain/usecases/set_vehicle_min_threshold.dart';
+import '../../domain/usecases/update_vehicle_stock_quantity.dart';
+import '../../domain/usecases/get_vehicle_stock_added_today_report.dart';
 import 'vehicle_stock_state.dart';
 
 class VehicleStockBatchItem {
