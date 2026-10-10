@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/pdf_page_background.dart';
+import 'package:mivet_app/features/invoices/domain/invoice_pdf_builder.dart';
 
 class DailyInvoicePdfEntry {
   final String invoiceCode;
@@ -13,6 +14,7 @@ class DailyInvoicePdfEntry {
   final List<({String name, int quantity, double price, double total})> items;
   final double total;
   final String status;
+  final InvoicePdfData summary;
 
   const DailyInvoicePdfEntry({
     required this.invoiceCode,
@@ -21,6 +23,7 @@ class DailyInvoicePdfEntry {
     required this.items,
     required this.total,
     required this.status,
+    required this.summary,
   });
 }
 
@@ -91,10 +94,8 @@ class DailyInvoicesPdfBuilder {
             regularFont,
           ),
           pw.SizedBox(height: 18),
-          for (final entry in entries) ...[
-            _buildInvoiceSection(entry, boldFont, regularFont),
-            pw.SizedBox(height: 16),
-          ],
+          for (final entry in entries)
+            ..._buildInvoiceSection(entry, boldFont, regularFont),
         ],
       ),
     );
@@ -102,7 +103,7 @@ class DailyInvoicesPdfBuilder {
     return document.save();
   }
 
-  static pw.Widget _buildInvoiceSection(
+  static List<pw.Widget> _buildInvoiceSection(
     DailyInvoicePdfEntry entry,
     pw.Font boldFont,
     pw.Font regularFont,
@@ -118,13 +119,8 @@ class DailyInvoicesPdfBuilder {
         ],
     ];
 
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(10),
-      decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: _border, width: 0.6),
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
-      ),
-      child: pw.Column(
+    return [
+      pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Row(
@@ -147,10 +143,19 @@ class DailyInvoicesPdfBuilder {
                 font: regularFont, fontSize: 8.5, color: PdfColors.grey700),
           ),
           pw.SizedBox(height: 6),
-          _buildTable(null, headers, rows, boldFont, regularFont),
         ],
       ),
-    );
+      _buildTable(null, headers, rows, boldFont, regularFont),
+      pw.SizedBox(height: 12),
+      InvoicePdfBuilder.buildSummarySection(
+        entry.summary,
+        boldFont,
+        regularFont,
+      ),
+      pw.SizedBox(height: 10),
+      pw.Divider(color: _border, thickness: 0.6),
+      pw.SizedBox(height: 14),
+    ];
   }
 
   static pw.Widget _buildTable(
@@ -172,6 +177,7 @@ class DailyInvoicesPdfBuilder {
           border: pw.TableBorder.all(color: _border, width: 0.6),
           children: [
             pw.TableRow(
+              repeat: true,
               decoration: pw.BoxDecoration(color: _navy),
               children: headers
                   .map((h) => pw.Padding(

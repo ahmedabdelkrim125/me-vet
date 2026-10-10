@@ -554,6 +554,13 @@ class InvoicePdfBuilder {
         'ملخص الفاتورة', headers, [values], boldFont, regularFont);
   }
 
+  static pw.Widget buildSummarySection(
+    InvoicePdfData data,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) =>
+      _buildSummaryTable(data, boldFont, regularFont);
+
   static pw.Widget _buildOldDebtTable(
     InvoicePdfData data,
     pw.Font boldFont,

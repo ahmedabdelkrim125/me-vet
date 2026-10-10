@@ -5,6 +5,7 @@ import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/features/invoices/data/invoices_repository.dart';
+import 'package:mivet_app/features/invoices/domain/invoice_pdf_builder.dart';
 import 'package:mivet_app/features/invoices/domain/models/invoice_record_model.dart';
 import 'package:mivet_app/features/invoices/presentation/screens/invoice_detail_screen.dart';
 
@@ -51,6 +52,45 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
     }
   }
 
+  Future<double> _previousBalanceOf(String invoiceId) async {
+    try {
+      final balance =
+          await InvoicesRepository.instance.getBalanceBeforeInvoice(invoiceId);
+      return balance ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  double _discountOf(InvoiceFullDetail detail) {
+    final fromSubtotal = detail.subtotal - detail.totalAmount;
+    return detail.discountAmount > fromSubtotal
+        ? detail.discountAmount
+        : (fromSubtotal > 0 ? fromSubtotal : 0.0);
+  }
+
+  InvoicePdfData _summaryOf(
+    DailyInvoiceSummary invoice,
+    InvoiceFullDetail detail,
+    double previousBalance,
+  ) {
+    final invoiceRemaining = detail.remaining < 0 ? 0.0 : detail.remaining;
+    final accountRemaining = previousBalance + invoiceRemaining;
+    return InvoicePdfData(
+      invoiceNumber: detail.code,
+      date: invoice.date,
+      customerName: invoice.customerName,
+      repName: '',
+      items: const [],
+      invoiceTotal: detail.totalAmount,
+      discountAmount: _discountOf(detail),
+      previousBalance: previousBalance,
+      totalDue: detail.totalAmount + previousBalance,
+      paidNow: detail.paidNow,
+      remaining: accountRemaining < 0 ? 0 : accountRemaining,
+    );
+  }
+
   Future<void> _shareAll() async {
     if (_invoices.isEmpty || _sharing) return;
     setState(() => _sharing = true);
@@ -59,6 +99,7 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
       for (final invoice in _invoices) {
         final detail = await InvoicesRepository.instance
             .getInvoiceDetailByCode(invoice.code);
+        final previousBalance = await _previousBalanceOf(invoice.id);
         entries.add(
           DailyInvoicePdfEntry(
             invoiceCode: detail.code,
@@ -75,6 +116,7 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
             ],
             total: detail.totalAmount,
             status: invoice.status.label,
+            summary: _summaryOf(invoice, detail, previousBalance),
           ),
         );
       }

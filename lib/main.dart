@@ -5,8 +5,10 @@ import 'package:device_preview/device_preview.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/di/service_locator.dart';
+import 'core/monitoring/error_reporter.dart';
 import 'core/notifications/push_notification_service.dart';
 import 'core/storage/secure_local_storage.dart';
 import 'core/theme/theme_controller.dart';
@@ -15,14 +17,33 @@ import 'me_vet_app.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await dotenv.load(fileName: '.env');
+
+  final dsn = dotenv.env['SENTRY_DSN'] ?? '';
+  if (dsn.isEmpty) {
+    await _bootstrap();
+    return;
+  }
+
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = dsn;
+      options.environment = kReleaseMode ? 'production' : 'development';
+      options.sendDefaultPii = false;
+    },
+    appRunner: _bootstrap,
+  );
+}
+
+Future<void> _bootstrap() async {
+  await ErrorReporter.report(StateError('Sentry test'), StackTrace.current);
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
 
   await ThemeController.instance.initialize();
-
-  await dotenv.load(fileName: '.env');
 
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL'] ?? '',
@@ -34,10 +55,13 @@ Future<void> main() async {
   );
 
   Supabase.instance.client.auth.onAuthStateChange.listen(
-    (state) => debugPrint(
-      '[Auth] event=${state.event.name}'
-      '${state.signOutReason != null ? ' reason=${state.signOutReason!.name}' : ''}',
-    ),
+    (state) {
+      debugPrint(
+        '[Auth] event=${state.event.name}'
+        '${state.signOutReason != null ? ' reason=${state.signOutReason!.name}' : ''}',
+      );
+      ErrorReporter.setUser(state.session?.user.id);
+    },
     onError: (Object error) {
       if (error is AuthException) {
         debugPrint('[Auth] error code=${error.code} '
@@ -56,6 +80,7 @@ Future<void> main() async {
   } catch (e, stack) {
     debugPrint('[Push] Firebase.initializeApp() فشل: $e');
     debugPrint('[Push] Stack trace: $stack');
+    ErrorReporter.report(e, stack);
   }
 
   FirebaseMessaging.onBackgroundMessage(
