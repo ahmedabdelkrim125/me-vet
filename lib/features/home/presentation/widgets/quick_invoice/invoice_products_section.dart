@@ -110,6 +110,7 @@ class InvoiceProductsSection extends StatelessWidget {
                 (item) => Padding(
                   padding: EdgeInsets.only(bottom: 8.h),
                   child: InvoiceLineItemTile(
+                    key: ObjectKey(item),
                     item: item,
                     loadingCustomerPrices: loadingCustomerPrices,
                     onPriceChanged: (price) => onPriceChanged(item, price),

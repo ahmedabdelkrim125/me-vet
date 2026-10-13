@@ -34,6 +34,7 @@ class InvoiceDetailContent extends StatelessWidget {
           detail: detail,
           oldDebtLines: state.oldDebtLines,
           applicableCredit: state.applicableCredit,
+          accountSummary: state.accountSummary,
           onCollectPayment: () => collectInvoicePayment(context),
           onAdjustOverpayment: () => adjustInvoiceOverpayment(context),
           onApplyCredit: () => applyInvoiceCredit(context),

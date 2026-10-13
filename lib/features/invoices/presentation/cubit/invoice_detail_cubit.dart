@@ -33,7 +33,13 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
       final detail =
           await _invoicesRepository.getInvoiceDetailByCode(invoiceCode);
       if (isClosed) return;
-      emit(state.copyWith(status: InvoiceDetailStatus.loaded, detail: detail));
+      final summary = await _resolveAccountSummary(detail.id);
+      if (isClosed) return;
+      emit(state.copyWith(
+        status: InvoiceDetailStatus.loaded,
+        detail: detail,
+        accountSummary: summary,
+      ));
       unawaited(_loadOldDebt(detail.id));
       unawaited(_loadApplicableCredit(detail));
     } catch (_) {
@@ -128,9 +134,11 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
   Future<InvoicePdfData?> buildInvoiceData({String? fallbackRepName}) async {
     final detail = state.detail;
     if (detail == null) return null;
-    final previousBalance = await _resolvePreviousBalance(detail.id);
-    final invoiceRemaining = detail.remaining < 0 ? 0.0 : detail.remaining;
-    final accountRemaining = previousBalance + invoiceRemaining;
+    final summary = await _resolveAccountSummary(detail.id);
+    final previousBalance = summary?.previousBalance ?? previousBalanceAtView;
+    final paidTotal = summary?.totalPaid ?? detail.paidNow;
+    final accountRemaining = summary?.remaining ??
+        previousBalance + (detail.remaining < 0 ? 0.0 : detail.remaining);
     final creatorName = detail.creatorName?.trim();
     final repName = (creatorName != null && creatorName.isNotEmpty)
         ? '$creatorName${detail.isFromAdmin ? ' (إدارة)' : ''}'
@@ -152,7 +160,7 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
       discountAmount: _discountOf(detail),
       previousBalance: previousBalance,
       totalDue: detail.totalAmount + previousBalance,
-      paidNow: detail.paidNow,
+      paidNow: paidTotal,
       remaining: accountRemaining < 0 ? 0 : accountRemaining,
       oldDebtCollected: state.oldDebtLines
           .map((line) => InvoicePdfOldDebtLine(
@@ -163,13 +171,13 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
     );
   }
 
-  Future<double> _resolvePreviousBalance(String invoiceId) async {
+  Future<InvoiceAccountSummary?> _resolveAccountSummary(
+    String invoiceId,
+  ) async {
     try {
-      final balance =
-          await _invoicesRepository.getBalanceBeforeInvoice(invoiceId);
-      return balance ?? previousBalanceAtView;
+      return await _invoicesRepository.getInvoiceAccountSummary(invoiceId);
     } catch (_) {
-      return previousBalanceAtView;
+      return null;
     }
   }
 

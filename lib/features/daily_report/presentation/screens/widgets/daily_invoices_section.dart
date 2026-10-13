@@ -52,13 +52,12 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
     }
   }
 
-  Future<double> _previousBalanceOf(String invoiceId) async {
+  Future<InvoiceAccountSummary?> _accountSummaryOf(String invoiceId) async {
     try {
-      final balance =
-          await InvoicesRepository.instance.getBalanceBeforeInvoice(invoiceId);
-      return balance ?? 0;
+      return await InvoicesRepository.instance
+          .getInvoiceAccountSummary(invoiceId);
     } catch (_) {
-      return 0;
+      return null;
     }
   }
 
@@ -72,10 +71,11 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
   InvoicePdfData _summaryOf(
     DailyInvoiceSummary invoice,
     InvoiceFullDetail detail,
-    double previousBalance,
+    InvoiceAccountSummary? summary,
   ) {
-    final invoiceRemaining = detail.remaining < 0 ? 0.0 : detail.remaining;
-    final accountRemaining = previousBalance + invoiceRemaining;
+    final previousBalance = summary?.previousBalance ?? 0.0;
+    final accountRemaining = summary?.remaining ??
+        previousBalance + (detail.remaining < 0 ? 0.0 : detail.remaining);
     return InvoicePdfData(
       invoiceNumber: detail.code,
       date: invoice.date,
@@ -86,7 +86,7 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
       discountAmount: _discountOf(detail),
       previousBalance: previousBalance,
       totalDue: detail.totalAmount + previousBalance,
-      paidNow: detail.paidNow,
+      paidNow: summary?.totalPaid ?? detail.paidNow,
       remaining: accountRemaining < 0 ? 0 : accountRemaining,
     );
   }
@@ -99,7 +99,7 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
       for (final invoice in _invoices) {
         final detail = await InvoicesRepository.instance
             .getInvoiceDetailByCode(invoice.code);
-        final previousBalance = await _previousBalanceOf(invoice.id);
+        final summary = await _accountSummaryOf(invoice.id);
         entries.add(
           DailyInvoicePdfEntry(
             invoiceCode: detail.code,
@@ -116,7 +116,7 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
             ],
             total: detail.totalAmount,
             status: invoice.status.label,
-            summary: _summaryOf(invoice, detail, previousBalance),
+            summary: _summaryOf(invoice, detail, summary),
           ),
         );
       }

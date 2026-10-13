@@ -49,7 +49,8 @@ class QuickInvoiceState {
     final now = DateTime.now();
     final date = DateTime(now.year, now.month, now.day);
     return QuickInvoiceState(
-      invoiceNumber: 'INV-${date.year}-${100 + Random().nextInt(900)}',
+      invoiceNumber:
+          'INV-${date.year}-${now.microsecondsSinceEpoch}${100 + Random().nextInt(900)}',
       invoiceDate: date,
       customer: customer,
       paymentSplitRows: [PaymentSplitRow(), PaymentSplitRow()],

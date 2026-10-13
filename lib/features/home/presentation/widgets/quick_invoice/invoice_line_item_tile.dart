@@ -8,7 +8,7 @@ import 'package:mivet_app/features/home/presentation/utils/invoice_formatters.da
 import 'package:mivet_app/features/home/presentation/widgets/quick_invoice/invoice_quantity_field.dart';
 import 'package:mivet_app/features/home/presentation/widgets/quick_invoice/invoice_step_button.dart';
 
-class InvoiceLineItemTile extends StatelessWidget {
+class InvoiceLineItemTile extends StatefulWidget {
   final InvoiceLineItemModel item;
   final bool loadingCustomerPrices;
   final ValueChanged<double> onPriceChanged;
@@ -25,8 +25,47 @@ class InvoiceLineItemTile extends StatelessWidget {
   });
 
   @override
+  State<InvoiceLineItemTile> createState() => _InvoiceLineItemTileState();
+}
+
+class _InvoiceLineItemTileState extends State<InvoiceLineItemTile> {
+  late final TextEditingController _priceController;
+  late final FocusNode _priceFocus;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceController =
+        TextEditingController(text: widget.item.unitPrice.toStringAsFixed(2));
+    _priceFocus = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant InvoiceLineItemTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_priceFocus.hasFocus) return;
+    final parsed = double.tryParse(_priceController.text);
+    final price = widget.item.unitPrice;
+    if (parsed == null || (parsed - price).abs() >= 0.005) {
+      _priceController.text = price.toStringAsFixed(2);
+    }
+  }
+
+  @override
+  void dispose() {
+    _priceController.dispose();
+    _priceFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final item = widget.item;
+    final loadingCustomerPrices = widget.loadingCustomerPrices;
+    final onPriceChanged = widget.onPriceChanged;
+    final onQuantityChanged = widget.onQuantityChanged;
+    final onRemove = widget.onRemove;
     return Container(
       padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(
@@ -72,8 +111,9 @@ class InvoiceLineItemTile extends StatelessWidget {
                 SizedBox(
                   height: 40.h,
                   width: 150.w,
-                  child: TextFormField(
-                    initialValue: item.unitPrice.toStringAsFixed(2),
+                  child: TextField(
+                    controller: _priceController,
+                    focusNode: _priceFocus,
                     enabled: !loadingCustomerPrices,
                     style: AppTextStyles.cairoMedium16
                         .copyWith(color: colors.text, fontSize: 13.sp),

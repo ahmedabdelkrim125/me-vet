@@ -27,11 +27,13 @@ class QuickInvoiceView extends StatelessWidget {
     final issued = state.issued;
     if (issued != null) {
       onIssued?.call(issued);
-      Navigator.pop(context);
-      showAppSuccess(
-        context,
-        'تم إصدار الفاتورة بنجاح: ${issued.invoiceNumber}',
-      );
+      if (issued.closeAfterIssue) {
+        Navigator.pop(context);
+        showAppSuccess(
+          context,
+          'تم إصدار الفاتورة بنجاح: ${issued.invoiceNumber}',
+        );
+      }
     }
   }
 

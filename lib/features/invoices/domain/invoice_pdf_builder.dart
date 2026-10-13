@@ -466,8 +466,8 @@ class InvoicePdfBuilder {
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
       rows.add([
-        item.total.toStringAsFixed(0),
-        item.price.toStringAsFixed(0),
+        _formatPlain(item.total),
+        _formatPlain(item.price),
         '${item.quantity}',
         item.name,
         '${startIndex + i + 1}',
@@ -652,6 +652,10 @@ class InvoicePdfBuilder {
         ),
       ],
     );
+  }
+
+  static String _formatPlain(double value) {
+    return value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
   }
 
   static String _formatAmount(double value) {

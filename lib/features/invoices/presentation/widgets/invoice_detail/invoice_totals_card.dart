@@ -5,11 +5,19 @@ import 'package:mivet_app/features/invoices/presentation/widgets/invoice_detail/
 
 class InvoiceTotalsCard extends StatelessWidget {
   final InvoiceFullDetail detail;
+  final InvoiceAccountSummary? accountSummary;
 
-  const InvoiceTotalsCard({super.key, required this.detail});
+  const InvoiceTotalsCard({
+    super.key,
+    required this.detail,
+    this.accountSummary,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final summary = accountSummary;
+    final paid = summary?.totalPaid ?? detail.paidNow;
+    final remaining = summary?.remaining ?? detail.remaining;
     return InvoiceInfoCard(
       children: [
         InvoiceInfoRow(
@@ -28,12 +36,11 @@ class InvoiceTotalsCard extends StatelessWidget {
         ),
         InvoiceInfoRow(
           label: 'المدفوع الآن',
-          value: '${detail.paidNow.toStringAsFixed(0)} ج.م',
+          value: '${paid.toStringAsFixed(0)} ج.م',
         ),
         InvoiceInfoRow(
           label: 'المتبقي على العميل',
-          value:
-              '${(detail.remaining < 0 ? 0 : detail.remaining).toStringAsFixed(0)} ج.م',
+          value: '${(remaining < 0 ? 0 : remaining).toStringAsFixed(0)} ج.م',
         ),
       ],
     );

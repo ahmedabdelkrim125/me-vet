@@ -8,6 +8,7 @@ class InvoiceDetailState {
   final InvoiceFullDetail? detail;
   final List<PaymentBreakdownLine> oldDebtLines;
   final double applicableCredit;
+  final InvoiceAccountSummary? accountSummary;
   final String? successMessage;
   final Object? error;
 
@@ -16,6 +17,7 @@ class InvoiceDetailState {
     this.detail,
     this.oldDebtLines = const [],
     this.applicableCredit = 0,
+    this.accountSummary,
     this.successMessage,
     this.error,
   });
@@ -28,6 +30,7 @@ class InvoiceDetailState {
     InvoiceFullDetail? detail,
     List<PaymentBreakdownLine>? oldDebtLines,
     double? applicableCredit,
+    InvoiceAccountSummary? accountSummary,
     String? successMessage,
     Object? error,
   }) {
@@ -36,6 +39,7 @@ class InvoiceDetailState {
       detail: detail ?? this.detail,
       oldDebtLines: oldDebtLines ?? this.oldDebtLines,
       applicableCredit: applicableCredit ?? this.applicableCredit,
+      accountSummary: accountSummary ?? this.accountSummary,
       successMessage: successMessage,
       error: error,
     );

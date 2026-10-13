@@ -64,10 +64,12 @@ class IssuedInvoiceInfo {
   final String invoiceNumber;
   final double amount;
   final DateTime date;
+  final bool closeAfterIssue;
 
   const IssuedInvoiceInfo({
     required this.invoiceNumber,
     required this.amount,
     required this.date,
+    this.closeAfterIssue = true,
   });
 }

@@ -210,15 +210,15 @@ class QuickInvoiceCubit extends Cubit<QuickInvoiceState> {
     return IssueReadiness.ready;
   }
 
-  Future<void> issueInvoice() async {
+  Future<IssuedInvoiceInfo?> issueInvoice({bool closeAfterIssue = true}) async {
     final validationError = _validatePaymentAndLines();
     if (validationError != null) {
       emit(state.copyWith(message: validationError));
-      return;
+      return null;
     }
     final snapshot = state;
     final customer = snapshot.customer;
-    if (customer == null) return;
+    if (customer == null) return null;
 
     final paid = snapshot.paidNow;
     final total = snapshot.grandTotal;
@@ -235,6 +235,7 @@ class QuickInvoiceCubit extends Cubit<QuickInvoiceState> {
 
     emit(state.copyWith(isIssuing: true));
 
+    final String issuedCode;
     try {
       final issued = await _invoicesRepository.issueInvoice(
         customerId: customer.customer.id,
@@ -255,6 +256,7 @@ class QuickInvoiceCubit extends Cubit<QuickInvoiceState> {
         payments: splitEntries,
         notes: notes.isEmpty ? null : notes,
       );
+      issuedCode = issued.code;
 
       if (snapshot.previousBalance < 0) {
         try {
@@ -275,23 +277,24 @@ class QuickInvoiceCubit extends Cubit<QuickInvoiceState> {
         await _vehicleStockCubit.refresh();
       } catch (_) {}
     } catch (e) {
-      if (isClosed) return;
+      if (isClosed) return null;
       emit(state.copyWith(isIssuing: false, error: e));
-      return;
+      return null;
     }
 
-    if (isClosed) return;
+    if (isClosed) return null;
 
-    emit(state.copyWith(
-      issued: IssuedInvoiceInfo(
-        invoiceNumber: snapshot.invoiceNumber,
-        amount: total,
-        date: snapshot.invoiceDate,
-      ),
-    ));
+    final info = IssuedInvoiceInfo(
+      invoiceNumber: issuedCode,
+      amount: total,
+      date: snapshot.invoiceDate,
+      closeAfterIssue: closeAfterIssue,
+    );
+    emit(state.copyWith(issued: info));
+    return info;
   }
 
-  InvoicePdfData? buildInvoiceData(String repName) {
+  InvoicePdfData? buildInvoiceData(String repName, {String? invoiceNumber}) {
     final customer = state.customer;
     if (customer == null) {
       emit(state.copyWith(message: 'الرجاء اختيار العميل'));
@@ -303,7 +306,7 @@ class QuickInvoiceCubit extends Cubit<QuickInvoiceState> {
     }
     final snapshot = state;
     return InvoicePdfData(
-      invoiceNumber: snapshot.invoiceNumber,
+      invoiceNumber: invoiceNumber ?? snapshot.invoiceNumber,
       date: snapshot.invoiceDate,
       customerName: customer.customer.name,
       repName: repName,

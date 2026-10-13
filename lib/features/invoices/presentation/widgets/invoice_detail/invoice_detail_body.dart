@@ -17,6 +17,7 @@ class InvoiceDetailBody extends StatelessWidget {
   final InvoiceFullDetail detail;
   final List<PaymentBreakdownLine> oldDebtLines;
   final double applicableCredit;
+  final InvoiceAccountSummary? accountSummary;
   final VoidCallback onCollectPayment;
   final VoidCallback onAdjustOverpayment;
   final VoidCallback onApplyCredit;
@@ -26,6 +27,7 @@ class InvoiceDetailBody extends StatelessWidget {
     required this.detail,
     required this.oldDebtLines,
     required this.applicableCredit,
+    this.accountSummary,
     required this.onCollectPayment,
     required this.onAdjustOverpayment,
     required this.onApplyCredit,
@@ -68,7 +70,7 @@ class InvoiceDetailBody extends StatelessWidget {
         SizedBox(height: 8.h),
         for (final item in detail.items) InvoiceItemTile(item: item),
         SizedBox(height: 16.h),
-        InvoiceTotalsCard(detail: detail),
+        InvoiceTotalsCard(detail: detail, accountSummary: accountSummary),
         InvoicePaymentActions(
           detail: detail,
           applicableCredit: applicableCredit,

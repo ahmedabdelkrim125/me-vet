@@ -181,7 +181,8 @@ class DailyInvoicesPdfBuilder {
       border: pw.TableBorder.all(color: _border, width: 0.6),
       children: [
         pw.TableRow(
-          repeat: true, // header row is repeated if the table continues on the next page
+          repeat:
+              true, // header row is repeated if the table continues on the next page
           decoration: pw.BoxDecoration(color: _navy),
           children: headers
               .map((h) => pw.Padding(
