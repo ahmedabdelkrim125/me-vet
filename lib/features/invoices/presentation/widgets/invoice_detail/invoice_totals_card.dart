@@ -18,6 +18,9 @@ class InvoiceTotalsCard extends StatelessWidget {
     final summary = accountSummary;
     final paid = summary?.totalPaid ?? detail.paidNow;
     final remaining = summary?.remaining ?? detail.remaining;
+    final previousBalance = summary?.previousBalance;
+    final isCredit = previousBalance != null && previousBalance < 0;
+    final accountTotal = (previousBalance ?? 0) + detail.totalAmount;
     return InvoiceInfoCard(
       children: [
         InvoiceInfoRow(
@@ -34,6 +37,20 @@ class InvoiceTotalsCard extends StatelessWidget {
           value: '${detail.totalAmount.toStringAsFixed(0)} ج.م',
           highlight: true,
         ),
+        if (previousBalance != null) ...[
+          InvoiceInfoRow(
+            label:
+                isCredit ? 'رصيد العميل السابق (دائن)' : 'الرصيد السابق للعميل',
+            value: '${previousBalance.abs().toStringAsFixed(0)} ج.م',
+          ),
+          if (previousBalance.abs() > 0.005)
+            InvoiceInfoRow(
+              label: accountTotal < 0
+                  ? 'رصيد العميل بعد الفاتورة (دائن)'
+                  : 'إجمالي الحساب',
+              value: '${accountTotal.abs().toStringAsFixed(0)} ج.م',
+            ),
+        ],
         InvoiceInfoRow(
           label: 'المدفوع الآن',
           value: '${paid.toStringAsFixed(0)} ج.م',

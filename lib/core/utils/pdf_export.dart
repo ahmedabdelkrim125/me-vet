@@ -22,6 +22,31 @@ class PdfExport {
     );
   }
 
+  static Future<void> shareMany(List<Uint8List> parts, String baseName) async {
+    if (parts.isEmpty) {
+      throw StateError('مفيش ملفات للمشاركة');
+    }
+    if (parts.length == 1) {
+      await share(parts.first, '$baseName.pdf');
+      return;
+    }
+    final files = <XFile>[];
+    for (var i = 0; i < parts.length; i++) {
+      final file = await _writeTemp(
+        parts[i],
+        '$baseName-part-${i + 1}-of-${parts.length}.pdf',
+      );
+      files.add(
+        XFile(
+          file.path,
+          mimeType: 'application/pdf',
+          name: file.uri.pathSegments.last,
+        ),
+      );
+    }
+    await SharePlus.instance.share(ShareParams(files: files));
+  }
+
   static Future<File> _writeTemp(Uint8List bytes, String fileName) async {
     if (bytes.isEmpty) {
       throw StateError('ملف الـ PDF فاضي، جرّب تاني');

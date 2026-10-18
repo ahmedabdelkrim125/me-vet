@@ -38,32 +38,28 @@ class InvoicePaymentActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (detail.remaining > 0) {
-      return Column(
-        children: [
+    return Column(
+      children: [
+        _button(
+          onPressed: onCollectPayment,
+          icon: Icons.edit_outlined,
+          label: const Text('تعديل المبلغ المدفوع'),
+        ),
+        if (detail.remaining > 0 && applicableCredit > 0)
           _button(
-            onPressed: onCollectPayment,
-            icon: Icons.edit_outlined,
-            label: const Text('تعديل المبلغ المدفوع'),
-          ),
-          if (applicableCredit > 0)
-            _button(
-              onPressed: onApplyCredit,
-              icon: Icons.account_balance_wallet_outlined,
-              label: Text(
-                'سداد من رصيد العميل (${applicableCredit.toStringAsFixed(0)} ج.م)',
-              ),
+            onPressed: onApplyCredit,
+            icon: Icons.account_balance_wallet_outlined,
+            label: Text(
+              'سداد من رصيد العميل (${applicableCredit.toStringAsFixed(0)} ج.م)',
             ),
-        ],
-      );
-    }
-    if (detail.paidNow > detail.totalAmount) {
-      return _button(
-        onPressed: onAdjustOverpayment,
-        icon: Icons.edit_outlined,
-        label: const Text('تعديل المبلغ المدفوع'),
-      );
-    }
-    return const SizedBox.shrink();
+          ),
+        if (detail.paidNow > detail.totalAmount)
+          _button(
+            onPressed: onAdjustOverpayment,
+            icon: Icons.undo_rounded,
+            label: const Text('تخفيض المبلغ المدفوع'),
+          ),
+      ],
+    );
   }
 }

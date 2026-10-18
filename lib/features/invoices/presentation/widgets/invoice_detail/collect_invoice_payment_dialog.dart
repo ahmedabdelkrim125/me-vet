@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/features/customer_account/domain/entities/payment_method.dart';
 import 'package:mivet_app/features/customer_account/presentation/widgets/payment_method_selector.dart';
 
@@ -18,7 +19,7 @@ class CollectInvoicePaymentDialog extends StatefulWidget {
 class _CollectInvoicePaymentDialogState
     extends State<CollectInvoicePaymentDialog> {
   late final TextEditingController _amountController = TextEditingController(
-    text: widget.remaining.toStringAsFixed(0),
+    text: widget.remaining > 0 ? widget.remaining.toStringAsFixed(0) : '',
   );
   final ValueNotifier<PaymentMethod> _method =
       ValueNotifier<PaymentMethod>(PaymentMethod.cash);
@@ -58,6 +59,26 @@ class _CollectInvoicePaymentDialogState
               labelText: 'المبلغ المحصّل دلوقتي',
               border: OutlineInputBorder(),
             ),
+          ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _amountController,
+            builder: (context, value, _) {
+              final parsed = double.tryParse(value.text.trim());
+              if (parsed == null || parsed <= widget.remaining) {
+                return const SizedBox.shrink();
+              }
+              final excess = parsed - widget.remaining;
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  '${excess.toStringAsFixed(0)} ج.م زيادة عن المتبقي، هتتسجل رصيد دائن للعميل.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.colors.textMuted,
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 12),
           ValueListenableBuilder<PaymentMethod>(

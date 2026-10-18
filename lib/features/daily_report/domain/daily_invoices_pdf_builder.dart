@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
@@ -27,6 +28,32 @@ class DailyInvoicePdfEntry {
   });
 }
 
+class _RenderArgs {
+  final List<DailyInvoicePdfEntry> entries;
+  final DateTime reportDate;
+  final Uint8List regularFont;
+  final Uint8List boldFont;
+  final int part;
+  final int parts;
+  final int dayCount;
+  final double dayTotal;
+
+  const _RenderArgs({
+    required this.entries,
+    required this.reportDate,
+    required this.regularFont,
+    required this.boldFont,
+    required this.part,
+    required this.parts,
+    required this.dayCount,
+    required this.dayTotal,
+  });
+}
+
+Future<Uint8List> _renderPart(_RenderArgs args) {
+  return DailyInvoicesPdfBuilder._render(args);
+}
+
 class DailyInvoicesPdfBuilder {
   DailyInvoicesPdfBuilder._();
 
@@ -34,32 +61,136 @@ class DailyInvoicesPdfBuilder {
   static final _green = PdfColor.fromInt(AppColors.primaryGreen.value);
   static final _border = PdfColor.fromInt(AppColors.cardBorder.value);
 
-  /// Minimum free space (in PDF points) an invoice needs at the bottom of a page
-  /// to start there: invoice title + time, the table header row and at least one
-  /// (possibly two-line) item row. Below this, the invoice starts on a new page
-  /// so its title is never left alone at the bottom of a page.
   static const double _minSpaceToStartInvoice = 130;
 
-  static Future<Uint8List> build(
+  static Future<List<Uint8List>> buildParts(
     List<DailyInvoicePdfEntry> entries,
-    DateTime reportDate,
-  ) async {
-    final document = pw.Document();
-
-    final regularFontData = await rootBundle.load(
+    DateTime reportDate, {
+    int maxInvoicesPerPart = 20,
+    int maxRowsPerPart = 250,
+    void Function(int done, int total)? onProgress,
+  }) async {
+    final regular = await rootBundle.load(
       'assets/fonts/${AppTextStyles.cairoRegular14.fontFamily}-Regular.ttf',
     );
-    final boldFontData = await rootBundle.load(
+    final bold = await rootBundle.load(
       'assets/fonts/${AppTextStyles.cairoBold18.fontFamily}-Bold.ttf',
     );
-    final regularFont = pw.Font.ttf(regularFontData);
-    final boldFont = pw.Font.ttf(boldFontData);
+    final regularBytes = regular.buffer
+        .asUint8List(regular.offsetInBytes, regular.lengthInBytes);
+    final boldBytes =
+        bold.buffer.asUint8List(bold.offsetInBytes, bold.lengthInBytes);
 
-    final totalAmount = entries.fold(0.0, (sum, e) => sum + e.total);
+    final groups = _partition(entries, maxInvoicesPerPart, maxRowsPerPart);
+    final dayTotal = entries.fold(0.0, (sum, e) => sum + e.total);
+    final results = <Uint8List>[];
+
+    for (var i = 0; i < groups.length; i++) {
+      final pdfs = await _renderResilient(
+        groups[i],
+        reportDate,
+        regularBytes,
+        boldBytes,
+        i + 1,
+        groups.length,
+        entries.length,
+        dayTotal,
+      );
+      results.addAll(pdfs);
+      onProgress?.call(i + 1, groups.length);
+    }
+    return results;
+  }
+
+  static List<List<DailyInvoicePdfEntry>> _partition(
+    List<DailyInvoicePdfEntry> entries,
+    int maxInvoices,
+    int maxRows,
+  ) {
+    final groups = <List<DailyInvoicePdfEntry>>[];
+    var current = <DailyInvoicePdfEntry>[];
+    var rows = 0;
+    for (final entry in entries) {
+      final entryRows = entry.items.length + 6;
+      final full = current.length >= maxInvoices ||
+          (current.isNotEmpty && rows + entryRows > maxRows);
+      if (full) {
+        groups.add(current);
+        current = <DailyInvoicePdfEntry>[];
+        rows = 0;
+      }
+      current.add(entry);
+      rows += entryRows;
+    }
+    if (current.isNotEmpty) groups.add(current);
+    return groups;
+  }
+
+  static Future<List<Uint8List>> _renderResilient(
+    List<DailyInvoicePdfEntry> group,
+    DateTime reportDate,
+    Uint8List regularBytes,
+    Uint8List boldBytes,
+    int part,
+    int parts,
+    int dayCount,
+    double dayTotal,
+  ) async {
+    try {
+      final args = _RenderArgs(
+        entries: group,
+        reportDate: reportDate,
+        regularFont: regularBytes,
+        boldFont: boldBytes,
+        part: part,
+        parts: parts,
+        dayCount: dayCount,
+        dayTotal: dayTotal,
+      );
+      final bytes = await Isolate.run(() => _renderPart(args));
+      return [bytes];
+    } catch (error) {
+      if (group.length <= 1) {
+        final code = group.isEmpty ? '' : group.first.invoiceCode;
+        throw StateError('تعذر إنشاء ملف الفاتورة $code: $error');
+      }
+      final middle = group.length ~/ 2;
+      final first = await _renderResilient(
+        group.sublist(0, middle),
+        reportDate,
+        regularBytes,
+        boldBytes,
+        part,
+        parts,
+        dayCount,
+        dayTotal,
+      );
+      final second = await _renderResilient(
+        group.sublist(middle),
+        reportDate,
+        regularBytes,
+        boldBytes,
+        part,
+        parts,
+        dayCount,
+        dayTotal,
+      );
+      return [...first, ...second];
+    }
+  }
+
+  static Future<Uint8List> _render(_RenderArgs args) async {
+    final document = pw.Document();
+    final regularFont = pw.Font.ttf(ByteData.sublistView(args.regularFont));
+    final boldFont = pw.Font.ttf(ByteData.sublistView(args.boldFont));
+
+    final partTotal = args.entries.fold(0.0, (sum, e) => sum + e.total);
+    final partLabel =
+        args.parts > 1 ? '  (جزء ${args.part} من ${args.parts})' : '';
 
     document.addPage(
       pw.MultiPage(
-        maxPages: 500,
+        maxPages: 2000,
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(28),
@@ -76,13 +207,13 @@ class DailyInvoicesPdfBuilder {
             child: pw.Column(
               children: [
                 pw.Text(
-                  'الفواتير اليومية',
+                  'الفواتير اليومية$partLabel',
                   style:
                       pw.TextStyle(font: boldFont, fontSize: 20, color: _navy),
                 ),
                 pw.SizedBox(height: 4),
                 pw.Text(
-                  _formatDate(reportDate),
+                  _formatDate(args.reportDate),
                   style:
                       pw.TextStyle(font: boldFont, fontSize: 11, color: _green),
                 ),
@@ -92,15 +223,32 @@ class DailyInvoicesPdfBuilder {
           pw.SizedBox(height: 16),
           _buildTable(
             null,
-            ['عدد الفواتير', 'إجمالي اليوم'],
+            args.parts > 1
+                ? [
+                    'عدد الفواتير',
+                    'إجمالي اليوم',
+                    'فواتير الجزء',
+                    'إجمالي الجزء'
+                  ]
+                : ['عدد الفواتير', 'إجمالي اليوم'],
             [
-              ['${entries.length}', '${_formatAmount(totalAmount)} ج.م'],
+              args.parts > 1
+                  ? [
+                      '${args.dayCount}',
+                      '${_formatAmount(args.dayTotal)} ج.م',
+                      '${args.entries.length}',
+                      '${_formatAmount(partTotal)} ج.م',
+                    ]
+                  : [
+                      '${args.dayCount}',
+                      '${_formatAmount(args.dayTotal)} ج.م',
+                    ],
             ],
             boldFont,
             regularFont,
           ),
           pw.SizedBox(height: 18),
-          for (final entry in entries)
+          for (final entry in args.entries)
             ..._buildInvoiceSection(entry, boldFont, regularFont),
         ],
       ),
@@ -172,17 +320,11 @@ class DailyInvoicesPdfBuilder {
     pw.Font boldFont,
     pw.Font regularFont,
   ) {
-    // IMPORTANT: pw.Table can be split across pages by MultiPage (it is a
-    // SpanningWidget), but a pw.Column cannot. Wrapping the table in a Column
-    // forced the whole table onto a new page when it did not fit in the space
-    // left, leaving a big blank gap right under the invoice header.
-    // So the table is returned directly; only the optional title uses a Column.
     final table = pw.Table(
       border: pw.TableBorder.all(color: _border, width: 0.6),
       children: [
         pw.TableRow(
-          repeat:
-              true, // header row is repeated if the table continues on the next page
+          repeat: true,
           decoration: pw.BoxDecoration(color: _navy),
           children: headers
               .map((h) => pw.Padding(
