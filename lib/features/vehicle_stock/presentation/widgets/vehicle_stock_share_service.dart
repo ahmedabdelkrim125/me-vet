@@ -31,11 +31,13 @@ class VehicleStockShareService {
     required DeliveryVehicleModel vehicle,
     required List<VehicleStockModel> stock,
     required ProductCatalog catalog,
+    String title = 'تقرير مخزون العربية',
+    String fileTag = 'VehicleStockReport',
   }) async {
     final reportableStock =
         stock.where((item) => item.product != null).toList();
     final fileNameBase =
-        'VehicleStockReport_${_plateDigits(vehicle.plateNumber)}_${_timestamp()}';
+        '${fileTag}_${_plateDigits(vehicle.plateNumber)}_${_timestamp()}';
 
     if (reportableStock.length <= imageReportProductThreshold) {
       final sourceBytes = await VehicleStockReportBuilder.buildImageSource(
@@ -43,14 +45,16 @@ class VehicleStockShareService {
         vehicle: vehicle,
         stock: reportableStock,
         catalog: catalog,
+        title: title,
       );
-      await _shareImageBytes(sourceBytes, fileNameBase, 'تقرير مخزون العربية');
+      await _shareImageBytes(sourceBytes, fileNameBase, title);
     } else {
       final pdfBytes = await VehicleStockReportBuilder.buildPdf(
         representativeName: representativeName,
         vehicle: vehicle,
         stock: reportableStock,
         catalog: catalog,
+        title: title,
       );
       await sharePdfBytes(pdfBytes, fileNameBase);
     }

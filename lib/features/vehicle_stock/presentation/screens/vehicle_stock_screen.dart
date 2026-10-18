@@ -6,6 +6,7 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/core/widgets/custom_alert_dialog.dart';
+import '../../../inventory/domain/models/stock_level.dart';
 import '../../../inventory/domain/models/vehicle_stock_model.dart';
 import '../../../inventory/presentation/cubit/vehicle_stock_cubit.dart';
 import '../../../inventory/presentation/cubit/vehicle_stock_state.dart';
@@ -68,6 +69,7 @@ class _VehicleStockViewState extends State<_VehicleStockView>
   String _query = '';
   ProductCatalog _catalog = ProductCatalog.empty;
   String? _categoryCode;
+  StockLevel _level = StockLevel.all;
   bool _sharingReport = false;
 
   @override
@@ -160,25 +162,20 @@ class _VehicleStockViewState extends State<_VehicleStockView>
               return const Center(child: CircularProgressIndicator());
             }
 
-            final filtered = state.vehicleStock.where((entry) {
-              final product = entry.product;
-              if (product == null) return false;
+            final activeStock = state.vehicleStock.active;
+
+            final filtered = activeStock.byLevel(_level).where((entry) {
+              final product = entry.product!;
               final matchesQuery = _query.isEmpty ||
                   product.name.toLowerCase().contains(_query.toLowerCase());
               return matchesQuery &&
                   (_categoryCode == null || product.category == _categoryCode);
             }).toList();
 
-            final total = state.vehicleStock.length;
-            final available = state.vehicleStock
-                .where((item) => item.quantity >= item.minThreshold)
-                .length;
-            final low = state.vehicleStock
-                .where((item) =>
-                    item.quantity > 0 && item.quantity < item.minThreshold)
-                .length;
-            final outOfStock =
-                state.vehicleStock.where((item) => item.quantity == 0).length;
+            final total = activeStock.length;
+            final available = activeStock.countOf(StockLevel.available);
+            final low = activeStock.countOf(StockLevel.low);
+            final outOfStock = activeStock.countOf(StockLevel.out);
 
             return RefreshIndicator(
               onRefresh: _refresh,
@@ -308,6 +305,8 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                     available: available,
                     low: low,
                     outOfStock: outOfStock,
+                    selected: _level,
+                    onSelect: (level) => setState(() => _level = level),
                   ),
                   SizedBox(height: 14.h),
                   Row(
@@ -381,9 +380,12 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                       padding: EdgeInsets.only(top: 60.h),
                       child: Center(
                         child: Text(
-                          state.vehicleStock.isEmpty
+                          activeStock.isEmpty
                               ? 'لسه مفيش أصناف محملة في العربية'
-                              : 'لا توجد أصناف مطابقة للبحث',
+                              : _level != StockLevel.all &&
+                                      activeStock.countOf(_level) == 0
+                                  ? _level.emptyMessage
+                                  : 'لا توجد أصناف مطابقة للبحث',
                           style: AppTextStyles.cairoMedium16.copyWith(
                             color: context.colors.textMuted,
                             fontSize: 13.sp,
@@ -420,12 +422,14 @@ class _VehicleStockViewState extends State<_VehicleStockView>
     final vehicle = state.selectedVehicle;
     if (vehicle == null || _sharingReport) return;
 
-    final shareType = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const VehicleStockShareTypeSheet(),
-    );
+    final shareType = _level != StockLevel.all
+        ? 'level'
+        : await showModalBottomSheet<String>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => const VehicleStockShareTypeSheet(),
+          );
 
     if (shareType == null || !mounted) return;
 
@@ -444,6 +448,20 @@ class _VehicleStockViewState extends State<_VehicleStockView>
           vehicle: vehicle,
           stock: state.vehicleStock,
           catalog: _catalog,
+        );
+      } else if (shareType == 'level') {
+        final levelStock = state.vehicleStock.active.byLevel(_level);
+        if (levelStock.isEmpty) {
+          showAppInfo(context, _level.emptyMessage);
+          return;
+        }
+        await VehicleStockShareService.shareVehicleStockReport(
+          representativeName: representativeName,
+          vehicle: vehicle,
+          stock: levelStock,
+          catalog: _catalog,
+          title: _level.reportTitle,
+          fileTag: _level.fileTag,
         );
       } else if (shareType == 'today') {
         final todayStock = await context

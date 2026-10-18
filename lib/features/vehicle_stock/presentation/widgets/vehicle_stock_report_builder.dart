@@ -23,11 +23,12 @@ class VehicleStockReportBuilder {
     required DeliveryVehicleModel vehicle,
     required List<VehicleStockModel> stock,
     required ProductCatalog catalog,
+    String title = 'تقرير مخزون العربية',
   }) async {
     final document = await _buildDocument(
       representativeName: representativeName,
       vehicle: vehicle,
-      title: 'تقرير مخزون العربية',
+      title: title,
       sectionsBuilder: () => buildAllStockReportSections(stock, catalog),
       singlePage: false,
     );
@@ -39,11 +40,12 @@ class VehicleStockReportBuilder {
     required DeliveryVehicleModel vehicle,
     required List<VehicleStockModel> stock,
     required ProductCatalog catalog,
+    String title = 'تقرير مخزون العربية',
   }) async {
     final document = await _buildDocument(
       representativeName: representativeName,
       vehicle: vehicle,
-      title: 'تقرير مخزون العربية',
+      title: title,
       sectionsBuilder: () => buildAllStockReportSections(stock, catalog),
       singlePage: true,
     );
