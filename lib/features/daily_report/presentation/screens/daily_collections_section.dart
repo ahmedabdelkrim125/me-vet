@@ -11,7 +11,6 @@ import '../../domain/daily_collections_pdf_builder.dart';
 import '../../domain/daily_collections_repository.dart';
 import 'daily_collections_by_date_screen.dart';
 
-
 class DailyCollectionsSection extends StatefulWidget {
   final DateTime? date;
   final bool showDateLink;
@@ -88,8 +87,7 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
     if (_collections.isEmpty || _sharing) return;
     setState(() => _sharing = true);
     try {
-      final bytes =
-          await DailyCollectionsPdfBuilder.build(_collections, _day);
+      final bytes = await DailyCollectionsPdfBuilder.build(_collections, _day);
       if (!mounted) return;
       await PdfExport.share(
         bytes,
@@ -197,8 +195,8 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
                 ),
                 Text(
                   '${_total.toStringAsFixed(0)} ج.م',
-                  style: AppTextStyles.cairoBold18.copyWith(
-                      fontSize: 15.sp, color: AppColors.primaryGreen),
+                  style: AppTextStyles.cairoBold18
+                      .copyWith(fontSize: 15.sp, color: AppColors.primaryGreen),
                 ),
               ],
             ),

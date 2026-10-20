@@ -87,8 +87,7 @@ class InventoryStatRow extends StatelessWidget {
                       SizedBox(height: 4.h),
                       Text(stats[i].label,
                           style: AppTextStyles.almaraiRegular14.copyWith(
-                              color: context.colors.textMuted,
-                              fontSize: 9.sp)),
+                              color: context.colors.textMuted, fontSize: 9.sp)),
                     ],
                   ),
                 ),

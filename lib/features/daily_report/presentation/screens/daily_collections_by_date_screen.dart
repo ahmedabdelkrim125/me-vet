@@ -16,7 +16,8 @@ class DailyCollectionsByDateScreen extends StatefulWidget {
       _DailyCollectionsByDateScreenState();
 }
 
-class _DailyCollectionsByDateScreenState extends State<DailyCollectionsByDateScreen> {
+class _DailyCollectionsByDateScreenState
+    extends State<DailyCollectionsByDateScreen> {
   late DateTime _date = _normalize(widget.initialDate ?? DateTime.now());
 
   DateTime _normalize(DateTime value) =>

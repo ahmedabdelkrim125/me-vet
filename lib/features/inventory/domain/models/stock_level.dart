@@ -57,10 +57,9 @@ extension ActiveVehicleStock on List<VehicleStockModel> {
         return product != null && !product.isDeleted;
       }).toList();
 
-  List<VehicleStockModel> byLevel(StockLevel level) =>
-      level == StockLevel.all
-          ? List<VehicleStockModel>.of(this)
-          : where((item) => item.level == level).toList();
+  List<VehicleStockModel> byLevel(StockLevel level) => level == StockLevel.all
+      ? List<VehicleStockModel>.of(this)
+      : where((item) => item.level == level).toList();
 
   int countOf(StockLevel level) => byLevel(level).length;
 }
