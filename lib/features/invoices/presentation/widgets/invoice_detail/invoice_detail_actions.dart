@@ -8,7 +8,7 @@ import 'package:mivet_app/features/invoices/presentation/invoice_share_service.d
 import 'package:mivet_app/features/invoices/presentation/screens/edit_invoice_screen.dart';
 import 'package:mivet_app/features/invoices/presentation/widgets/invoice_detail/adjust_overpayment_dialog.dart';
 import 'package:mivet_app/features/invoices/presentation/widgets/invoice_detail/apply_credit_dialog.dart';
-import 'package:mivet_app/features/invoices/presentation/widgets/invoice_detail/collect_invoice_payment_dialog.dart';
+import 'package:mivet_app/features/invoices/presentation/widgets/invoice_detail/edit_paid_amount_dialog.dart';
 import 'package:printing/printing.dart';
 
 Future<void> openEditInvoice(BuildContext context) async {
@@ -27,22 +27,19 @@ Future<void> openEditInvoice(BuildContext context) async {
   if (changed == true && context.mounted) await cubit.reload();
 }
 
-Future<void> collectInvoicePayment(BuildContext context) async {
+Future<void> editInvoicePaidAmount(BuildContext context) async {
   final cubit = context.read<InvoiceDetailCubit>();
   final detail = cubit.state.detail;
   if (detail == null) return;
-  final remaining = detail.remaining < 0 ? 0.0 : detail.remaining;
-  final input = await showDialog<CollectPaymentInput>(
+  final input = await showDialog<EditPaidInput>(
     context: context,
-    builder: (_) => CollectInvoicePaymentDialog(remaining: remaining),
+    builder: (_) => EditPaidAmountDialog(
+      total: detail.totalAmount,
+      paid: detail.paidNow,
+    ),
   );
   if (input == null || !context.mounted) return;
-  final amount = input.amount;
-  if (amount == null || amount <= 0) {
-    showAppError(context, 'المبلغ غير صحيح');
-    return;
-  }
-  await cubit.collectPayment(amount: amount, method: input.method);
+  await cubit.setPaidAmount(newPaid: input.amount, method: input.method);
 }
 
 Future<void> applyInvoiceCredit(BuildContext context) async {

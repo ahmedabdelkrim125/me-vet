@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/features/customer_account/data/repositories/payment_breakdown_repository.dart';
 import 'package:mivet_app/features/customer_account/domain/entities/payment_method.dart';
+import 'package:mivet_app/features/invoices/data/invoice_pdf_data_service.dart';
 import 'package:mivet_app/features/invoices/data/invoices_repository.dart';
 import 'package:mivet_app/features/invoices/domain/invoice_pdf_builder.dart';
 import 'package:mivet_app/features/invoices/presentation/cubit/invoice_detail_state.dart';
-import 'package:mivet_app/features/rep_session/data/rep_session_store.dart';
 
 class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
   final String invoiceCode;
@@ -13,7 +13,7 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
   final double previousBalanceAtView;
   final InvoicesRepository _invoicesRepository;
   final PaymentBreakdownRepository _paymentBreakdownRepository;
-  final RepSessionStore _repSessionStore;
+  final InvoicePdfDataService _pdfDataService;
 
   InvoiceDetailCubit({
     required this.invoiceCode,
@@ -21,11 +21,11 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
     this.previousBalanceAtView = 0,
     InvoicesRepository? invoicesRepository,
     PaymentBreakdownRepository? paymentBreakdownRepository,
-    RepSessionStore? repSessionStore,
+    InvoicePdfDataService? pdfDataService,
   })  : _invoicesRepository = invoicesRepository ?? InvoicesRepository.instance,
         _paymentBreakdownRepository =
             paymentBreakdownRepository ?? PaymentBreakdownRepository.instance,
-        _repSessionStore = repSessionStore ?? RepSessionStore.instance,
+        _pdfDataService = pdfDataService ?? InvoicePdfDataService(),
         super(const InvoiceDetailState());
 
   Future<void> load() async {
@@ -78,23 +78,34 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
     } catch (_) {}
   }
 
-  Future<void> collectPayment({
-    required double amount,
+  Future<void> setPaidAmount({
+    required double newPaid,
     required PaymentMethod method,
   }) async {
     final detail = state.detail;
     if (detail == null) return;
+    final delta = double.parse((newPaid - detail.paidNow).toStringAsFixed(2));
+    if (delta == 0) return;
     try {
-      await _invoicesRepository.collectAgainstInvoice(
-        invoiceId: detail.id,
-        amount: amount,
-        method: method,
-      );
+      if (delta > 0) {
+        await _invoicesRepository.collectAgainstInvoice(
+          invoiceId: detail.id,
+          amount: delta,
+          method: method,
+        );
+      } else {
+        await _invoicesRepository.releaseInvoiceOverpayment(
+          invoiceId: detail.id,
+          newPaid: newPaid,
+        );
+      }
     } catch (error) {
       if (!isClosed) emit(state.copyWith(error: error));
       return;
     }
-    if (!isClosed) await reload();
+    if (isClosed) return;
+    emit(state.copyWith(successMessage: 'تم تعديل المبلغ المدفوع'));
+    await reload();
   }
 
   Future<void> applyCredit(double amount) async {
@@ -132,36 +143,12 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
   }
 
   Future<InvoicePdfData?> buildInvoiceData({String? fallbackRepName}) async {
-    final detail = state.detail;
-    if (detail == null) return null;
-    final summary = await _resolveAccountSummary(detail.id);
-    final previousBalance = summary?.previousBalance ?? previousBalanceAtView;
-    final paidTotal = summary?.totalPaid ?? detail.paidNow;
-    final accountRemaining =
-        summary?.remaining ?? previousBalance + detail.totalAmount - paidTotal;
-    final creatorName = detail.creatorName?.trim();
-    final repName = (creatorName != null && creatorName.isNotEmpty)
-        ? '$creatorName${detail.isFromAdmin ? ' (إدارة)' : ''}'
-        : await _resolveRepName(fallbackRepName);
-    return InvoicePdfData(
-      invoiceNumber: detail.code,
-      date: detail.date,
+    if (state.detail == null) return null;
+    return _pdfDataService.buildByCode(
+      invoiceCode: invoiceCode,
       customerName: customerName,
-      repName: repName,
-      items: detail.items
-          .map((item) => InvoicePdfLineItem(
-                name: item.productName,
-                quantity: item.quantity,
-                price: item.unitPrice,
-                total: item.lineTotal,
-              ))
-          .toList(),
-      invoiceTotal: detail.totalAmount,
-      discountAmount: _discountOf(detail),
-      previousBalance: previousBalance,
-      totalDue: detail.totalAmount + previousBalance,
-      paidNow: paidTotal,
-      remaining: accountRemaining < 0 ? 0 : accountRemaining,
+      fallbackRepName: fallbackRepName,
+      fallbackPreviousBalance: previousBalanceAtView,
     );
   }
 
@@ -173,21 +160,5 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
     } catch (_) {
       return null;
     }
-  }
-
-  Future<String> _resolveRepName(String? fallbackRepName) async {
-    final activeRep = await _repSessionStore.getActiveRep();
-    final activeRepName = activeRep?.name.trim();
-    if (activeRepName != null && activeRepName.isNotEmpty) return activeRepName;
-    final fallback = fallbackRepName?.trim();
-    if (fallback != null && fallback.isNotEmpty) return fallback;
-    return '';
-  }
-
-  double _discountOf(InvoiceFullDetail detail) {
-    final fromSubtotal = detail.subtotal - detail.totalAmount;
-    return detail.discountAmount > fromSubtotal
-        ? detail.discountAmount
-        : (fromSubtotal > 0 ? fromSubtotal : 0.0);
   }
 }
