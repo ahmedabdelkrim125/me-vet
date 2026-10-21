@@ -1,6 +1,6 @@
 import 'package:mivet_app/features/customer_account/data/repositories/customer_account_repository.dart';
 
-import '../../../customer-visits/customers/domain/models/collection_record_model.dart';
+import '../../../customer_visits/customers/domain/models/collection_record_model.dart';
 import '../../domain/entities/customer_ledger.dart';
 import '../../domain/entities/payment_method.dart';
 import '../../domain/entities/sales_return.dart';
@@ -86,8 +86,6 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
       );
     }
 
-    // الوقت بييجي UTC من Supabase (timestamptz)؛ لازم يتحول للتوقيت المحلي
-    // عشان يطابق وقت التحصيل الفعلي في إيصال التحصيل.
     final collectedAt = DateTime.tryParse(collectedAtRaw)?.toLocal();
 
     if (collectedAt == null) {
@@ -152,8 +150,6 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
       throw const CollectionReceiptBuildFailure('بيانات الإيصال غير مكتملة');
     }
 
-    // الوقت بييجي UTC من Supabase (timestamptz)؛ لازم يتحول للتوقيت المحلي
-    // عشان يطابق وقت التحصيل الفعلي في إيصال التحصيل.
     final collectedAt = DateTime.tryParse(collectedAtRaw)?.toLocal();
     if (collectedAt == null) {
       throw const CollectionReceiptBuildFailure('بيانات الإيصال غير مكتملة');

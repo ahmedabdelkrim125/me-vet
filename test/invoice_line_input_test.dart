@@ -1,4 +1,4 @@
-import 'package:mivet_app/features/customer-visits/customers/domain/models/invoice_line_input.dart';
+import 'package:mivet_app/features/invoices/domain/models/invoice_line_input.dart';
 import 'package:test/test.dart';
 
 void main() {

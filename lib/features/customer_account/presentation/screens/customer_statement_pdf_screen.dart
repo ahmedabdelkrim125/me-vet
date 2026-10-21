@@ -13,10 +13,6 @@ import '../../domain/entities/payment_breakdown.dart';
 import '../cubit/customer_account_cubit.dart';
 import '../cubit/customer_account_state.dart';
 
-/// Account statement of the customer for the last [months] months, shown as a
-/// PDF preview (share / print included).
-///
-/// Needs a [CustomerAccountCubit] above it in the tree.
 class CustomerStatementPdfScreen extends StatelessWidget {
   static const int months = 6;
 
@@ -76,8 +72,6 @@ Future<Uint8List> _buildPdf(
   String customerName,
   CustomerStatement statement,
 ) async {
-  // The breakdown is an extra detail: if it cannot be loaded, the statement
-  // is still generated without it.
   List<PaymentBreakdown> payments = const [];
   try {
     payments = await PaymentBreakdownRepository.instance.getForCustomer(

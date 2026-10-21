@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../di/service_locator.dart';
-import '../../features/customer-visits/customers/data/customers_repository.dart';
-import '../../features/customer-visits/customers/screens/customer_detail_screen.dart';
+import '../../features/customer_visits/customers/data/customers_repository.dart';
+import '../../features/customer_visits/customers/presentation/screens/customer_detail_screen.dart';
 import '../../features/inventory/data/products_repository.dart';
 import '../../features/inventory/domain/models/product_catalog.dart';
 import '../../features/inventory/domain/models/product_model.dart';

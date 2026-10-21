@@ -60,9 +60,10 @@ class InvoiceDraft {
 
   final List<InvoiceItemDraft> items = [];
 
-  int get pageCount => items.isEmpty ? 1 : (items.length / itemsPerPage).ceil();
+  static int pageCountFor(int itemCount) =>
+      itemCount == 0 ? 1 : (itemCount / itemsPerPage).ceil();
 
-  List<InvoiceItemDraft> itemsForPage(int page) {
+  static List<InvoiceItemDraft> pageOf(List<InvoiceItemDraft> items, int page) {
     if (page < 1) return [];
 
     final start = (page - 1) * itemsPerPage;
@@ -71,6 +72,10 @@ class InvoiceDraft {
     final end = (start + itemsPerPage).clamp(0, items.length);
     return items.sublist(start, end);
   }
+
+  int get pageCount => pageCountFor(items.length);
+
+  List<InvoiceItemDraft> itemsForPage(int page) => pageOf(items, page);
 
   void remove(InvoiceItemDraft item) {
     items.remove(item);

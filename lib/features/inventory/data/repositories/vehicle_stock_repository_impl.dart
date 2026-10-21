@@ -113,6 +113,19 @@ class VehicleStockRepositoryImpl implements VehicleStockRepository {
   }
 
   @override
+  Future<void> setVehicleMinThreshold({
+    required String vehicleId,
+    required String productId,
+    required int minThreshold,
+  }) {
+    return remoteDataSource.setVehicleMinThreshold(
+      vehicleId: vehicleId,
+      productId: productId,
+      minThreshold: minThreshold,
+    );
+  }
+
+  @override
   Future<List<VehicleStockAddedTodayModel>>
       getVehicleStockAddedTodayShareReport(String vehicleId) async {
     final rows =

@@ -3,12 +3,6 @@ import 'package:mivet_app/core/utils/months_before.dart';
 import 'entities/customer_ledger.dart';
 import 'entities/customer_transaction.dart';
 
-/// A customer's account statement for a period of time.
-///
-/// Built from the ledger the backend already returns. `balanceAfter` is the
-/// backend's authoritative running balance, so nothing is recomputed except
-/// the opening balance of the period (which is simply the balance right
-/// before the first transaction of the period).
 class CustomerStatement {
   final DateTime periodStart;
   final DateTime periodEnd;
@@ -17,7 +11,6 @@ class CustomerStatement {
   final double totalDebit;
   final double totalCredit;
 
-  /// Oldest first (chronological), as an accounting statement is read.
   final List<CustomerTransaction> transactions;
 
   const CustomerStatement({
@@ -30,7 +23,6 @@ class CustomerStatement {
     required this.transactions,
   });
 
-  /// Statement for the last [months] calendar months up to today.
   factory CustomerStatement.lastMonths(
     CustomerLedger ledger, {
     int months = 6,
@@ -40,7 +32,6 @@ class CustomerStatement {
     final end = DateTime(today.year, today.month, today.day);
     final start = monthsBefore(end, months);
 
-    // `get_customer_ledger` returns newest first (ORDER BY ledger_sequence DESC).
     final inPeriodNewestFirst = <CustomerTransaction>[];
     CustomerTransaction? newestBeforePeriod;
     for (final t in ledger.transactions) {

@@ -54,9 +54,6 @@ class RepSessionStore {
     return prefs.getString(_activeRepKey);
   }
 
-  /// Resolves the full profile of whoever is currently logged in on this
-  /// device, or null if no one has signed in yet (fresh install, or the
-  /// active rep was deleted).
   Future<RepProfileModel?> getActiveRep() async {
     final activeId = await getActiveRepId();
     if (activeId == null) return null;

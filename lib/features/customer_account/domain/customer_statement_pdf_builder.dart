@@ -33,23 +33,17 @@ class CustomerStatementPdfBuilder {
     final regularFont = pw.Font.ttf(regularFontData);
     final boldFont = pw.Font.ttf(boldFontData);
 
-    // Keyed by the payment's own code, so each payment transaction row can
-    // look up how it was split between its own invoice and older debt.
     final paymentsByCode = <String, PaymentBreakdown>{
       for (final p in payments) p.code: p,
     };
 
     document.addPage(
       pw.MultiPage(
-        // A big statement must be allowed to flow over many pages.
         maxPages: 200,
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(28),
           theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
-          // Applies to the whole document. Do NOT wrap the content in a
-          // pw.Directionality widget: it cannot be split across pages, so a
-          // long table throws TooManyPagesException.
           textDirection: pw.TextDirection.rtl,
           buildBackground: (context) =>
               buildWhitePdfBackground(watermarkBytes: null),
@@ -57,8 +51,6 @@ class CustomerStatementPdfBuilder {
         footer: (context) => pw.Column(
           children: [pw.Divider(color: _green, thickness: 1)],
         ),
-        // Top-level children of MultiPage: the table is splittable, so it
-        // continues on the next page (its header row repeats).
         build: (context) => [
           _buildTitle(customerName, boldFont),
           pw.SizedBox(height: 14),
@@ -224,9 +216,6 @@ class CustomerStatementPdfBuilder {
     );
   }
 
-  /// The transaction's reference code, plus — for a payment split between the
-  /// invoice issued with it and older debt — one extra line per invoice it
-  /// was applied to, so the breakdown is visible without leaving the table.
   static String _referenceText(
     CustomerTransaction t,
     Map<String, PaymentBreakdown> paymentsByCode,
@@ -249,7 +238,6 @@ class CustomerStatementPdfBuilder {
   static String _date(DateTime d) =>
       '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
 
-  /// Whole numbers without decimals, otherwise two decimals.
   static String _money(double v) =>
       v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
 }

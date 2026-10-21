@@ -5,7 +5,7 @@ import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
-import '../../customer-visits/customers/domain/models/customer_model.dart';
+import '../../customer_visits/customers/domain/models/customer_model.dart';
 import '../data/admin_actions_service.dart';
 import 'widgets/admin_customer_actions_sheet.dart';
 

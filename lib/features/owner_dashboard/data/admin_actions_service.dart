@@ -1,7 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/errors/app_exception.dart';
-import '../../customer-visits/customers/domain/models/customer_model.dart';
-import '../../customer-visits/customers/domain/models/invoice_line_input.dart';
+import '../../customer_visits/customers/domain/models/customer_model.dart';
+import '../../invoices/domain/models/invoice_line_input.dart';
 import '../../customer_account/domain/entities/payment_method.dart';
 
 class RepPerformanceStats {
@@ -135,23 +135,24 @@ class AdminActionsService {
     required String customerId,
     required List<InvoiceLineInput> items,
     required DateTime invoiceDate,
-    double discountPercent = 0,
+    double discountAmount = 0,
     required bool isCashSale,
     double paidNow = 0,
     PaymentMethod? paymentMethod,
     String? notes,
   }) async {
     try {
-      await _supabase.rpc('admin_issue_historical_invoice', params: {
+      final trimmedNotes = notes?.trim();
+      await _supabase.rpc('admin_issue_historical_invoice_v2', params: {
         'p_customer_id': customerId,
         'p_items': items.map((item) => item.toRpcJson()).toList(),
-        'p_invoice_date': invoiceDate.toUtc().toIso8601String(),
-        'p_discount_percent': discountPercent,
+        'p_invoice_date': invoiceDate.toIso8601String(),
+        'p_discount_amount': discountAmount,
         'p_sale_type': isCashSale ? 'cash' : 'credit',
         'p_paid_now': paidNow,
-        if (paymentMethod != null)
-          'p_payment_method': paymentMethod.backendValue,
-        if (notes != null && notes.trim().isNotEmpty) 'p_notes': notes.trim(),
+        'p_payment_method': paidNow > 0 ? paymentMethod?.backendValue : null,
+        'p_notes':
+            trimmedNotes == null || trimmedNotes.isEmpty ? null : trimmedNotes,
       });
     } catch (e) {
       throw mapErrorToAppException(e);

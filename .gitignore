@@ -51,3 +51,6 @@ app.*.map.json
 *.bundle
 
 project_context.md
+
+/*.patch
+/result.pdf

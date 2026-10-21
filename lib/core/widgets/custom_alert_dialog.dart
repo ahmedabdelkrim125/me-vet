@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/utils/responsive_extension.dart';
+import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../theme/app_color_scheme_extension.dart';
 import '../theme/app_text_styles.dart';
 

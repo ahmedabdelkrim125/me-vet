@@ -4,8 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/notifications/push_notification_service.dart';
-import '../../../customer-visits/customers/data/customers_repository.dart';
-import '../../../customer-visits/customers/presentation/controllers/today_route_controller.dart';
+import '../../../customer_visits/customers/data/customers_repository.dart';
+import '../../../customer_visits/customers/presentation/controllers/today_route_controller.dart';
 import '../../../home/data/home_repository.dart';
 import '../../../notification/domain/notification_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -19,10 +19,6 @@ class AuthCubit extends Cubit<AuthState> {
     _authSubscription = _repository.authStateChanges.listen((user) {
       debugPrint('[Push] authStateChanges emitted: user=${user?.id}');
 
-      // لو المستخدم اتغيّر (تبديل حساب)، امسح كل بيانات المستخدم السابق
-      // من الذاكرة — الـ repositories دي Singletons بتعيش طول التطبيق،
-      // ولو مامسحناش الـ cache بتاعها المندوب الجديد هيشوف عملاء/زيارات/
-      // إشعارات المندوب القديم لحد ما يقفل التطبيق ويفتحه.
       final previousUserId = state.user?.id;
       if (previousUserId != null && previousUserId != user?.id) {
         _clearUserScopedCaches();
@@ -40,8 +36,6 @@ class AuthCubit extends Cubit<AuthState> {
             PushNotificationService.instance.registerDeviceForCurrentUser());
       }
     }, onError: (Object error, StackTrace stack) {
-      // Supabase pushes refresh/network errors into this stream. Without a
-      // handler they become unhandled exceptions.
       debugPrint('[Auth] authStateChanges error: $error');
     });
   }

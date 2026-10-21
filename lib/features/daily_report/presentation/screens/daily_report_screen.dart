@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_extension.dart';
 import '../../../home/presentation/widgets/add_expense_dialog.dart';
+import 'daily_collections_section.dart';
 import 'widgets/daily_invoices_section.dart';
 import '../../domain/models/report_period_type.dart';
 import '../../domain/models/representative_report_model.dart';
@@ -178,6 +179,8 @@ class _DailyReportBody extends StatelessWidget {
                     SizedBox(height: 16.h),
                     if (selectedPeriod == ReportPeriodType.daily) ...[
                       const DailyInvoicesSection(),
+                      SizedBox(height: 16.h),
+                      const DailyCollectionsSection(),
                       SizedBox(height: 16.h),
                     ],
                     _BalancesSection(report: report),

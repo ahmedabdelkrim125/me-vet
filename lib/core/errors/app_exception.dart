@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../monitoring/error_reporter.dart';
+
 class AppException implements Exception {
   final String message;
   final Object? cause;
@@ -135,6 +137,10 @@ class ErrorHandler {
 
 AppException mapErrorToAppException(Object error) {
   final mapped = ErrorHandler.handle(error);
+
+  if (error is! AppException && mapped.cause != null) {
+    ErrorReporter.report(error, error is Error ? error.stackTrace : null);
+  }
 
   if (kDebugMode && mapped.cause != null) {
     debugPrint('[AppException] ${mapped.cause}');

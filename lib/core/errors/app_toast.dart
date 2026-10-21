@@ -7,36 +7,17 @@ import '../theme/app_text_styles.dart';
 import '../utils/responsive_extension.dart';
 import 'app_exception.dart';
 
-/// آخر توست ظاهر على الشاشة (لو موجود) — عشان لو حصل خطأ جديد ولسه القديم
-/// ظاهر، نقفل القديم بدل ما يتكدسوا فوق بعض.
 _AppToastState? _currentToast;
 
-/// يعرض رسالة خطأ بشكل موحّد ومودرن (توست عائم من فوق) في أي شاشة بالتطبيق.
-///
-/// بيقبل أي error خام زي ما هو — الدالة بتنادي [mapErrorToAppException]
-/// تلقائيًا وتطلّع الرسالة العربية المناسبة، فمش لازم تحوّلها بنفسك.
-///
-/// الاستخدام:
-/// ```dart
-/// try {
-///   await CustomersRepository.instance.addCustomer(customer);
-/// } catch (e) {
-///   if (context.mounted) showAppError(context, e);
-/// }
-/// ```
 void showAppError(BuildContext context, Object error) {
   final appException = mapErrorToAppException(error);
   _showToast(context, message: appException.message, type: _ToastType.error);
 }
 
-/// نفس شكل [showAppError] بالظبط (توست من فوق) بس للنجاح — لون أخضر
-/// وأيقونة صح، عشان يبقى واضح للمستخدم إن الحفظ حصل فعليًا.
 void showAppSuccess(BuildContext context, String message) {
   _showToast(context, message: message, type: _ToastType.success);
 }
 
-/// رسالة معلومة عادية (مش خطأ) — لون أزرق وأيقونة info. مناسبة لحالات زي
-/// "مفيش منتجات اتضافت النهاردة" اللي مش عطل في التطبيق.
 void showAppInfo(BuildContext context, String message) {
   _showToast(context, message: message, type: _ToastType.info);
 }
@@ -48,7 +29,6 @@ void _showToast(
   required String message,
   required _ToastType type,
 }) {
-  // لو فيه توست ظاهر بالفعل، اقفله فورًا قبل ما نطلّع الجديد.
   _currentToast?._dismiss(immediate: true);
 
   final overlay = Overlay.of(context, rootOverlay: true);
@@ -140,7 +120,7 @@ class _AppToastState extends State<_AppToast>
     final IconData icon;
     switch (widget.type) {
       case _ToastType.error:
-        accent = const Color(0xFFE0473F); // نفس statusNotReached لكن ثابتة هنا
+        accent = const Color(0xFFE0473F);
         icon = Icons.error_rounded;
       case _ToastType.success:
         accent = colors.primary;

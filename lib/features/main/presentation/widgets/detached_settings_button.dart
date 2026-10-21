@@ -7,8 +7,6 @@ import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'dock_surface.dart';
 import 'nav_items.dart';
 
-/// Settings entry that sits next to the navigation pill as its own
-/// floating button (same height and glass style as the pill).
 class DetachedSettingsButton extends StatelessWidget {
   final double height;
   final bool isSelected;

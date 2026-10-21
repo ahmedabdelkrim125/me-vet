@@ -25,10 +25,6 @@ extension CustomerTransactionTypeLabel on CustomerTransactionType {
   }
 }
 
-/// Maps the `customer_transaction_type` Postgres enum to its Dart counterpart.
-/// Falls back to [CustomerTransactionType.adjustment] for any unrecognized
-/// value instead of throwing, since debit/credit/balance_after still render
-/// correctly even if the type label itself is generic.
 CustomerTransactionType customerTransactionTypeFromDb(String? value) {
   switch (value) {
     case 'invoice':
@@ -45,8 +41,6 @@ CustomerTransactionType customerTransactionTypeFromDb(String? value) {
   }
 }
 
-/// A single row from `get_customer_ledger`. `balanceAfter` is the backend's
-/// authoritative running balance — Flutter never recomputes it.
 class CustomerTransaction {
   final String id;
   final String customerId;

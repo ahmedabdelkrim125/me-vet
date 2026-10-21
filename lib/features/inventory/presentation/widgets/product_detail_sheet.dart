@@ -2,10 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
-import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+import '../../../../core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
-import 'package:mivet_app/core/utils/responsive_extension.dart';
-import 'package:mivet_app/core/widgets/custom_alert_dialog.dart';
+import '../../../../core/utils/responsive_extension.dart';
+import '../../../../core/widgets/custom_alert_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/products_repository.dart';
 import '../../domain/models/product_catalog.dart';
@@ -16,6 +16,8 @@ Future<bool> showProductDetailSheet(
   BuildContext context,
   ProductModel product, {
   ProductCatalog catalog = ProductCatalog.empty,
+  int? minThreshold,
+  Future<void> Function(int minThreshold)? onSaveMinThreshold,
 }) async {
   final changed = await showModalBottomSheet<bool>(
     context: context,
@@ -24,6 +26,8 @@ Future<bool> showProductDetailSheet(
     builder: (context) => ProductDetailSheet(
       product: product,
       catalog: catalog,
+      minThreshold: minThreshold,
+      onSaveMinThreshold: onSaveMinThreshold,
     ),
   );
   return changed ?? false;
@@ -32,11 +36,15 @@ Future<bool> showProductDetailSheet(
 class ProductDetailSheet extends StatefulWidget {
   final ProductModel product;
   final ProductCatalog catalog;
+  final int? minThreshold;
+  final Future<void> Function(int minThreshold)? onSaveMinThreshold;
 
   const ProductDetailSheet({
     super.key,
     required this.product,
     this.catalog = ProductCatalog.empty,
+    this.minThreshold,
+    this.onSaveMinThreshold,
   });
 
   @override
@@ -54,7 +62,12 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   }
 
   Future<void> _editProduct() async {
-    final updated = await showAddProductSheet(context, productToEdit: _product);
+    final updated = await showAddProductSheet(
+      context,
+      productToEdit: _product,
+      vehicleMinThreshold: widget.minThreshold,
+      onSaveVehicleMinThreshold: widget.onSaveMinThreshold,
+    );
     if (!mounted || updated == null) return;
     Navigator.of(context).pop(true);
   }
@@ -201,7 +214,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
               _DetailRow(
                   icon: Icons.warning_amber_rounded,
                   label: 'الحد الأدنى للمخزون',
-                  value: '${product.minStockThreshold}'),
+                  value: '${widget.minThreshold ?? product.minStockThreshold}'),
               _DetailRow(
                   icon: Icons.calendar_today_outlined,
                   label: 'تاريخ الإضافة',
@@ -322,13 +335,6 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// Asks the user for their account password before a destructive action.
-///
-/// The [TextEditingController] lives in this [State] on purpose: the framework
-/// disposes it only after the dialog route has finished its closing animation.
-/// (Disposing it right after `await showDialog(...)` returns is too early —
-/// the dialog is still on screen while it fades out and rebuilds, which throws
-/// "A TextEditingController was used after being disposed".)
 class _PasswordConfirmationDialog extends StatefulWidget {
   final String email;
 
@@ -365,7 +371,6 @@ class _PasswordConfirmationDialogState
       );
       if (mounted) Navigator.of(context).pop(true);
     } on AuthRetryableFetchException catch (error) {
-      // No / bad network — not a wrong password.
       if (!mounted) return;
       setState(() => _verifying = false);
       showAppError(context, error);

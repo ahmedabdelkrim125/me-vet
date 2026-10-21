@@ -16,11 +16,6 @@ class LocationResult {
   });
 }
 
-/// يمسك موقع الجهاز الحالي بالظبط (GPS)، ويحاول يترجمه لعنوان نصي مقروء.
-///
-/// أي خطأ (صلاحية مرفوضة، GPS مقفول، فشل الشبكة) بيترجم لـ [AppException]
-/// برسالة عربية واضحة عشان showAppError يقدر يعرضها زي أي خطأ تاني في
-/// التطبيق.
 class LocationService {
   LocationService._();
 
@@ -66,8 +61,6 @@ class LocationService {
     );
   }
 
-  /// بيحاول يحوّل الإحداثيات لعنوان نصي. لو الخدمة مش متاحة أو فشلت، بيرجع
-  /// null بهدوء بدل ما يوقف كل عملية إضافة العميل — الإحداثيات هي الأهم.
   static Future<String?> _reverseGeocode(double lat, double lng) async {
     try {
       final placemarks = await placemarkFromCoordinates(lat, lng);

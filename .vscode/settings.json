@@ -10,5 +10,6 @@
     "deno.lint": true,
     "deno.unstable": [],
     "deno.path": "C:\\Users\\MAC\\.deno\\bin\\deno.exe",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "cmake.sourceDirectory": "D:/All_Flutter_Projects/mivet_starter/linux"
 }

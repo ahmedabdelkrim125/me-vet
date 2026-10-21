@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:mivet_app/core/errors/app_exception.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/core/monitoring/error_reporter.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:gal/gal.dart';
@@ -40,6 +42,17 @@ class _CollectionReceiptPreviewState extends State<CollectionReceiptPreview> {
     return CollectionReceiptImage.capture(_boundaryKey);
   }
 
+  String _galMessage(GalExceptionType type) {
+    switch (type) {
+      case GalExceptionType.accessDenied:
+        return 'مفيش صلاحية لحفظ الصور، فعّلها من إعدادات الموبايل';
+      case GalExceptionType.notEnoughSpace:
+        return 'مساحة الموبايل مش كفاية لحفظ الصورة';
+      default:
+        return 'تعذر حفظ الصورة، حاول تاني';
+    }
+  }
+
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
@@ -49,8 +62,26 @@ class _CollectionReceiptPreviewState extends State<CollectionReceiptPreview> {
         name: 'collection_receipt_${DateTime.now().millisecondsSinceEpoch}',
       );
       if (mounted) showAppSuccess(context, 'تم حفظ الصورة على الجهاز');
-    } catch (error) {
-      if (mounted) showAppError(context, error);
+    } on GalException catch (error, stackTrace) {
+      debugPrint('[ReceiptSave] ${error.type} | ${error.platformException}');
+      debugPrintStack(stackTrace: stackTrace);
+      ErrorReporter.report(error, stackTrace);
+      if (mounted) {
+        showAppError(
+          context,
+          AppException(_galMessage(error.type), cause: error),
+        );
+      }
+    } catch (error, stackTrace) {
+      debugPrint('[ReceiptSave] $error');
+      debugPrintStack(stackTrace: stackTrace);
+      ErrorReporter.report(error, stackTrace);
+      if (mounted) {
+        showAppError(
+          context,
+          AppException('تعذر حفظ الصورة، حاول تاني', cause: error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -67,8 +98,16 @@ class _CollectionReceiptPreviewState extends State<CollectionReceiptPreview> {
           mimeType: 'image/png',
         ),
       ]);
-    } catch (error) {
-      if (mounted) showAppError(context, error);
+    } catch (error, stackTrace) {
+      debugPrint('[ReceiptShare] $error');
+      debugPrintStack(stackTrace: stackTrace);
+      ErrorReporter.report(error, stackTrace);
+      if (mounted) {
+        showAppError(
+          context,
+          AppException('تعذر مشاركة الإيصال، حاول تاني', cause: error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSharing = false);
     }

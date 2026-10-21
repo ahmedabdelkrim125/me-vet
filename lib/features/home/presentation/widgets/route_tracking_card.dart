@@ -3,25 +3,14 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import 'package:mivet_app/features/customer-visits/customers/data/customers_repository.dart';
-import 'package:mivet_app/features/customer-visits/customers/domain/models/route_stop_model.dart';
-import 'package:mivet_app/features/customer-visits/customers/domain/models/visit_status.dart';
-import 'package:mivet_app/features/customer-visits/customers/presentation/controllers/today_route_controller.dart';
-import 'package:mivet_app/features/customer-visits/customers/screens/customer_detail_screen.dart';
-import 'package:mivet_app/features/customer-visits/customers/screens/weekly_plan_screen.dart';
-import 'package:mivet_app/features/customer-visits/customers/screens/widgets/route_view/route_status_style.dart';
+import 'package:mivet_app/features/customer_visits/customers/data/customers_repository.dart';
+import 'package:mivet_app/features/customer_visits/customers/domain/models/route_stop_model.dart';
+import 'package:mivet_app/features/customer_visits/customers/domain/models/visit_status.dart';
+import 'package:mivet_app/features/customer_visits/customers/presentation/controllers/today_route_controller.dart';
+import 'package:mivet_app/features/customer_visits/customers/presentation/screens/customer_detail_screen.dart';
+import 'package:mivet_app/features/customer_visits/customers/presentation/screens/weekly_plan_screen.dart';
+import 'package:mivet_app/features/customer_visits/customers/presentation/screens/widgets/route_view/route_status_style.dart';
 
-/// Delivery-style tracking of today's customers route.
-///
-/// One step per customer, in route order:
-///  * visited  (تمت / بيع / بدون طلب) — done, with the time it was recorded
-///  * missed   (لم يوصل)              — the rep could not reach the customer
-///  * current  (جاري الآن)            — the first customer not handled yet
-///  * upcoming (قادم)                 — the rest
-///
-/// The statuses are changed from the route page (customers route tab); this
-/// card only reflects them, live, through [TodayRouteController.stopsNotifier].
-/// The list is replaced with the new day's customers at 12:00 AM.
 class RouteTrackingCard extends StatelessWidget {
   const RouteTrackingCard({super.key});
 
@@ -296,7 +285,6 @@ class _TrackingStep extends StatelessWidget {
     );
   }
 
-  /// 03:30 م
   static String _formatTime(DateTime time) {
     final t = time.toLocal();
     final hour12 = t.hour % 12 == 0 ? 12 : t.hour % 12;
@@ -449,7 +437,6 @@ class _EmptyState extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const WeeklyPlanScreen()))
-              // A plan set for today's weekday generates today's visits.
               .then((_) => TodayRouteController.instance.refresh()),
           icon: const Icon(Icons.calendar_month_outlined),
           label: const Text('خطة الأسبوع'),

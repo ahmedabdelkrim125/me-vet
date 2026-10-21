@@ -1,100 +1,86 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import 'package:mivet_app/features/customer-visits/customers/data/invoices_repository.dart';
-import 'package:mivet_app/features/customer-visits/customers/domain/models/invoice_record_model.dart';
-import 'package:mivet_app/features/customer-visits/customers/screens/invoice_detail_screen.dart';
+import 'package:mivet_app/features/invoices/presentation/screens/invoice_detail_screen.dart';
 
-import '../../../domain/daily_invoices_pdf_builder.dart';
-import 'package:mivet_app/core/utils/pdf_export.dart';
+import '../../../../invoices/domain/models/invoice_record_model.dart';
+import '../../cubit/daily_invoices_cubit.dart';
+import '../../cubit/daily_invoices_state.dart';
+import '../daily_invoices_by_date_screen.dart';
 
-class DailyInvoicesSection extends StatefulWidget {
-  const DailyInvoicesSection({super.key});
+class DailyInvoicesSection extends StatelessWidget {
+  final DateTime? date;
+  final bool showDateLink;
 
-  @override
-  State<DailyInvoicesSection> createState() => _DailyInvoicesSectionState();
-}
+  const DailyInvoicesSection({
+    super.key,
+    this.date,
+    this.showDateLink = true,
+  });
 
-class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
-  List<DailyInvoiceSummary> _invoices = const [];
-  bool _loading = true;
-  bool _sharing = false;
-
-  late final DateTime _from;
-  late final DateTime _to;
-
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    _from = DateTime(now.year, now.month, now.day);
-    _to = _from.add(const Duration(days: 1));
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final invoices = await InvoicesRepository.instance
-          .getDailyInvoiceSummaries(from: _from, to: _to);
-      if (!mounted) return;
-      setState(() {
-        _invoices = invoices;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      showAppError(context, e);
-    }
-  }
-
-  Future<void> _shareAll() async {
-    if (_invoices.isEmpty || _sharing) return;
-    setState(() => _sharing = true);
-    try {
-      final entries = <DailyInvoicePdfEntry>[];
-      for (final invoice in _invoices) {
-        final detail = await InvoicesRepository.instance
-            .getInvoiceDetailByCode(invoice.code);
-        entries.add(
-          DailyInvoicePdfEntry(
-            invoiceCode: detail.code,
-            customerName: invoice.customerName,
-            date: invoice.date,
-            items: [
-              for (final item in detail.items)
-                (
-                  name: item.productName,
-                  quantity: item.quantity,
-                  price: item.unitPrice,
-                  total: item.lineTotal,
-                ),
-            ],
-            total: detail.totalAmount,
-            status: invoice.status.label,
-          ),
-        );
-      }
-
-      final bytes = await DailyInvoicesPdfBuilder.build(entries, _from);
-      if (!mounted) return;
-      await PdfExport.share(
-        bytes,
-        'daily-invoices-${_from.year}-${_from.month}-${_from.day}.pdf',
-      );
-    } catch (e) {
-      if (mounted) showAppError(context, e);
-    } finally {
-      if (mounted) setState(() => _sharing = false);
-    }
+  DateTime get _day {
+    final source = date ?? DateTime.now();
+    return DateTime(source.year, source.month, source.day);
   }
 
   @override
   Widget build(BuildContext context) {
+    return BlocProvider<DailyInvoicesCubit>(
+      key: ValueKey(_day),
+      create: (_) => DailyInvoicesCubit(day: _day)..load(),
+      child: _DailyInvoicesView(showDateLink: showDateLink),
+    );
+  }
+}
+
+class _DailyInvoicesView extends StatelessWidget {
+  final bool showDateLink;
+
+  const _DailyInvoicesView({required this.showDateLink});
+
+  String _formatDate(DateTime date) =>
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+
+  Future<void> _openInvoice(
+    BuildContext context,
+    String code,
+    String customerName,
+  ) async {
+    final cubit = context.read<DailyInvoicesCubit>();
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => InvoiceDetailScreen(
+          invoiceCode: code,
+          customerName: customerName,
+        ),
+      ),
+    );
+    if (!cubit.isClosed) await cubit.load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<DailyInvoicesCubit>();
+
+    return BlocConsumer<DailyInvoicesCubit, DailyInvoicesState>(
+      listenWhen: (previous, current) => current.error != null,
+      listener: (context, state) => showAppError(context, state.error!),
+      builder: (context, state) => _buildCard(context, cubit, state),
+    );
+  }
+
+  Widget _buildCard(
+    BuildContext context,
+    DailyInvoicesCubit cubit,
+    DailyInvoicesState state,
+  ) {
     final colors = context.colors;
+    final day = cubit.day;
+    final invoices = state.invoices;
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -119,14 +105,17 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
               ),
               SizedBox(width: 10.w),
               Expanded(
-                child: Text('الفواتير اليومية',
+                child: Text(
+                    cubit.isToday
+                        ? 'الفواتير اليومية'
+                        : 'فواتير يوم ${_formatDate(day)}',
                     style: AppTextStyles.cairoBold18
                         .copyWith(fontSize: 16.sp, color: colors.text)),
               ),
-              if (!_loading && _invoices.isNotEmpty)
+              if (!state.isLoading && invoices.isNotEmpty)
                 TextButton.icon(
-                  onPressed: _sharing ? null : _shareAll,
-                  icon: _sharing
+                  onPressed: state.sharing ? null : cubit.shareAll,
+                  icon: state.sharing
                       ? SizedBox(
                           width: 14.w,
                           height: 14.w,
@@ -134,18 +123,34 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
                               const CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.share_outlined, size: 16),
-                  label: const Text('مشاركة الفواتير اليومية'),
+                  label: Text(state.progress ?? 'مشاركة الفواتير اليومية'),
                 ),
             ],
           ),
+          if (showDateLink)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const DailyInvoicesByDateScreen(),
+                  ),
+                ),
+                icon: const Icon(Icons.calendar_month_outlined, size: 16),
+                label: const Text('فواتير يوم محدد'),
+              ),
+            ),
           SizedBox(height: 12.h),
-          if (_loading)
+          if (state.isLoading)
             const Center(child: CircularProgressIndicator())
-          else if (_invoices.isEmpty)
+          else if (invoices.isEmpty)
             Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 16.h),
-                child: Text('لسه مفيش فواتير النهاردة',
+                child: Text(
+                    cubit.isToday
+                        ? 'لسه مفيش فواتير النهاردة'
+                        : 'مفيش فواتير في اليوم ده',
                     style: AppTextStyles.cairoMedium16
                         .copyWith(color: colors.textMuted)),
               ),
@@ -154,19 +159,16 @@ class _DailyInvoicesSectionState extends State<DailyInvoicesSection> {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _invoices.length,
+              itemCount: invoices.length,
               separatorBuilder: (_, __) =>
                   Divider(color: colors.border.withOpacity(0.5), height: 16.h),
               itemBuilder: (context, index) {
-                final invoice = _invoices[index];
+                final invoice = invoices[index];
                 return InkWell(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => InvoiceDetailScreen(
-                        invoiceCode: invoice.code,
-                        customerName: invoice.customerName,
-                      ),
-                    ),
+                  onTap: () => _openInvoice(
+                    context,
+                    invoice.code,
+                    invoice.customerName,
                   ),
                   child: Row(
                     children: [
