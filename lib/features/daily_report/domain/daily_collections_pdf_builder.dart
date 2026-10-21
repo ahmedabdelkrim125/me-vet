@@ -63,6 +63,9 @@ class DailyCollectionsPdfBuilder {
           _formatTime(collections[i].date),
           collections[i].customerName,
           collections[i].code,
+          collections[i].invoiceLabel.isEmpty
+              ? '-'
+              : collections[i].invoiceLabel,
           '${i + 1}',
         ],
     ];
@@ -106,7 +109,15 @@ class DailyCollectionsPdfBuilder {
           _buildTable(summaryHeaders, [summaryValues], boldFont, regularFont),
           pw.SizedBox(height: 18),
           _buildTable(
-            ['المبلغ', 'طريقة الدفع', 'الوقت', 'العميل', 'رقم التحصيل', 'م'],
+            [
+              'المبلغ',
+              'طريقة الدفع',
+              'الوقت',
+              'العميل',
+              'رقم التحصيل',
+              'الفاتورة',
+              'م'
+            ],
             rows,
             boldFont,
             regularFont,
@@ -114,9 +125,10 @@ class DailyCollectionsPdfBuilder {
               0: pw.FlexColumnWidth(1.4),
               1: pw.FlexColumnWidth(1.3),
               2: pw.FlexColumnWidth(0.9),
-              3: pw.FlexColumnWidth(2.6),
-              4: pw.FlexColumnWidth(2.2),
-              5: pw.FlexColumnWidth(0.5),
+              3: pw.FlexColumnWidth(2.2),
+              4: pw.FlexColumnWidth(2.0),
+              5: pw.FlexColumnWidth(2.4),
+              6: pw.FlexColumnWidth(0.5),
             },
           ),
         ],

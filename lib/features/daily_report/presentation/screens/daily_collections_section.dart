@@ -308,6 +308,20 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          if (collection.invoiceLabel.isNotEmpty) ...[
+                            SizedBox(height: 2.h),
+                            Text(
+                              'الفاتورة: ${collection.invoiceLabel}',
+                              style: AppTextStyles.almaraiRegular14.copyWith(
+                                fontSize: 10.sp,
+                                color: collection.isEditDifference
+                                    ? AppColors.primaryGreen
+                                    : colors.textMuted,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -39,7 +39,11 @@ Future<void> editInvoicePaidAmount(BuildContext context) async {
     ),
   );
   if (input == null || !context.mounted) return;
-  await cubit.setPaidAmount(newPaid: input.amount, method: input.method);
+  await cubit.setFinalAmount(
+    newTotal: input.amount,
+    extraPaid: input.extraPaid,
+    method: input.method,
+  );
 }
 
 Future<void> applyInvoiceCredit(BuildContext context) async {

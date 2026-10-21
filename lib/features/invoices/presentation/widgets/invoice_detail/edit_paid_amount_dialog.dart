@@ -4,7 +4,11 @@ import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/features/customer_account/domain/entities/payment_method.dart';
 import 'package:mivet_app/features/customer_account/presentation/widgets/payment_method_selector.dart';
 
-typedef EditPaidInput = ({double amount, PaymentMethod method});
+typedef EditPaidInput = ({
+  double amount,
+  bool extraPaid,
+  PaymentMethod method,
+});
 
 class EditPaidAmountDialog extends StatefulWidget {
   final double total;
@@ -22,9 +26,10 @@ class EditPaidAmountDialog extends StatefulWidget {
 
 class _EditPaidAmountDialogState extends State<EditPaidAmountDialog> {
   late final TextEditingController _controller =
-      TextEditingController(text: _format(widget.paid));
+      TextEditingController(text: _format(widget.total));
   final ValueNotifier<PaymentMethod> _method =
       ValueNotifier<PaymentMethod>(PaymentMethod.cash);
+  final ValueNotifier<bool> _extraPaid = ValueNotifier<bool>(false);
 
   String _format(double value) => value == value.roundToDouble()
       ? value.toStringAsFixed(0)
@@ -40,6 +45,7 @@ class _EditPaidAmountDialogState extends State<EditPaidAmountDialog> {
   void dispose() {
     _controller.dispose();
     _method.dispose();
+    _extraPaid.dispose();
     super.dispose();
   }
 
@@ -54,69 +60,92 @@ class _EditPaidAmountDialogState extends State<EditPaidAmountDialog> {
       valueListenable: _controller,
       builder: (context, value, _) {
         final parsed = _parse(value.text);
-        final isIncrease = parsed != null && parsed > widget.paid;
-        final isDecrease = parsed != null && parsed < widget.paid;
-        final overTotalOnDecrease = isDecrease && parsed > widget.total;
-        final valid = parsed != null &&
-            parsed >= 0 &&
-            !overTotalOnDecrease &&
-            (isIncrease || isDecrease);
+        final isIncrease = parsed != null && parsed > widget.total;
+        final isDecrease = parsed != null && parsed < widget.total;
+        final valid =
+            parsed != null && parsed > 0 && (isIncrease || isDecrease);
 
         return AlertDialog(
-          title: const Text('تعديل المبلغ المدفوع'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('إجمالي الفاتورة: ${_format(widget.total)} ج.م'),
-              const SizedBox(height: 4),
-              Text('المدفوع حاليًا: ${_format(widget.paid)} ج.م'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _controller,
-                autofocus: true,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                ],
-                decoration: InputDecoration(
-                  labelText: 'المبلغ المدفوع الجديد',
-                  suffixText: 'ج.م',
-                  border: const OutlineInputBorder(),
-                  errorText: overTotalOnDecrease
-                      ? 'عند التخفيض لازم يكون أقل من أو يساوي إجمالي الفاتورة'
-                      : null,
+          title: const Text('تعديل مبلغ الفاتورة'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('مبلغ الفاتورة الحالي: ${_format(widget.total)} ج.م'),
+                const SizedBox(height: 4),
+                Text('المدفوع حاليًا: ${_format(widget.paid)} ج.م'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'المبلغ النهائي الجديد',
+                    suffixText: 'ج.م',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              if (isIncrease) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'هيتسجّل تحصيل ${_format(parsed - widget.paid)} ج.م على الفاتورة.',
+                  'المبلغ القديم هيتشال وهيتحط مكانه المبلغ ده في الفاتورة والـ PDF.',
                   style: mutedStyle,
                 ),
-                if (parsed > widget.total)
+                if (isIncrease) ...[
+                  const SizedBox(height: 12),
                   Text(
-                    '${_format(parsed - widget.total)} ج.م زيادة عن إجمالي الفاتورة، هتتسجل رصيد دائن للعميل.',
+                    'الفاتورة زادت ${_format(parsed - widget.total)} ج.م، العميل دفع الفرق؟',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _extraPaid,
+                    builder: (context, extraPaid, _) => Column(
+                      children: [
+                        RadioListTile<bool>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          value: true,
+                          groupValue: extraPaid,
+                          onChanged: (v) => _extraPaid.value = v ?? false,
+                          title: const Text('دفع الفرق'),
+                        ),
+                        RadioListTile<bool>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          value: false,
+                          groupValue: extraPaid,
+                          onChanged: (v) => _extraPaid.value = v ?? false,
+                          title:
+                              const Text('لسه ماتدفعش (يتحسب دين على العميل)'),
+                        ),
+                        if (extraPaid)
+                          ValueListenableBuilder<PaymentMethod>(
+                            valueListenable: _method,
+                            builder: (context, method, _) =>
+                                PaymentMethodSelector(
+                              value: method,
+                              onChanged: (selected) => _method.value = selected,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (isDecrease) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.paid > parsed
+                        ? '${_format(widget.paid - parsed)} ج.م هيفضلوا رصيد دائن للعميل.'
+                        : 'المتبقي على العميل هيقل ${_format(widget.total - parsed)} ج.م.',
                     style: mutedStyle,
                   ),
-                const SizedBox(height: 12),
-                ValueListenableBuilder<PaymentMethod>(
-                  valueListenable: _method,
-                  builder: (context, method, _) => PaymentMethodSelector(
-                    value: method,
-                    onChanged: (selected) => _method.value = selected,
-                  ),
-                ),
+                ],
               ],
-              if (isDecrease && !overTotalOnDecrease) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '${_format(widget.paid - parsed)} ج.م هيفضلوا رصيد دائن للعميل، يقدر ياخد بيهم منتجات في فواتير جاية أو يتردوله.',
-                  style: mutedStyle,
-                ),
-              ],
-            ],
+            ),
           ),
           actions: [
             TextButton(
@@ -127,7 +156,11 @@ class _EditPaidAmountDialogState extends State<EditPaidAmountDialog> {
               onPressed: valid
                   ? () => Navigator.pop<EditPaidInput>(
                         context,
-                        (amount: parsed, method: _method.value),
+                        (
+                          amount: parsed,
+                          extraPaid: isIncrease && _extraPaid.value,
+                          method: _method.value,
+                        ),
                       )
                   : null,
               child: const Text('تأكيد'),

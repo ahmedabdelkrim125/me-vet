@@ -196,6 +196,23 @@ class InvoicesRepository {
     );
   }
 
+  Future<void> setInvoiceFinalAmount({
+    required String invoiceId,
+    required double newTotal,
+    required bool extraPaid,
+    required PaymentMethod method,
+  }) async {
+    await _supabase.rpc(
+      'set_invoice_final_amount',
+      params: {
+        'p_invoice_id': invoiceId,
+        'p_new_total': newTotal,
+        'p_extra_paid': extraPaid,
+        'p_payment_method': method.backendValue,
+      },
+    );
+  }
+
   Future<void> refundCustomerCredit({
     required String customerId,
     required double amount,

@@ -108,6 +108,30 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
     await reload();
   }
 
+  Future<void> setFinalAmount({
+    required double newTotal,
+    required bool extraPaid,
+    required PaymentMethod method,
+  }) async {
+    final detail = state.detail;
+    if (detail == null) return;
+    if ((newTotal - detail.totalAmount).abs() < 0.005) return;
+    try {
+      await _invoicesRepository.setInvoiceFinalAmount(
+        invoiceId: detail.id,
+        newTotal: newTotal,
+        extraPaid: extraPaid,
+        method: method,
+      );
+    } catch (error) {
+      if (!isClosed) emit(state.copyWith(error: error));
+      return;
+    }
+    if (isClosed) return;
+    emit(state.copyWith(successMessage: 'تم تعديل مبلغ الفاتورة'));
+    await reload();
+  }
+
   Future<void> applyCredit(double amount) async {
     final detail = state.detail;
     if (detail == null) return;

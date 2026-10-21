@@ -8,6 +8,14 @@ class DailyCollectionSummary {
   final DateTime date;
   final double amount;
   final PaymentMethod? method;
+  final List<String> invoiceCodes;
+  final bool isEditDifference;
+
+  String get invoiceLabel {
+    if (invoiceCodes.isEmpty) return '';
+    final codes = invoiceCodes.join('، ');
+    return isEditDifference ? '$codes (فرق تعديل)' : codes;
+  }
 
   const DailyCollectionSummary({
     required this.code,
@@ -16,11 +24,15 @@ class DailyCollectionSummary {
     required this.date,
     required this.amount,
     required this.method,
+    this.invoiceCodes = const [],
+    this.isEditDifference = false,
   });
 }
 
 class DailyCollectionsRepository {
   DailyCollectionsRepository._();
+
+  static const String _editDifferenceNote = 'تحصيل فرق تعديل مبلغ الفاتورة';
 
   static final DailyCollectionsRepository instance =
       DailyCollectionsRepository._();
@@ -35,17 +47,23 @@ class DailyCollectionsRepository {
         .from('collections')
         .select(
           'id, code, amount, payment_method, collected_at, split_group_id, '
-          'customer_id, '
-          'customers(name)',
+          'customer_id, invoice_id, '
+          'customers(name), invoices(code)',
         )
         .gte('collected_at', from.toUtc().toIso8601String())
         .lt('collected_at', to.toUtc().toIso8601String())
         .order('collected_at', ascending: false);
 
+    final list = rows as List<dynamic>;
+    final differenceIds = await _editDifferenceIds([
+      for (final raw in list) (raw as Map<String, dynamic>)['id'] as String,
+    ]);
+
     final order = <String>[];
     final groups = <String, List<Map<String, dynamic>>>{};
-    for (final raw in rows as List<dynamic>) {
-      final row = raw as Map<String, dynamic>;
+    for (final raw in list) {
+      final row = Map<String, dynamic>.from(raw as Map<String, dynamic>);
+      row['_is_difference'] = differenceIds.contains(row['id']);
       final key = (row['split_group_id'] ?? row['id']) as String;
       groups.putIfAbsent(key, () {
         order.add(key);
@@ -53,6 +71,23 @@ class DailyCollectionsRepository {
       }).add(row);
     }
     return [for (final key in order) _merge(groups[key]!)];
+  }
+
+  Future<Set<String>> _editDifferenceIds(List<String> collectionIds) async {
+    if (collectionIds.isEmpty) return <String>{};
+    try {
+      final rows = await _supabase
+          .from('customer_transactions')
+          .select('reference_id')
+          .inFilter('reference_id', collectionIds)
+          .eq('notes', _editDifferenceNote);
+      return {
+        for (final row in rows as List<dynamic>)
+          (row as Map<String, dynamic>)['reference_id'] as String,
+      };
+    } catch (_) {
+      return <String>{};
+    }
   }
 
   DailyCollectionSummary _merge(List<Map<String, dynamic>> rows) {
@@ -64,6 +99,12 @@ class DailyCollectionsRepository {
       (a, b) => _codeOf(a).length <= _codeOf(b).length ? a : b,
     );
     final customer = main['customers'] as Map<String, dynamic>?;
+    final codes = <String>[];
+    for (final row in rows) {
+      final invoice = row['invoices'] as Map<String, dynamic>?;
+      final code = invoice?['code'] as String?;
+      if (code != null && !codes.contains(code)) codes.add(code);
+    }
     return DailyCollectionSummary(
       code: _codeOf(main),
       customerId: (main['customer_id'] as String?) ?? '',
@@ -71,6 +112,9 @@ class DailyCollectionsRepository {
       date: DateTime.parse(main['collected_at'] as String).toLocal(),
       amount: total,
       method: paymentMethodFromBackend(main['payment_method'] as String?),
+      invoiceCodes: codes,
+      isEditDifference:
+          rows.isNotEmpty && rows.every((r) => r['_is_difference'] == true),
     );
   }
 
