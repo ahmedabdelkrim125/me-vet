@@ -3,12 +3,11 @@ import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
-import 'package:mivet_app/core/utils/pdf_export.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/features/customer_account/domain/entities/payment_method.dart';
 
-import '../../domain/daily_collections_pdf_builder.dart';
 import '../../domain/daily_collections_repository.dart';
+import '../daily_collections_share_service.dart';
 import 'daily_collections_by_date_screen.dart';
 
 class DailyCollectionsSection extends StatefulWidget {
@@ -29,7 +28,7 @@ class DailyCollectionsSection extends StatefulWidget {
 class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
   List<DailyCollectionSummary> _collections = const [];
   bool _loading = true;
-  bool _sharing = false;
+  String? _customerId;
 
   DateTime get _day {
     final source = widget.date ?? DateTime.now();
@@ -45,7 +44,29 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
         _day.day == now.day;
   }
 
-  double get _total => _collections.fold(0.0, (sum, c) => sum + c.amount);
+  List<DailyCollectionSummary> get _visible => _customerId == null
+      ? _collections
+      : _collections.where((c) => c.customerId == _customerId).toList();
+
+  List<MapEntry<String, String>> get _customers {
+    final map = <String, String>{};
+    for (final c in _collections) {
+      map.putIfAbsent(c.customerId, () => c.customerName);
+    }
+    final list = map.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    return list;
+  }
+
+  String? get _selectedName {
+    if (_customerId == null) return null;
+    for (final entry in _customers) {
+      if (entry.key == _customerId) return entry.value;
+    }
+    return null;
+  }
+
+  double get _total => _visible.fold(0.0, (sum, c) => sum + c.amount);
 
   @override
   void initState() {
@@ -61,6 +82,7 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
     if (oldDay != _day) {
       setState(() {
         _loading = true;
+        _customerId = null;
         _collections = const [];
       });
       _load();
@@ -83,21 +105,37 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
     }
   }
 
-  Future<void> _share() async {
-    if (_collections.isEmpty || _sharing) return;
-    setState(() => _sharing = true);
-    try {
-      final bytes = await DailyCollectionsPdfBuilder.build(_collections, _day);
-      if (!mounted) return;
-      await PdfExport.share(
-        bytes,
-        'daily-collections-${_day.year}-${_day.month}-${_day.day}.pdf',
+  Future<void> _shareVisible() => DailyCollectionsShareService.askAndShare(
+        context,
+        _visible,
+        _day,
+        customerName: _selectedName,
       );
-    } catch (e) {
-      if (mounted) showAppError(context, e);
-    } finally {
-      if (mounted) setState(() => _sharing = false);
-    }
+
+  Future<void> _shareCustomer(DailyCollectionSummary collection) {
+    final items =
+        _collections.where((c) => c.customerId == collection.customerId);
+    return DailyCollectionsShareService.askAndShare(
+      context,
+      items.toList(),
+      _day,
+      customerName:
+          collection.customerName.isEmpty ? 'عميل' : collection.customerName,
+    );
+  }
+
+  Future<void> _pickCustomer() async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CustomerPickerSheet(
+        customers: _customers,
+        selectedId: _customerId,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _customerId = picked.isEmpty ? null : picked);
   }
 
   String _formatDate(DateTime date) =>
@@ -105,6 +143,47 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
 
   String _formatTime(DateTime date) =>
       '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+
+  Widget _buildCustomerFilter(AppColorScheme colors) {
+    final name = _selectedName;
+    return Material(
+      color: colors.background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        side: BorderSide(color: colors.border.withOpacity(0.5)),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.r),
+        onTap: _pickCustomer,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+          child: Row(
+            children: [
+              Icon(Icons.person_search_outlined,
+                  color: AppColors.primaryGreen, size: 20.w),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  name ?? 'كل العملاء',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.cairoMedium16
+                      .copyWith(fontSize: 13.sp, color: colors.text),
+                ),
+              ),
+              if (_customerId != null)
+                InkWell(
+                  onTap: () => setState(() => _customerId = null),
+                  child: Icon(Icons.close, size: 18.w, color: colors.textMuted),
+                )
+              else
+                Icon(Icons.arrow_drop_down, color: colors.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,18 +219,13 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
                     style: AppTextStyles.cairoBold18
                         .copyWith(fontSize: 16.sp, color: colors.text)),
               ),
-              if (!_loading && _collections.isNotEmpty)
+              if (!_loading && _visible.isNotEmpty)
                 TextButton.icon(
-                  onPressed: _sharing ? null : _share,
-                  icon: _sharing
-                      ? SizedBox(
-                          width: 14.w,
-                          height: 14.w,
-                          child:
-                              const CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.share_outlined, size: 16),
-                  label: const Text('مشاركة التحصيلات'),
+                  onPressed: _shareVisible,
+                  icon: const Icon(Icons.share_outlined, size: 16),
+                  label: Text(
+                    _customerId == null ? 'مشاركة التحصيلات' : 'مشاركة العميل',
+                  ),
                 ),
             ],
           ),
@@ -169,6 +243,10 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
               ),
             ),
           SizedBox(height: 12.h),
+          if (!_loading && _collections.isNotEmpty) ...[
+            _buildCustomerFilter(colors),
+            SizedBox(height: 12.h),
+          ],
           if (_loading)
             const Center(child: CircularProgressIndicator())
           else if (_collections.isEmpty)
@@ -188,7 +266,7 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
               children: [
                 Expanded(
                   child: Text(
-                    'إجمالي التحصيلات (${_collections.length})',
+                    'إجمالي التحصيلات (${_visible.length})',
                     style: AppTextStyles.cairoMedium16
                         .copyWith(fontSize: 13.sp, color: colors.textMuted),
                   ),
@@ -204,11 +282,11 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _collections.length,
+              itemCount: _visible.length,
               separatorBuilder: (_, __) =>
                   Divider(color: colors.border.withOpacity(0.5), height: 16.h),
               itemBuilder: (context, index) {
-                final collection = _collections[index];
+                final collection = _visible[index];
                 return Row(
                   children: [
                     Expanded(
@@ -238,12 +316,109 @@ class _DailyCollectionsSectionState extends State<DailyCollectionsSection> {
                       style: AppTextStyles.cairoBold18.copyWith(
                           fontSize: 13.sp, color: AppColors.primaryGreen),
                     ),
+                    if (_customerId == null)
+                      IconButton(
+                        onPressed: () => _shareCustomer(collection),
+                        tooltip: 'مشاركة تحصيلات العميل',
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(Icons.share_outlined,
+                            size: 18.w, color: colors.textMuted),
+                      ),
                   ],
                 );
               },
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _CustomerPickerSheet extends StatefulWidget {
+  final List<MapEntry<String, String>> customers;
+  final String? selectedId;
+
+  const _CustomerPickerSheet({
+    required this.customers,
+    required this.selectedId,
+  });
+
+  @override
+  State<_CustomerPickerSheet> createState() => _CustomerPickerSheetState();
+}
+
+class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final filtered = widget.customers
+        .where((e) => e.value.toLowerCase().contains(_query.toLowerCase()))
+        .toList();
+
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(
+        child: Container(
+          margin: EdgeInsets.all(12.w),
+          padding: EdgeInsets.all(16.w),
+          constraints: BoxConstraints(maxHeight: 70.sh),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(18.r),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'اختار العميل',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.cairoBold18
+                    .copyWith(color: colors.text, fontSize: 16.sp),
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                onChanged: (v) => setState(() => _query = v),
+                decoration: InputDecoration(
+                  hintText: 'ابحث باسم العميل',
+                  prefixIcon: const Icon(Icons.search),
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.groups_outlined),
+                title: const Text('كل العملاء'),
+                selected: widget.selectedId == null,
+                onTap: () => Navigator.pop(context, ''),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final entry = filtered[index];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.person_outline),
+                      title: Text(entry.value.isEmpty ? 'عميل' : entry.value),
+                      selected: widget.selectedId == entry.key,
+                      onTap: () => Navigator.pop(context, entry.key),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

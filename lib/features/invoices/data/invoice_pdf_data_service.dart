@@ -27,7 +27,8 @@ class InvoicePdfDataService {
     String? fallbackRepName,
     double fallbackPreviousBalance = 0,
   }) async {
-    final detail = await _invoicesRepository.getInvoiceDetailByCode(invoiceCode);
+    final detail =
+        await _invoicesRepository.getInvoiceDetailByCode(invoiceCode);
     final summary = await fetchSummary(detail.id);
     final repName = await _resolveRepName(detail, fallbackRepName);
     return InvoicePdfDataFactory.fromDetail(

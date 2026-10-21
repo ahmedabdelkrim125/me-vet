@@ -17,8 +17,9 @@ class DailyCollectionsPdfBuilder {
 
   static Future<Uint8List> build(
     List<DailyCollectionSummary> collections,
-    DateTime reportDate,
-  ) async {
+    DateTime reportDate, {
+    String? customerName,
+  }) async {
     final regular = await rootBundle.load(
       'assets/fonts/${AppTextStyles.cairoRegular14.fontFamily}-Regular.ttf',
     );
@@ -86,7 +87,9 @@ class DailyCollectionsPdfBuilder {
             child: pw.Column(
               children: [
                 pw.Text(
-                  'التحصيلات اليومية',
+                  customerName == null
+                      ? 'التحصيلات اليومية'
+                      : 'تحصيلات $customerName',
                   style:
                       pw.TextStyle(font: boldFont, fontSize: 20, color: _navy),
                 ),

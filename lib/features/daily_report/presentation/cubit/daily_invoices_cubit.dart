@@ -137,5 +137,6 @@ class DailyInvoicesCubit extends Cubit<DailyInvoicesState> {
     throw lastError ?? StateError('تعذر تحميل الفاتورة $code');
   }
 
-  String _fileBaseName() => 'daily-invoices-${day.year}-${day.month}-${day.day}';
+  String _fileBaseName() =>
+      'daily-invoices-${day.year}-${day.month}-${day.day}';
 }

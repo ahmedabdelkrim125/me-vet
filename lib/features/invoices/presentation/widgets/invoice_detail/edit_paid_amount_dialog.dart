@@ -57,8 +57,10 @@ class _EditPaidAmountDialogState extends State<EditPaidAmountDialog> {
         final isIncrease = parsed != null && parsed > widget.paid;
         final isDecrease = parsed != null && parsed < widget.paid;
         final overTotalOnDecrease = isDecrease && parsed > widget.total;
-        final valid =
-            parsed != null && parsed >= 0 && !overTotalOnDecrease && (isIncrease || isDecrease);
+        final valid = parsed != null &&
+            parsed >= 0 &&
+            !overTotalOnDecrease &&
+            (isIncrease || isDecrease);
 
         return AlertDialog(
           title: const Text('تعديل المبلغ المدفوع'),

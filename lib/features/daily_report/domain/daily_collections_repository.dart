@@ -3,6 +3,7 @@ import 'package:mivet_app/features/customer_account/domain/entities/payment_meth
 
 class DailyCollectionSummary {
   final String code;
+  final String customerId;
   final String customerName;
   final DateTime date;
   final double amount;
@@ -10,6 +11,7 @@ class DailyCollectionSummary {
 
   const DailyCollectionSummary({
     required this.code,
+    required this.customerId,
     required this.customerName,
     required this.date,
     required this.amount,
@@ -33,6 +35,7 @@ class DailyCollectionsRepository {
         .from('collections')
         .select(
           'id, code, amount, payment_method, collected_at, split_group_id, '
+          'customer_id, '
           'customers(name)',
         )
         .gte('collected_at', from.toUtc().toIso8601String())
@@ -63,6 +66,7 @@ class DailyCollectionsRepository {
     final customer = main['customers'] as Map<String, dynamic>?;
     return DailyCollectionSummary(
       code: _codeOf(main),
+      customerId: (main['customer_id'] as String?) ?? '',
       customerName: customer?['name'] as String? ?? '',
       date: DateTime.parse(main['collected_at'] as String).toLocal(),
       amount: total,

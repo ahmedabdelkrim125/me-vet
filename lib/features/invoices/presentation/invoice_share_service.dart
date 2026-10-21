@@ -124,7 +124,7 @@ class InvoiceShareService {
                   ),
                 ),
                 SizedBox(height: 14.h),
-                _FormatOption(
+                ShareFormatOption(
                   icon: Icons.image_outlined,
                   title: pages > 1 ? 'صورة ($pages صفحات)' : 'صورة',
                   subtitle: imageSubtitle,
@@ -133,7 +133,7 @@ class InvoiceShareService {
                       Navigator.pop(sheetContext, InvoiceShareFormat.image),
                 ),
                 SizedBox(height: 10.h),
-                _FormatOption(
+                ShareFormatOption(
                   icon: Icons.picture_as_pdf_outlined,
                   title: 'PDF',
                   subtitle: pdfSubtitle,
@@ -150,14 +150,15 @@ class InvoiceShareService {
   }
 }
 
-class _FormatOption extends StatelessWidget {
+class ShareFormatOption extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final bool recommended;
   final VoidCallback onTap;
 
-  const _FormatOption({
+  const ShareFormatOption({
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
