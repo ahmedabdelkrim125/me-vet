@@ -43,7 +43,7 @@ class InvoicePaymentActions extends StatelessWidget {
         _button(
           onPressed: onCollectPayment,
           icon: Icons.edit_outlined,
-          label: const Text('تعديل مبلغ الفاتورة'),
+          label: const Text('تعديل المبلغ المدفوع'),
         ),
         if (detail.remaining > 0 && applicableCredit > 0)
           _button(

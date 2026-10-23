@@ -16,7 +16,7 @@ class InvoiceTotalsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = accountSummary;
-    final paid = summary?.totalPaid ?? detail.paidNow;
+    final paid = summary?.paidFor(detail.totalAmount) ?? detail.paidNow;
     final remaining = summary?.remaining ?? detail.remaining;
     final previousBalance = summary?.previousBalance;
     final isCredit = previousBalance != null && previousBalance < 0;
@@ -55,10 +55,16 @@ class InvoiceTotalsCard extends StatelessWidget {
           label: 'المدفوع الآن',
           value: '${paid.toStringAsFixed(0)} ج.م',
         ),
-        InvoiceInfoRow(
-          label: 'المتبقي على العميل',
-          value: '${(remaining < 0 ? 0 : remaining).toStringAsFixed(0)} ج.م',
-        ),
+        if (remaining < -0.005)
+          InvoiceInfoRow(
+            label: 'رصيد للعميل (دائن)',
+            value: '${(-remaining).toStringAsFixed(0)} ج.م',
+          )
+        else
+          InvoiceInfoRow(
+            label: 'المتبقي على العميل',
+            value: '${remaining.toStringAsFixed(0)} ج.م',
+          ),
       ],
     );
   }

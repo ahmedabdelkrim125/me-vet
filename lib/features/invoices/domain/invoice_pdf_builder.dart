@@ -42,6 +42,7 @@ class InvoicePdfData {
   final double totalDue;
   final double paidNow;
   final double remaining;
+  final double creditBalance;
   final double discountAmount;
 
   final List<InvoicePdfOldDebtLine> oldDebtCollected;
@@ -57,6 +58,7 @@ class InvoicePdfData {
     required this.totalDue,
     required this.paidNow,
     required this.remaining,
+    this.creditBalance = 0,
     this.discountAmount = 0,
     this.oldDebtCollected = const [],
   });
@@ -535,7 +537,9 @@ class InvoicePdfBuilder {
       MapEntry('المبلغ المدفوع', _formatAmount(data.totalPaid)),
       if (data.hasDiscount)
         MapEntry('الخصم', _formatAmount(data.discountAmount)),
-      MapEntry('المبلغ المتبقي', _formatAmount(data.remaining)),
+      data.creditBalance > 0.005
+          ? MapEntry('رصيد للعميل (دائن)', _formatAmount(data.creditBalance))
+          : MapEntry('المبلغ المتبقي', _formatAmount(data.remaining)),
     ].reversed.toList();
 
     final headers = columns.map((c) => c.key).toList();

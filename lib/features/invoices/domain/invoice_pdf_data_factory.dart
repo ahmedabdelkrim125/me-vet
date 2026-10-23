@@ -14,7 +14,7 @@ class InvoicePdfDataFactory {
     bool includeItems = true,
   }) {
     final previousBalance = summary?.previousBalance ?? fallbackPreviousBalance;
-    final paidTotal = summary?.totalPaid ?? detail.paidNow;
+    final paidTotal = summary?.paidFor(detail.totalAmount) ?? detail.paidNow;
     final accountRemaining =
         summary?.remaining ?? previousBalance + detail.totalAmount - paidTotal;
     return InvoicePdfData(
@@ -38,6 +38,7 @@ class InvoicePdfDataFactory {
       totalDue: detail.totalAmount + previousBalance,
       paidNow: paidTotal,
       remaining: accountRemaining < 0 ? 0 : accountRemaining,
+      creditBalance: accountRemaining < 0 ? -accountRemaining : 0,
     );
   }
 

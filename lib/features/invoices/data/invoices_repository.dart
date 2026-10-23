@@ -91,6 +91,14 @@ class InvoiceAccountSummary {
     required this.totalPaid,
     required this.remaining,
   });
+
+  double paidFor(double invoiceTotal) {
+    final fromAccount =
+        double.parse((previousBalance + invoiceTotal - remaining).toStringAsFixed(2));
+    return fromAccount > totalPaid ? fromAccount : totalPaid;
+  }
+
+  double get creditBalance => remaining < 0 ? -remaining : 0;
 }
 
 class InvoicesRepository {
@@ -196,18 +204,16 @@ class InvoicesRepository {
     );
   }
 
-  Future<void> setInvoiceFinalAmount({
+  Future<void> setInvoicePaidAmount({
     required String invoiceId,
-    required double newTotal,
-    required bool extraPaid,
+    required double newPaid,
     required PaymentMethod method,
   }) async {
     await _supabase.rpc(
-      'set_invoice_final_amount',
+      'set_invoice_paid_amount',
       params: {
         'p_invoice_id': invoiceId,
-        'p_new_total': newTotal,
-        'p_extra_paid': extraPaid,
+        'p_new_paid': newPaid,
         'p_payment_method': method.backendValue,
       },
     );

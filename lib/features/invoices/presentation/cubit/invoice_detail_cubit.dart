@@ -78,49 +78,25 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
     } catch (_) {}
   }
 
+  double get totalPaidWithInvoice {
+    final detail = state.detail;
+    if (detail == null) return 0;
+    final oldDebt =
+        state.oldDebtLines.fold<double>(0, (sum, line) => sum + line.amount);
+    return double.parse((detail.paidNow + oldDebt).toStringAsFixed(2));
+  }
+
   Future<void> setPaidAmount({
     required double newPaid,
     required PaymentMethod method,
   }) async {
     final detail = state.detail;
     if (detail == null) return;
-    final delta = double.parse((newPaid - detail.paidNow).toStringAsFixed(2));
-    if (delta == 0) return;
+    if ((newPaid - totalPaidWithInvoice).abs() < 0.005) return;
     try {
-      if (delta > 0) {
-        await _invoicesRepository.collectAgainstInvoice(
-          invoiceId: detail.id,
-          amount: delta,
-          method: method,
-        );
-      } else {
-        await _invoicesRepository.releaseInvoiceOverpayment(
-          invoiceId: detail.id,
-          newPaid: newPaid,
-        );
-      }
-    } catch (error) {
-      if (!isClosed) emit(state.copyWith(error: error));
-      return;
-    }
-    if (isClosed) return;
-    emit(state.copyWith(successMessage: 'تم تعديل المبلغ المدفوع'));
-    await reload();
-  }
-
-  Future<void> setFinalAmount({
-    required double newTotal,
-    required bool extraPaid,
-    required PaymentMethod method,
-  }) async {
-    final detail = state.detail;
-    if (detail == null) return;
-    if ((newTotal - detail.totalAmount).abs() < 0.005) return;
-    try {
-      await _invoicesRepository.setInvoiceFinalAmount(
+      await _invoicesRepository.setInvoicePaidAmount(
         invoiceId: detail.id,
-        newTotal: newTotal,
-        extraPaid: extraPaid,
+        newPaid: newPaid,
         method: method,
       );
     } catch (error) {
@@ -128,7 +104,7 @@ class InvoiceDetailCubit extends Cubit<InvoiceDetailState> {
       return;
     }
     if (isClosed) return;
-    emit(state.copyWith(successMessage: 'تم تعديل مبلغ الفاتورة'));
+    emit(state.copyWith(successMessage: 'تم تعديل المبلغ المدفوع'));
     await reload();
   }
 
