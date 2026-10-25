@@ -1,5 +1,4 @@
 import 'package:mivet_app/features/customer_account/data/repositories/customer_account_repository.dart';
-
 import '../../../customer_visits/customers/domain/models/collection_record_model.dart';
 import '../../domain/entities/customer_ledger.dart';
 import '../../domain/entities/payment_method.dart';
@@ -77,7 +76,6 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
     final repId = collectionRow['rep_id'] as String?;
     final collectedAtRaw = collectionRow['collected_at'] as String?;
     final code = collectionRow['code'] as String?;
-    final rawAmount = collectionRow['amount'];
     final rawPaymentMethod = collectionRow['payment_method'] as String?;
 
     if (repId == null || collectedAtRaw == null) {
@@ -93,10 +91,6 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
         'بيانات الإيصال غير مكتملة',
       );
     }
-
-    final resolvedAmount = rawAmount is num
-        ? rawAmount.toDouble()
-        : double.tryParse('$rawAmount') ?? amount;
 
     final resolvedPaymentMethod =
         paymentMethodFromBackend(rawPaymentMethod) ?? paymentMethod;
@@ -118,7 +112,7 @@ class CustomerAccountRepositoryImpl implements CustomerAccountRepository {
     return CollectionReceipt(
       customerName: customerName,
       representativeName: representativeName,
-      amount: resolvedAmount,
+      amount: amount,
       balanceAfterCollection: balance,
       paymentMethod: resolvedPaymentMethod,
       collectedAt: collectedAt,
