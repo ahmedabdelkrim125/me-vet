@@ -36,8 +36,6 @@ Future<void> main() async {
 }
 
 Future<void> _bootstrap() async {
-  await ErrorReporter.report(StateError('Sentry test'), StackTrace.current);
-
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,

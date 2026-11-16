@@ -46,18 +46,18 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   );
 
   static const dark = AppColorScheme(
-    primary: Color(0xFF1E8A6E),
-    secondary: Color(0xFF14506B),
-    background: Color(0xFF141210),
-    surface: Color(0xFF1C1917),
-    text: Color(0xFFEDEDED),
-    textMuted: Color(0xFF9A9A9A),
-    border: Color(0xFF322E2A),
-    statBlue: Color(0xFF5A93F5),
-    statOrange: Color(0xFFF0A05C),
-    statusNotReached: Color(0xFFE0473F),
+    primary: AppColors.primaryGreen,
+    secondary: AppColors.secondary,
+    background: AppColors.backgroundDark,
+    surface: AppColors.surfaceDark,
+    text: AppColors.textDark,
+    textMuted: AppColors.textMutedDark,
+    border: AppColors.cardBorderDark,
+    statBlue: AppColors.statBlueDark,
+    statOrange: AppColors.statOrangeDark,
+    statusNotReached: AppColors.statusNotReached,
     subtleShadow: Color(0x66000000),
-    heroBackground: Color(0xFF1A3A5C),
+    heroBackground: AppColors.heroBackgroundDark,
   );
 
   @override

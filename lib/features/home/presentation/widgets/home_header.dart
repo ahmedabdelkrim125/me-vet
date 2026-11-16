@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/const/app_images.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/arabic_date_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../customer_visits/customers/presentation/controllers/today_route_controller.dart';
 import '../../../notification/domain/models/app_notification_model.dart';
@@ -175,7 +175,7 @@ class _ActionButton extends StatelessWidget {
                             ),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF16B5E),
+                              color: AppColors.accentCoral,
                               shape: badgeCount > 9
                                   ? BoxShape.rectangle
                                   : BoxShape.circle,

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/const/app_images.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-
 import '../../domain/entities/payment_method.dart';
 
 class PaymentMethodDisplay extends StatelessWidget {
@@ -40,9 +40,9 @@ class PaymentMethodDisplay extends StatelessWidget {
   Color _accentColor(AppColorScheme colors) {
     switch (method) {
       case PaymentMethod.vodafoneCash:
-        return const Color(0xFFE60000);
+        return AppColors.vodafoneRed;
       case PaymentMethod.instaPay:
-        return const Color(0xFF6D3FC4);
+        return AppColors.instaPayPurple;
       case PaymentMethod.cash:
       case null:
         return colors.textMuted;

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 import 'models/representative_report_model.dart';
 import 'package:mivet_app/core/utils/pdf_page_background.dart';
 
@@ -18,9 +17,9 @@ class ReportPdfBuilder {
     final document = pw.Document();
 
     final regularFontData = await rootBundle.load(
-        'assets/fonts/${AppTextStyles.cairoRegular14.fontFamily}-Regular.ttf');
-    final boldFontData = await rootBundle
-        .load('assets/fonts/${AppTextStyles.cairoBold18.fontFamily}-Bold.ttf');
+        'assets/fonts/Cairo-Regular.ttf');
+    final boldFontData = await rootBundle.load(
+        'assets/fonts/Cairo-Bold.ttf');
     final regularFont = pw.Font.ttf(regularFontData);
     final boldFont = pw.Font.ttf(boldFontData);
 

@@ -57,8 +57,8 @@ class RepresentativeReportModel {
 
   factory RepresentativeReportModel.fromJson(Map<String, dynamic> json) {
     return RepresentativeReportModel(
-      from: DateTime.parse(json['from'] as String),
-      to: DateTime.parse(json['to'] as String),
+      from: DateTime.tryParse(json['from']?.toString() ?? '') ?? DateTime.now(),
+      to: DateTime.tryParse(json['to']?.toString() ?? '') ?? DateTime.now(),
       repId: json['rep_id'] as String?,
       totalSales: _parseDouble(json['total_sales']),
       totalReturns: _parseDouble(json['total_returns']),
@@ -67,17 +67,18 @@ class RepresentativeReportModel {
       totalCollections: _parseDouble(json['total_collections']),
       collectionsByMethod: _parseMap(json['collections_by_method']),
       collectionsByCustomer: (json['collections_by_customer'] as List<dynamic>?)
-              ?.map((e) =>
-                  CustomerCollectionModel.fromJson(e as Map<String, dynamic>))
+              ?.whereType<Map<String, dynamic>>()
+              .map(CustomerCollectionModel.fromJson)
               .toList() ??
           [],
       salesByCustomer: (json['sales_by_customer'] as List<dynamic>?)
-              ?.map(
-                  (e) => CustomerSaleModel.fromJson(e as Map<String, dynamic>))
+              ?.whereType<Map<String, dynamic>>()
+              .map(CustomerSaleModel.fromJson)
               .toList() ??
           [],
       expenses: (json['expenses'] as List<dynamic>?)
-              ?.map((e) => ExpenseItemModel.fromJson(e as Map<String, dynamic>))
+              ?.whereType<Map<String, dynamic>>()
+              .map(ExpenseItemModel.fromJson)
               .toList() ??
           [],
       totalExpenses: _parseDouble(json['total_expenses']),
@@ -102,10 +103,18 @@ class RepresentativeReportModel {
 
   static Map<String, PaymentMethodBalanceModel> _parseBalancesMap(dynamic map) {
     if (map == null || map is! Map) return {};
-    return map.map((key, value) => MapEntry(
-          key.toString(),
-          PaymentMethodBalanceModel.fromJson(value as Map<String, dynamic>),
-        ));
+    final result = <String, PaymentMethodBalanceModel>{};
+    for (final entry in map.entries) {
+      final value = entry.value;
+      if (value is! Map<String, dynamic>) continue;
+      try {
+        result[entry.key.toString()] =
+            PaymentMethodBalanceModel.fromJson(value);
+      } catch (_) {
+        // Skip malformed balance entries instead of crashing the whole report.
+      }
+    }
+    return result;
   }
 }
 
@@ -122,7 +131,7 @@ class CustomerCollectionModel {
 
   factory CustomerCollectionModel.fromJson(Map<String, dynamic> json) {
     return CustomerCollectionModel(
-      customerName: json['customer_name'] as String? ?? 'غير معروف',
+      customerName: json['customer_name']?.toString() ?? 'غير معروف',
       totalCollected:
           RepresentativeReportModel._parseDouble(json['total_collected']),
       breakdown: RepresentativeReportModel._parseMap(json['breakdown']),
@@ -143,7 +152,7 @@ class CustomerSaleModel {
 
   factory CustomerSaleModel.fromJson(Map<String, dynamic> json) {
     return CustomerSaleModel(
-      customerName: json['customer_name'] as String? ?? 'غير معروف',
+      customerName: json['customer_name']?.toString() ?? 'غير معروف',
       totalSales: RepresentativeReportModel._parseDouble(json['total_sales']),
       returnsAmount:
           RepresentativeReportModel._parseDouble(json['returns_amount']),
@@ -168,11 +177,12 @@ class ExpenseItemModel {
 
   factory ExpenseItemModel.fromJson(Map<String, dynamic> json) {
     return ExpenseItemModel(
-      category: json['category'] as String? ?? '',
+      category: json['category']?.toString() ?? '',
       amount: RepresentativeReportModel._parseDouble(json['amount']),
-      paymentMethod: json['payment_method'] as String? ?? '',
+      paymentMethod: json['payment_method']?.toString() ?? '',
       notes: json['notes'] as String?,
-      expenseAt: DateTime.parse(json['expense_at'] as String),
+      expenseAt: DateTime.tryParse(json['expense_at']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../theme/app_color_scheme_extension.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
 class CustomAlertDialog extends StatelessWidget {
@@ -60,7 +61,7 @@ class CustomAlertDialog extends StatelessWidget {
                     child: Container(
                       padding: EdgeInsets.symmetric(vertical: 12.h),
                       decoration: BoxDecoration(
-                        color: primaryButtonColor ?? const Color(0xFFA11B1B),
+                        color: primaryButtonColor ?? AppColors.deleteRed,
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       alignment: Alignment.center,

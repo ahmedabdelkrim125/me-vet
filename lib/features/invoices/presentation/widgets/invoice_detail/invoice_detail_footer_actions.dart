@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 
 class InvoiceDetailFooterActions extends StatelessWidget {
@@ -37,7 +38,7 @@ class InvoiceDetailFooterActions extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: onShare,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366),
+                backgroundColor: AppColors.whatsappGreen,
               ),
               icon: const FaIcon(
                 FontAwesomeIcons.whatsapp,

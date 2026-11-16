@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+import 'package:mivet_app/core/theme/app_colors.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/features/home/presentation/widgets/quick_invoice/invoice_outlined_icon_button.dart';
@@ -72,10 +73,10 @@ class InvoiceFooterActions extends StatelessWidget {
           InvoiceOutlinedIconButton(
             icon: FaIcon(
               FontAwesomeIcons.whatsapp,
-              color: const Color(0xFF25D366),
+              color: AppColors.whatsappGreen,
               size: 22.sp,
             ),
-            color: const Color(0xFF25D366),
+            color: AppColors.whatsappGreen,
             onTap: onShareWhatsapp,
           ),
         ],
