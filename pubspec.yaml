@@ -20,7 +20,6 @@ dependencies:
   intl: ^0.20.2
   hugeicons: ^1.1.7
   shared_preferences: ^2.5.5
-  flutter_launcher_icons: ^0.14.4
   url_launcher: ^6.3.1
   image_picker: ^1.2.3
   pdf: ^3.12.0
@@ -93,11 +92,3 @@ flutter:
     - family: Wessam
       fonts:
         - asset: assets/fonts/a-arslan-wessam-b.ttf
-
-flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  remove_alpha_ios: true
-  image_path: "assets/images/logo_app.png"
-  adaptive_icon_background: "#0E2A47"
-  adaptive_icon_foreground: "assets/images/logo_app.png"

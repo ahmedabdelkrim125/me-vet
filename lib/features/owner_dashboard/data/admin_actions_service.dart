@@ -1,6 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/errors/app_exception.dart';
-import '../../customer_visits/customers/domain/models/customer_model.dart';
+import '../../customer_visits/domain/models/customer_model.dart';
 import '../../invoices/domain/models/invoice_line_input.dart';
 import '../../customer_account/domain/entities/payment_method.dart';
 

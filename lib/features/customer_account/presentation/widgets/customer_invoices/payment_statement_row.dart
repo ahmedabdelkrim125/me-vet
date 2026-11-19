@@ -7,8 +7,9 @@ import 'package:mivet_app/features/customer_account/presentation/widgets/custome
 
 class PaymentStatementRow extends StatefulWidget {
   final PaymentBreakdown payment;
+  final VoidCallback? onEdit;
 
-  const PaymentStatementRow({super.key, required this.payment});
+  const PaymentStatementRow({super.key, required this.payment, this.onEdit});
 
   @override
   State<PaymentStatementRow> createState() => _PaymentStatementRowState();
@@ -117,6 +118,17 @@ class _PaymentStatementRowState extends State<PaymentStatementRow> {
                     ),
                   ],
                 ),
+                if (widget.onEdit != null) ...[
+                  SizedBox(height: 6.h),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton.icon(
+                      onPressed: widget.onEdit,
+                      icon: Icon(Icons.edit_outlined, size: 16.sp),
+                      label: const Text('تعديل المبلغ'),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

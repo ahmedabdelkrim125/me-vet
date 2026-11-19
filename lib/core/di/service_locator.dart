@@ -24,6 +24,7 @@ import '../../features/inventory/domain/usecases/get_vehicle_stock.dart';
 import '../../features/inventory/domain/usecases/get_vehicle_stock_added_today_report.dart';
 import '../../features/inventory/domain/usecases/get_vehicles.dart';
 import '../../features/inventory/domain/usecases/load_vehicle_stock.dart';
+import '../../features/inventory/domain/usecases/return_stock_to_warehouse.dart';
 import '../../features/inventory/domain/usecases/return_vehicle_stock.dart';
 import '../../features/inventory/domain/usecases/set_vehicle_min_threshold.dart';
 import '../../features/inventory/domain/usecases/update_vehicle_stock_quantity.dart';
@@ -127,6 +128,10 @@ void setupServiceLocator() {
     () => ReturnVehicleStock(sl()),
   );
 
+  sl.registerFactory<ReturnStockToWarehouse>(
+    () => ReturnStockToWarehouse(sl()),
+  );
+
   sl.registerFactory<UpdateVehicleStockQuantity>(
     () => UpdateVehicleStockQuantity(sl()),
   );
@@ -147,6 +152,7 @@ void setupServiceLocator() {
       loadVehicleStock: sl(),
       deductVehicleStock: sl(),
       returnVehicleStock: sl(),
+      returnStockToWarehouse: sl(),
       createVehicleForCurrentRep: sl(),
       updateVehicleStockQuantity: sl(),
       setVehicleMinThreshold: sl(),

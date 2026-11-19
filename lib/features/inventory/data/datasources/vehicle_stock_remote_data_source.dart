@@ -106,6 +106,21 @@ class VehicleStockRemoteDataSource {
     );
   }
 
+  Future<void> returnToWarehouse({
+    required String vehicleId,
+    required List<Map<String, dynamic>> items,
+    String? note,
+  }) async {
+    await _supabase.rpc(
+      'return_vehicle_stock_to_warehouse',
+      params: {
+        'p_vehicle_id': vehicleId,
+        'p_items': items,
+        if (note != null && note.trim().isNotEmpty) 'p_note': note.trim(),
+      },
+    );
+  }
+
   Future<void> returnToVehicle({
     required String vehicleId,
     required String productId,

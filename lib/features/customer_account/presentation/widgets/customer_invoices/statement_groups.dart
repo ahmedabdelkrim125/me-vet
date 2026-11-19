@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import 'package:mivet_app/features/customer_account/domain/entities/payment_breakdown.dart';
 import 'package:mivet_app/features/customer_account/presentation/cubit/customer_invoices_state.dart';
 import 'package:mivet_app/features/customer_account/presentation/models/statement_entry.dart';
 import 'package:mivet_app/features/customer_account/presentation/widgets/customer_invoices/invoice_statement_row.dart';
@@ -10,11 +11,13 @@ import 'package:mivet_app/features/customer_account/presentation/widgets/custome
 class StatementGroups extends StatelessWidget {
   final CustomerInvoicesState state;
   final ValueChanged<String> onOpenInvoice;
+  final ValueChanged<PaymentBreakdown>? onEditPayment;
 
   const StatementGroups({
     super.key,
     required this.state,
     required this.onOpenInvoice,
+    this.onEditPayment,
   });
 
   @override
@@ -26,7 +29,13 @@ class StatementGroups extends StatelessWidget {
 
     Widget buildEntry(StatementEntry entry) {
       final invoice = entry.invoice;
-      if (invoice == null) return PaymentStatementRow(payment: entry.payment!);
+      if (invoice == null) {
+        final payment = entry.payment!;
+        return PaymentStatementRow(
+          payment: payment,
+          onEdit: onEditPayment == null ? null : () => onEditPayment!(payment),
+        );
+      }
       return InvoiceStatementRow(
         invoice: invoice,
         oldDebtCollected: oldDebtByCode[invoice.code] ?? 0,

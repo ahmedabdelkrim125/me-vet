@@ -267,8 +267,11 @@ class _ActionsBar extends StatelessWidget {
     }
   }
 
-  void _openStatement(BuildContext context, CustomerAccountCubit cubit) {
-    Navigator.of(context).push(
+  Future<void> _openStatement(
+    BuildContext context,
+    CustomerAccountCubit cubit,
+  ) async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CustomerInvoicesScreen(
           customerId: customerId,
@@ -278,6 +281,7 @@ class _ActionsBar extends StatelessWidget {
         ),
       ),
     );
+    if (!cubit.isClosed) await cubit.refresh();
   }
 
   void _openStatementPdf(BuildContext context, CustomerAccountCubit cubit) {

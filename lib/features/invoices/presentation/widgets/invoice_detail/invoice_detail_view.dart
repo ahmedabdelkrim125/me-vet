@@ -53,6 +53,7 @@ class InvoiceDetailView extends StatelessWidget {
                   return InvoiceDetailFooterActions(
                     onPrint: () => printInvoicePdf(context),
                     onShare: () => shareInvoicePdf(context),
+                    onDelete: () => deleteInvoice(context),
                   );
                 },
               ),

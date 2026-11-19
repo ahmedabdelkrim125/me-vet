@@ -1,6 +1,7 @@
-import 'package:mivet_app/features/customer_visits/customers/data/customers_repository.dart';
 import 'package:mivet_app/features/home/domain/models/quick_invoice_models.dart';
 import 'package:mivet_app/features/inventory/domain/models/product_model.dart';
+
+import '../../../customer_visits/data/customers_repository.dart';
 
 List<InvoiceCustomerModel> invoiceCustomersFromRepository() {
   return CustomersRepository.instance.customers

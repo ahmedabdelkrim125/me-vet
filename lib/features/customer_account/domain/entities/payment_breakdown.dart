@@ -5,10 +5,13 @@ class PaymentBreakdownLine {
 
   final String? invoiceCode;
 
+  final String? collectionId;
+
   const PaymentBreakdownLine({
     required this.amount,
     required this.isOwnInvoice,
     this.invoiceCode,
+    this.collectionId,
   });
 
   static List<PaymentBreakdownLine> listFromRows(List<dynamic> rows) {
@@ -18,6 +21,7 @@ class PaymentBreakdownLine {
           amount: ((raw as Map<String, dynamic>)['amount'] as num).toDouble(),
           isOwnInvoice: raw['source'] == 'new_invoice_payment',
           invoiceCode: raw['invoice_code'] as String?,
+          collectionId: raw['collection_id'] as String?,
         ),
     ];
   }
@@ -44,6 +48,13 @@ class PaymentBreakdown {
 
   List<PaymentBreakdownLine> get oldDebtLines =>
       lines.where((l) => !l.isOwnInvoice).toList();
+
+  String? get editableCollectionId {
+    for (final l in lines) {
+      if (l.collectionId != null) return l.collectionId;
+    }
+    return null;
+  }
 
   String? get ownInvoiceCode {
     for (final l in lines) {
@@ -75,6 +86,7 @@ class PaymentBreakdown {
                 amount: (row['amount'] as num).toDouble(),
                 isOwnInvoice: row['source'] == 'new_invoice_payment',
                 invoiceCode: row['invoice_code'] as String?,
+                collectionId: row['collection_id'] as String?,
               ),
           ],
         ),

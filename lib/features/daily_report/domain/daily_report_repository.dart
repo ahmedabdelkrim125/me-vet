@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/models/representative_report_model.dart';
 
@@ -25,6 +26,25 @@ class DailyReportRepository {
       params: params,
     );
 
-    return RepresentativeReportModel.fromJson(response as Map<String, dynamic>);
+    if (response is! Map) {
+      throw const FormatException('رد التقرير من السيرفر غير صالح');
+    }
+
+    dynamic returnsJson;
+    try {
+      returnsJson = await _supabase.rpc(
+        'get_returns_report',
+        params: params,
+      );
+    } catch (e) {
+      debugPrint('[Report] تعذر تحميل تفاصيل المرتجعات: $e');
+    }
+
+    return RepresentativeReportModel.fromJson(
+      Map<String, dynamic>.from(response),
+      fallbackFrom: from,
+      fallbackTo: to,
+      returnsJson: returnsJson,
+    );
   }
 }

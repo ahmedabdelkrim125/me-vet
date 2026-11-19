@@ -7,6 +7,7 @@ import '../../domain/usecases/get_stock_movements.dart';
 import '../../domain/usecases/get_vehicle_stock.dart';
 import '../../domain/usecases/get_vehicles.dart';
 import '../../domain/usecases/load_vehicle_stock.dart';
+import '../../domain/usecases/return_stock_to_warehouse.dart';
 import '../../domain/usecases/return_vehicle_stock.dart';
 import '../../domain/usecases/set_vehicle_min_threshold.dart';
 import '../../domain/usecases/update_vehicle_stock_quantity.dart';
@@ -34,6 +35,7 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
   final LoadVehicleStock _loadVehicleStock;
   final DeductVehicleStock _deductVehicleStock;
   final ReturnVehicleStock _returnVehicleStock;
+  final ReturnStockToWarehouse _returnStockToWarehouse;
   final CreateVehicleForCurrentRep _createVehicleForCurrentRep;
   final UpdateVehicleStockQuantity _updateVehicleStockQuantity;
   final SetVehicleMinThreshold _setVehicleMinThreshold;
@@ -46,6 +48,7 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
     required LoadVehicleStock loadVehicleStock,
     required DeductVehicleStock deductVehicleStock,
     required ReturnVehicleStock returnVehicleStock,
+    required ReturnStockToWarehouse returnStockToWarehouse,
     required CreateVehicleForCurrentRep createVehicleForCurrentRep,
     required UpdateVehicleStockQuantity updateVehicleStockQuantity,
     required SetVehicleMinThreshold setVehicleMinThreshold,
@@ -56,6 +59,7 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
         _loadVehicleStock = loadVehicleStock,
         _deductVehicleStock = deductVehicleStock,
         _returnVehicleStock = returnVehicleStock,
+        _returnStockToWarehouse = returnStockToWarehouse,
         _createVehicleForCurrentRep = createVehicleForCurrentRep,
         _updateVehicleStockQuantity = updateVehicleStockQuantity,
         _setVehicleMinThreshold = setVehicleMinThreshold,
@@ -293,6 +297,39 @@ class VehicleStockCubit extends Cubit<VehicleStockState> {
           status: VehicleStockStatus.error,
           errorMessage: mapErrorToAppException(e).message));
       rethrow;
+    }
+  }
+
+  Future<bool> returnStockToWarehouse({
+    required String vehicleId,
+    required Map<String, int> quantities,
+    String? note,
+  }) async {
+    if (isClosed || quantities.isEmpty) return false;
+    emit(state.copyWith(
+        status: VehicleStockStatus.loadingAction,
+        clearError: true,
+        clearSuccess: true));
+    try {
+      await _returnStockToWarehouse(
+        vehicleId: vehicleId,
+        quantities: quantities,
+        note: note,
+      );
+      if (isClosed) return true;
+      emit(state.copyWith(
+          status: VehicleStockStatus.success,
+          successMessage: quantities.length == 1
+              ? 'تم إرجاع الصنف للمخزن الرئيسي'
+              : 'تم إرجاع ${quantities.length} أصناف للمخزن الرئيسي'));
+      await loadSelectedVehicleData();
+      return true;
+    } catch (e) {
+      if (isClosed) return false;
+      emit(state.copyWith(
+          status: VehicleStockStatus.error,
+          errorMessage: mapErrorToAppException(e).message));
+      return false;
     }
   }
 

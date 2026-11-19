@@ -16,54 +16,43 @@ class ReportPdfBuilder {
   static Future<Uint8List> build(RepresentativeReportModel report) async {
     final document = pw.Document();
 
-    final regularFontData = await rootBundle.load(
-        'assets/fonts/Cairo-Regular.ttf');
-    final boldFontData = await rootBundle.load(
-        'assets/fonts/Cairo-Bold.ttf');
+    final regularFontData =
+        await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
+    final boldFontData = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
     final regularFont = pw.Font.ttf(regularFontData);
     final boldFont = pw.Font.ttf(boldFontData);
 
     document.addPage(
       pw.MultiPage(
+        maxPages: 2000,
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(28),
           theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
+          textDirection: pw.TextDirection.rtl,
           buildBackground: (context) =>
               buildWhitePdfBackground(watermarkBytes: null),
         ),
-        footer: (context) => pw.Directionality(
-          textDirection: pw.TextDirection.rtl,
-          child: _buildFooter(),
-        ),
-        build: (context) {
-          return [
-            pw.Directionality(
-              textDirection: pw.TextDirection.rtl,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                children: [
-                  _buildTitle(boldFont),
-                  pw.SizedBox(height: 22),
-                  _buildMetaRow(report, boldFont),
-                  pw.SizedBox(height: 24),
-                  _buildSummaryTable(report, boldFont, regularFont),
-                  pw.SizedBox(height: 18),
-                  _buildBalancesTable(report, boldFont, regularFont),
-                  pw.SizedBox(height: 18),
-                  if (report.collectionsByCustomer.isNotEmpty) ...[
-                    _buildCollectionsTable(report, boldFont, regularFont),
-                    pw.SizedBox(height: 18),
-                  ],
-                  if (report.expenses.isNotEmpty) ...[
-                    _buildExpensesTable(report, boldFont, regularFont),
-                    pw.SizedBox(height: 18),
-                  ],
-                ],
-              ),
-            ),
-          ];
-        },
+        footer: (context) => _buildFooter(),
+        build: (context) => [
+          _buildTitle(boldFont),
+          pw.SizedBox(height: 22),
+          _buildMetaRow(report, boldFont),
+          pw.SizedBox(height: 24),
+          if (report.warnings.isNotEmpty) ...[
+            _buildWarnings(report.warnings, boldFont, regularFont),
+            pw.SizedBox(height: 18),
+          ],
+          ..._buildSummarySection(report, boldFont, regularFont),
+          ..._buildSalesSection(report, boldFont, regularFont),
+          ..._buildBalancesSection(report, boldFont, regularFont),
+          if (report.collectionsByCustomer.isNotEmpty)
+            ..._buildCollectionsSection(report, boldFont, regularFont),
+          if (report.expenses.isNotEmpty)
+            ..._buildExpensesSection(report, boldFont, regularFont),
+          if (report.returns.isNotEmpty)
+            ..._buildReturnsSection(report, boldFont, regularFont),
+        ],
       ),
     );
 
@@ -72,13 +61,9 @@ class ReportPdfBuilder {
 
   static pw.Widget _buildTitle(pw.Font boldFont) {
     return pw.Center(
-      child: pw.Column(
-        children: [
-          pw.Text(
-            'تقرير التحصيلات',
-            style: pw.TextStyle(font: boldFont, fontSize: 20, color: _navy),
-          ),
-        ],
+      child: pw.Text(
+        'تقرير التحصيلات',
+        style: pw.TextStyle(font: boldFont, fontSize: 20, color: _navy),
       ),
     );
   }
@@ -119,7 +104,46 @@ class ReportPdfBuilder {
     );
   }
 
-  static pw.Widget _buildSummaryTable(
+  static pw.Widget _buildWarnings(
+    List<String> warnings,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    return pw.Row(
+      children: [
+        pw.Expanded(
+          child: pw.Container(
+            padding: const pw.EdgeInsets.all(8),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.orange800, width: 0.8),
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'تنبيه: بعض بيانات التقرير غير مكتملة',
+                  style: pw.TextStyle(
+                    font: boldFont,
+                    fontSize: 11,
+                    color: PdfColors.orange800,
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                for (final warning in warnings)
+                  pw.Text(
+                    warning,
+                    style: pw.TextStyle(font: regularFont, fontSize: 10),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static List<pw.Widget> _buildSummarySection(
     RepresentativeReportModel report,
     pw.Font boldFont,
     pw.Font regularFont,
@@ -133,11 +157,41 @@ class ReportPdfBuilder {
       '${report.totalCollections.toStringAsFixed(2)} ج.م',
     ];
 
-    return _buildStyledTable(
-        'ملخص التقرير', headers, [values], boldFont, regularFont);
+    return _buildSection(
+      'ملخص التقرير',
+      headers,
+      [values],
+      boldFont,
+      regularFont,
+    );
   }
 
-  static pw.Widget _buildBalancesTable(
+  static List<pw.Widget> _buildSalesSection(
+    RepresentativeReportModel report,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    final headers = [
+      'صافي المبيعات',
+      'إجمالي المرتجعات',
+      'إجمالي المبيعات',
+    ];
+    final values = [
+      '${report.netSales.toStringAsFixed(2)} ج.م',
+      '${report.totalReturns.toStringAsFixed(2)} ج.م',
+      '${report.totalSales.toStringAsFixed(2)} ج.م',
+    ];
+
+    return _buildSection(
+      'المبيعات والمرتجعات',
+      headers,
+      [values],
+      boldFont,
+      regularFont,
+    );
+  }
+
+  static List<pw.Widget> _buildBalancesSection(
     RepresentativeReportModel report,
     pw.Font boldFont,
     pw.Font regularFont,
@@ -151,6 +205,10 @@ class ReportPdfBuilder {
     final rows = <List<String>>[];
 
     void addBalanceRow(String methodLabel, String methodKey) {
+      if (report.invalidBalanceMethods.contains(methodKey)) {
+        rows.add(['-', '-', '-', methodLabel]);
+        return;
+      }
       final b = report.balances[methodKey];
       if (b != null) {
         rows.add([
@@ -168,17 +226,22 @@ class ReportPdfBuilder {
     addBalanceRow('فودافون كاش', 'vodafone_cash');
     addBalanceRow('InstaPay', 'instapay');
 
-    return _buildStyledTable(
-        'الأرصدة الحالية', headers, rows, boldFont, regularFont,
-        columnWidths: {
-          0: const pw.FlexColumnWidth(2),
-          1: const pw.FlexColumnWidth(2),
-          2: const pw.FlexColumnWidth(2),
-          3: const pw.FlexColumnWidth(2),
-        });
+    return _buildSection(
+      'الأرصدة الحالية',
+      headers,
+      rows,
+      boldFont,
+      regularFont,
+      columnWidths: {
+        0: const pw.FlexColumnWidth(2),
+        1: const pw.FlexColumnWidth(2),
+        2: const pw.FlexColumnWidth(2),
+        3: const pw.FlexColumnWidth(2),
+      },
+    );
   }
 
-  static pw.Widget _buildCollectionsTable(
+  static List<pw.Widget> _buildCollectionsSection(
     RepresentativeReportModel report,
     pw.Font boldFont,
     pw.Font regularFont,
@@ -195,16 +258,21 @@ class ReportPdfBuilder {
       ]);
     }
 
-    return _buildStyledTable(
-        'تحصيلات العملاء', headers, rows, boldFont, regularFont,
-        columnWidths: {
-          0: const pw.FlexColumnWidth(2),
-          1: const pw.FlexColumnWidth(3),
-          2: const pw.FlexColumnWidth(0.6),
-        });
+    return _buildSection(
+      'تحصيلات العملاء',
+      headers,
+      rows,
+      boldFont,
+      regularFont,
+      columnWidths: {
+        0: const pw.FlexColumnWidth(2),
+        1: const pw.FlexColumnWidth(3),
+        2: const pw.FlexColumnWidth(0.6),
+      },
+    );
   }
 
-  static pw.Widget _buildExpensesTable(
+  static List<pw.Widget> _buildExpensesSection(
     RepresentativeReportModel report,
     pw.Font boldFont,
     pw.Font regularFont,
@@ -222,16 +290,58 @@ class ReportPdfBuilder {
       ]);
     }
 
-    return _buildStyledTable('المصروفات', headers, rows, boldFont, regularFont,
-        columnWidths: {
-          0: const pw.FlexColumnWidth(2),
-          1: const pw.FlexColumnWidth(2),
-          2: const pw.FlexColumnWidth(3),
-          3: const pw.FlexColumnWidth(0.6),
-        });
+    return _buildSection(
+      'المصروفات',
+      headers,
+      rows,
+      boldFont,
+      regularFont,
+      columnWidths: {
+        0: const pw.FlexColumnWidth(2),
+        1: const pw.FlexColumnWidth(2),
+        2: const pw.FlexColumnWidth(3),
+        3: const pw.FlexColumnWidth(0.6),
+      },
+    );
   }
 
-  static pw.Widget _buildStyledTable(
+  static List<pw.Widget> _buildReturnsSection(
+    RepresentativeReportModel report,
+    pw.Font boldFont,
+    pw.Font regularFont,
+  ) {
+    final headers = ['المبلغ', 'السبب', 'العميل', 'رقم المرتجع', 'م'];
+    final rows = <List<String>>[];
+
+    for (var i = 0; i < report.returns.length; i++) {
+      final r = report.returns[i];
+      final reason = r.reason?.trim() ?? '';
+      rows.add([
+        '${r.amount.toStringAsFixed(2)} ج.م',
+        reason.isEmpty ? '-' : reason,
+        r.customerName,
+        r.code.isEmpty ? '-' : r.code,
+        '${i + 1}',
+      ]);
+    }
+
+    return _buildSection(
+      'تفاصيل المرتجعات',
+      headers,
+      rows,
+      boldFont,
+      regularFont,
+      columnWidths: {
+        0: const pw.FlexColumnWidth(1.6),
+        1: const pw.FlexColumnWidth(2),
+        2: const pw.FlexColumnWidth(2.4),
+        3: const pw.FlexColumnWidth(1.6),
+        4: const pw.FlexColumnWidth(0.6),
+      },
+    );
+  }
+
+  static List<pw.Widget> _buildSection(
     String title,
     List<String> headers,
     List<List<String>> rows,
@@ -239,62 +349,61 @@ class ReportPdfBuilder {
     pw.Font regularFont, {
     Map<int, pw.TableColumnWidth>? columnWidths,
   }) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          title,
-          style: pw.TextStyle(font: boldFont, fontSize: 14, color: _green),
-        ),
-        pw.SizedBox(height: 8),
-        pw.Table(
-          border: pw.TableBorder.all(color: _border, width: 0.6),
-          columnWidths: columnWidths,
-          children: [
+    return [
+      pw.Text(
+        title,
+        style: pw.TextStyle(font: boldFont, fontSize: 14, color: _green),
+      ),
+      pw.SizedBox(height: 8),
+      pw.Table(
+        border: pw.TableBorder.all(color: _border, width: 0.6),
+        columnWidths: columnWidths,
+        children: [
+          pw.TableRow(
+            repeat: true,
+            decoration: pw.BoxDecoration(color: _navy),
+            children: headers
+                .map(
+                  (h) => pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(
+                      vertical: 6,
+                      horizontal: 4,
+                    ),
+                    child: pw.Text(
+                      h,
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        font: boldFont,
+                        fontSize: 10,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          for (final row in rows)
             pw.TableRow(
-              decoration: pw.BoxDecoration(color: _navy),
-              children: headers
+              children: row
                   .map(
-                    (h) => pw.Padding(
+                    (cell) => pw.Padding(
                       padding: const pw.EdgeInsets.symmetric(
                         vertical: 6,
                         horizontal: 4,
                       ),
                       child: pw.Text(
-                        h,
+                        cell,
                         textAlign: pw.TextAlign.center,
-                        style: pw.TextStyle(
-                          font: boldFont,
-                          fontSize: 10,
-                          color: PdfColors.white,
-                        ),
+                        style: pw.TextStyle(font: regularFont, fontSize: 10),
                       ),
                     ),
                   )
                   .toList(),
             ),
-            for (final row in rows)
-              pw.TableRow(
-                children: row
-                    .map(
-                      (cell) => pw.Padding(
-                        padding: const pw.EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 4,
-                        ),
-                        child: pw.Text(
-                          cell,
-                          textAlign: pw.TextAlign.center,
-                          style: pw.TextStyle(font: regularFont, fontSize: 10),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-          ],
-        ),
-      ],
-    );
+        ],
+      ),
+      pw.SizedBox(height: 18),
+    ];
   }
 
   static String _formatDate(DateTime date) {

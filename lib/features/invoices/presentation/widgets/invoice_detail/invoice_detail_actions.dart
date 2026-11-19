@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
+import 'package:mivet_app/features/auth/domain/models/user_profile.dart';
 import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:mivet_app/features/invoices/data/invoice_deletion_service.dart';
 import 'package:mivet_app/features/invoices/domain/invoice_pdf_builder.dart';
 import 'package:mivet_app/features/invoices/presentation/cubit/invoice_detail_cubit.dart';
 import 'package:mivet_app/features/invoices/presentation/invoice_share_service.dart';
@@ -9,6 +11,8 @@ import 'package:mivet_app/features/invoices/presentation/screens/edit_invoice_sc
 import 'package:mivet_app/features/invoices/presentation/widgets/invoice_detail/apply_credit_dialog.dart';
 import 'package:mivet_app/features/invoices/presentation/widgets/invoice_detail/edit_paid_amount_dialog.dart';
 import 'package:printing/printing.dart';
+
+import 'delete_invoice_dialog.dart';
 
 Future<void> openEditInvoice(BuildContext context) async {
   final cubit = context.read<InvoiceDetailCubit>();
@@ -55,6 +59,41 @@ Future<void> applyInvoiceCredit(BuildContext context) async {
   );
   if (amount == null || !context.mounted) return;
   await cubit.applyCredit(amount);
+}
+
+Future<void> deleteInvoice(BuildContext context) async {
+  final cubit = context.read<InvoiceDetailCubit>();
+  final detail = cubit.state.detail;
+  if (detail == null) return;
+  final user = context.read<AuthCubit>().state.user;
+  try {
+    if (user?.role != UserRole.owner) {
+      final repId =
+          await InvoiceDeletionService.instance.getInvoiceRepId(detail.id);
+      if (repId != user?.id) {
+        if (context.mounted) {
+          showAppInfo(context, 'تقدر تمسح الفواتير اللي أنت عملتها بس');
+        }
+        return;
+      }
+    }
+  } catch (error) {
+    if (context.mounted) showAppError(context, error);
+    return;
+  }
+  if (!context.mounted) return;
+  final deleted = await showDialog<bool>(
+    context: context,
+    builder: (_) => DeleteInvoiceDialog(
+      detail: detail,
+      customerName: cubit.customerName,
+      paidAmount: cubit.paidWithInvoice,
+    ),
+  );
+  if (deleted == true && context.mounted) {
+    showAppSuccess(context, 'تم حذف الفاتورة ${detail.code}');
+    Navigator.of(context).pop(true);
+  }
 }
 
 Future<void> printInvoicePdf(BuildContext context) async {

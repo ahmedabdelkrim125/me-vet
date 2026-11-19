@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class PaymentMethodBalanceModel {
   final double beforeExpenses;
   final double expenses;
@@ -33,9 +35,12 @@ class RepresentativeReportModel {
   final List<CustomerCollectionModel> collectionsByCustomer;
   final List<CustomerSaleModel> salesByCustomer;
   final List<ExpenseItemModel> expenses;
+  final List<ReturnItemModel> returns;
   final double totalExpenses;
   final Map<String, double> expensesByMethod;
   final Map<String, PaymentMethodBalanceModel> balances;
+  final List<String> warnings;
+  final Set<String> invalidBalanceMethods;
 
   const RepresentativeReportModel({
     required this.from,
@@ -50,41 +55,95 @@ class RepresentativeReportModel {
     required this.collectionsByCustomer,
     required this.salesByCustomer,
     required this.expenses,
+    this.returns = const <ReturnItemModel>[],
     required this.totalExpenses,
     required this.expensesByMethod,
     required this.balances,
+    this.warnings = const <String>[],
+    this.invalidBalanceMethods = const <String>{},
   });
 
-  factory RepresentativeReportModel.fromJson(Map<String, dynamic> json) {
+  factory RepresentativeReportModel.fromJson(
+    Map<String, dynamic> json, {
+    DateTime? fallbackFrom,
+    DateTime? fallbackTo,
+    dynamic returnsJson,
+  }) {
+    final warnings = <String>[];
+    final invalidBalanceMethods = <String>{};
+
+    final from = _parseDate(json['from']) ?? fallbackFrom;
+    final to = _parseDate(json['to']) ?? fallbackTo;
+    if (from == null || to == null) {
+      throw const FormatException('تاريخ بداية أو نهاية التقرير غير موجود');
+    }
+
+    final balances = _parseBalancesMap(
+      json['balances'],
+      invalidBalanceMethods,
+      warnings,
+    );
+
+    final totalReturns = _parseDouble(json['total_returns']);
+    final returns = returnsJson == null
+        ? <ReturnItemModel>[]
+        : _parseList(
+            returnsJson,
+            'المرتجعات',
+            ReturnItemModel.fromJson,
+            warnings,
+          );
+    if (returnsJson == null) {
+      if (totalReturns > 0) {
+        warnings.add('تفاصيل المرتجعات غير متاحة حاليا');
+      }
+    } else {
+      final listed = returns.fold<double>(0, (sum, r) => sum + r.amount);
+      if ((listed - totalReturns).abs() > 0.01) {
+        warnings.add('مجموع المرتجعات المعروضة لا يطابق إجمالي المرتجعات');
+      }
+    }
+
     return RepresentativeReportModel(
-      from: DateTime.tryParse(json['from']?.toString() ?? '') ?? DateTime.now(),
-      to: DateTime.tryParse(json['to']?.toString() ?? '') ?? DateTime.now(),
-      repId: json['rep_id'] as String?,
+      from: from,
+      to: to,
+      repId: json['rep_id']?.toString(),
       totalSales: _parseDouble(json['total_sales']),
-      totalReturns: _parseDouble(json['total_returns']),
+      totalReturns: totalReturns,
       netSales: _parseDouble(json['net_sales']),
-      invoiceCount: json['invoice_count'] as int? ?? 0,
+      invoiceCount: _parseInt(json['invoice_count']),
       totalCollections: _parseDouble(json['total_collections']),
       collectionsByMethod: _parseMap(json['collections_by_method']),
-      collectionsByCustomer: (json['collections_by_customer'] as List<dynamic>?)
-              ?.whereType<Map<String, dynamic>>()
-              .map(CustomerCollectionModel.fromJson)
-              .toList() ??
-          [],
-      salesByCustomer: (json['sales_by_customer'] as List<dynamic>?)
-              ?.whereType<Map<String, dynamic>>()
-              .map(CustomerSaleModel.fromJson)
-              .toList() ??
-          [],
-      expenses: (json['expenses'] as List<dynamic>?)
-              ?.whereType<Map<String, dynamic>>()
-              .map(ExpenseItemModel.fromJson)
-              .toList() ??
-          [],
+      collectionsByCustomer: _parseList(
+        json['collections_by_customer'],
+        'تحصيلات العملاء',
+        CustomerCollectionModel.fromJson,
+        warnings,
+      ),
+      salesByCustomer: _parseList(
+        json['sales_by_customer'],
+        'مبيعات العملاء',
+        CustomerSaleModel.fromJson,
+        warnings,
+      ),
+      expenses: _parseList(
+        json['expenses'],
+        'المصروفات',
+        ExpenseItemModel.fromJson,
+        warnings,
+      ),
+      returns: returns,
       totalExpenses: _parseDouble(json['total_expenses']),
       expensesByMethod: _parseMap(json['expenses_by_method']),
-      balances: _parseBalancesMap(json['balances']),
+      balances: balances,
+      warnings: warnings,
+      invalidBalanceMethods: invalidBalanceMethods,
     );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString());
   }
 
   static double _parseDouble(dynamic value) {
@@ -95,24 +154,82 @@ class RepresentativeReportModel {
     return 0.0;
   }
 
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
   static Map<String, double> _parseMap(dynamic map) {
     if (map == null || map is! Map) return {};
     return map
         .map((key, value) => MapEntry(key.toString(), _parseDouble(value)));
   }
 
-  static Map<String, PaymentMethodBalanceModel> _parseBalancesMap(dynamic map) {
-    if (map == null || map is! Map) return {};
-    final result = <String, PaymentMethodBalanceModel>{};
-    for (final entry in map.entries) {
-      final value = entry.value;
-      if (value is! Map<String, dynamic>) continue;
-      try {
-        result[entry.key.toString()] =
-            PaymentMethodBalanceModel.fromJson(value);
-      } catch (_) {
-        // Skip malformed balance entries instead of crashing the whole report.
+  static List<T> _parseList<T>(
+    dynamic raw,
+    String label,
+    T Function(Map<String, dynamic>) parse,
+    List<String> warnings,
+  ) {
+    if (raw == null) return <T>[];
+    if (raw is! List) {
+      warnings.add('بيانات $label بصيغة غير صالحة');
+      return <T>[];
+    }
+    final result = <T>[];
+    var skipped = 0;
+    for (final item in raw) {
+      if (item is! Map) {
+        skipped++;
+        continue;
       }
+      try {
+        result.add(parse(Map<String, dynamic>.from(item)));
+      } catch (e) {
+        skipped++;
+        debugPrint('[Report] تعذر قراءة عنصر من $label: $e');
+      }
+    }
+    if (skipped > 0) {
+      warnings.add('تم تجاهل $skipped من بيانات $label لأنها غير صالحة');
+    }
+    return result;
+  }
+
+  static Map<String, PaymentMethodBalanceModel> _parseBalancesMap(
+    dynamic raw,
+    Set<String> invalidMethods,
+    List<String> warnings,
+  ) {
+    if (raw == null) return {};
+    if (raw is! Map) {
+      warnings.add('بيانات الأرصدة بصيغة غير صالحة');
+      return {};
+    }
+    final result = <String, PaymentMethodBalanceModel>{};
+    for (final entry in raw.entries) {
+      final key = entry.key.toString();
+      final value = entry.value;
+      if (value == null) continue;
+      if (value is! Map) {
+        invalidMethods.add(key);
+        continue;
+      }
+      try {
+        result[key] = PaymentMethodBalanceModel.fromJson(
+          Map<String, dynamic>.from(value),
+        );
+      } catch (e) {
+        invalidMethods.add(key);
+        debugPrint('[Report] تعذر قراءة رصيد $key: $e');
+      }
+    }
+    if (invalidMethods.isNotEmpty) {
+      warnings.add(
+        'رصيد بعض وسائل الدفع غير صالح: ${invalidMethods.join('، ')}',
+      );
     }
     return result;
   }
@@ -165,14 +282,14 @@ class ExpenseItemModel {
   final double amount;
   final String paymentMethod;
   final String? notes;
-  final DateTime expenseAt;
+  final DateTime? expenseAt;
 
   const ExpenseItemModel({
     required this.category,
     required this.amount,
     required this.paymentMethod,
     this.notes,
-    required this.expenseAt,
+    this.expenseAt,
   });
 
   factory ExpenseItemModel.fromJson(Map<String, dynamic> json) {
@@ -180,9 +297,34 @@ class ExpenseItemModel {
       category: json['category']?.toString() ?? '',
       amount: RepresentativeReportModel._parseDouble(json['amount']),
       paymentMethod: json['payment_method']?.toString() ?? '',
-      notes: json['notes'] as String?,
-      expenseAt: DateTime.tryParse(json['expense_at']?.toString() ?? '') ??
-          DateTime.now(),
+      notes: json['notes']?.toString(),
+      expenseAt: RepresentativeReportModel._parseDate(json['expense_at']),
+    );
+  }
+}
+
+class ReturnItemModel {
+  final String code;
+  final String customerName;
+  final double amount;
+  final String? reason;
+  final DateTime? returnDate;
+
+  const ReturnItemModel({
+    required this.code,
+    required this.customerName,
+    required this.amount,
+    this.reason,
+    this.returnDate,
+  });
+
+  factory ReturnItemModel.fromJson(Map<String, dynamic> json) {
+    return ReturnItemModel(
+      code: json['code']?.toString() ?? '',
+      customerName: json['customer_name']?.toString() ?? 'غير معروف',
+      amount: RepresentativeReportModel._parseDouble(json['amount']),
+      reason: json['reason']?.toString(),
+      returnDate: RepresentativeReportModel._parseDate(json['return_date']),
     );
   }
 }

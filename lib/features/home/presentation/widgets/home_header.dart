@@ -8,7 +8,7 @@ import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/arabic_date_utils.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../customer_visits/customers/presentation/controllers/today_route_controller.dart';
+import '../../../customer_visits/presentation/controllers/today_route_controller.dart';
 import '../../../notification/domain/models/app_notification_model.dart';
 import '../../../notification/domain/notification_repository.dart';
 import '../../../notification/presentation/screens/notifications_screen.dart';

@@ -1,34 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mivet_app/core/di/service_locator.dart';
-import '../../../../core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
-import '../../../../core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
 import 'package:mivet_app/core/widgets/custom_alert_dialog.dart';
-import '../../../inventory/domain/models/stock_level.dart';
-import '../../../inventory/domain/models/vehicle_stock_model.dart';
-import '../../../inventory/presentation/cubit/vehicle_stock_cubit.dart';
-import '../../../inventory/presentation/cubit/vehicle_stock_state.dart';
-import '../../../inventory/presentation/widgets/add_to_vehicle_dialog.dart';
-import '../../../inventory/presentation/widgets/add_product_sheet.dart';
-import '../../../inventory/presentation/widgets/inventory_search_bar.dart';
-import '../../../inventory/presentation/widgets/inventory_stat_row.dart';
-import '../../../inventory/presentation/widgets/product_detail_sheet.dart';
 import 'package:mivet_app/features/inventory/data/products_repository.dart';
-import '../../../inventory/domain/models/product_model.dart';
 import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
-import '../../../inventory/domain/models/product_catalog.dart';
-import '../../../inventory/domain/models/product_catalog_item.dart';
-import '../../../inventory/presentation/widgets/edit_vehicle_stock_quantity_sheet.dart';
-import '../../../inventory/presentation/widgets/vehicle_stock_share_type_sheet.dart';
-import '../widgets/vehicle_stock_share_service.dart';
-import '../widgets/vehicle_stock_tile.dart';
-import '../widgets/stock_movement_log_sheet.dart';
-import '../widgets/vehicle_setup_form.dart';
-import '../widgets/category_filter_tab.dart';
-import '../widgets/existing_product_picker_sheet.dart';
-import '../widgets/multi_product_picker_sheet.dart';
+import '../../../../../core/errors/app_toast.dart';
+import '../../../../../core/theme/app_text_styles.dart';
+import '../../../../inventory/domain/models/product_catalog.dart';
+import '../../../../inventory/domain/models/product_catalog_item.dart';
+import '../../../../inventory/domain/models/product_model.dart';
+import '../../../../inventory/domain/models/stock_level.dart';
+import '../../../../inventory/domain/models/vehicle_stock_model.dart';
+import '../../../../inventory/presentation/cubit/vehicle_stock_cubit.dart';
+import '../../../../inventory/presentation/cubit/vehicle_stock_state.dart';
+import '../../../../inventory/presentation/widgets/add_product_sheet.dart';
+import '../../../../inventory/presentation/widgets/add_to_vehicle_dialog.dart';
+import '../../../../inventory/presentation/widgets/edit_vehicle_stock_quantity_sheet.dart';
+import '../../../../inventory/presentation/widgets/inventory_search_bar.dart';
+import '../../../../inventory/presentation/widgets/inventory_stat_row.dart';
+import '../../../../inventory/presentation/widgets/product_detail_sheet.dart';
+import '../../../../inventory/presentation/widgets/vehicle_stock_share_type_sheet.dart';
+import '../../../../vehicle_stock/presentation/widgets/category_filter_tab.dart';
+import '../../../../vehicle_stock/presentation/widgets/existing_product_picker_sheet.dart';
+import '../../../../vehicle_stock/presentation/widgets/stock_movement_log_sheet.dart';
+import '../../../../vehicle_stock/presentation/widgets/vehicle_setup_form.dart';
+import '../../../../vehicle_stock/presentation/widgets/vehicle_stock_share_service.dart';
+import '../../../../vehicle_stock/presentation/widgets/vehicle_stock_tile.dart';
+import '../../../presentation/screens/widgets/multi_product_picker_sheet.dart';
 
 class VehicleStockScreen extends StatefulWidget {
   const VehicleStockScreen({super.key});
@@ -312,23 +312,35 @@ class _VehicleStockViewState extends State<_VehicleStockView>
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          'التصنيفات',
-                          style: AppTextStyles.cairoMedium16.copyWith(
-                            color: context.colors.text,
-                            fontSize: 13.sp,
+                        child: FilledButton.icon(
+                          onPressed: () => _openProductFlow(
+                            context,
+                            selectedVehicle.id,
                           ),
+                          icon: const Icon(Icons.add),
+                          label: const Text('إضافة صنف'),
                         ),
                       ),
-                      FilledButton.icon(
-                        onPressed: () => _openProductFlow(
-                          context,
-                          selectedVehicle.id,
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _openReturnToWarehouseFlow(
+                            context,
+                            selectedVehicle.id,
+                          ),
+                          icon: const Icon(Icons.warehouse_outlined),
+                          label: const Text('إرجاع للمخزن'),
                         ),
-                        icon: const Icon(Icons.add),
-                        label: const Text('إضافة صنف'),
                       ),
                     ],
+                  ),
+                  SizedBox(height: 14.h),
+                  Text(
+                    'التصنيفات',
+                    style: AppTextStyles.cairoMedium16.copyWith(
+                      color: context.colors.text,
+                      fontSize: 13.sp,
+                    ),
                   ),
                   SizedBox(height: 10.h),
                   SizedBox(
@@ -783,6 +795,92 @@ class _VehicleStockViewState extends State<_VehicleStockView>
     if (failed.isNotEmpty && context.mounted) {
       showAppError(context, Exception('تعذر إضافة: ${failed.join('، ')}'));
     }
+  }
+
+  Future<void> _openReturnToWarehouseFlow(
+    BuildContext context,
+    String vehicleId,
+  ) async {
+    final cubit = context.read<VehicleStockCubit>();
+    final available = {
+      for (final stock in cubit.state.vehicleStock)
+        if (stock.product != null &&
+            !stock.product!.isDeleted &&
+            stock.quantity > 0)
+          stock.productId: stock,
+    };
+    if (available.isEmpty) {
+      showAppInfo(context, 'مفيش أصناف في العربية ترجّعها للمخزن');
+      return;
+    }
+    final entries = await showModalBottomSheet<List<ProductQuantityEntry>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => MultiProductPickerSheet(
+        products: [for (final stock in available.values) stock.product!],
+        catalog: _catalog,
+        currentQuantities: {
+          for (final entry in available.entries)
+            entry.key: entry.value.quantity,
+        },
+        maxQuantities: {
+          for (final entry in available.entries)
+            entry.key: entry.value.quantity,
+        },
+        title: 'إرجاع للمخزن الرئيسي',
+        subtitle:
+            'علّم على الأصناف واكتب الكمية اللي هترجعها من العربية للمخزن الرئيسي',
+        submitLabelBuilder: (count) => 'إرجاع $count للمخزن الرئيسي',
+      ),
+    );
+    if (entries == null || entries.isEmpty || !context.mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تأكيد الإرجاع للمخزن الرئيسي'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final entry in entries)
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 3.h),
+                  child: Text('${entry.product.name} × ${entry.quantity}'),
+                ),
+              SizedBox(height: 10.h),
+              Text(
+                'الكميات دي هتتشال من مخزن العربية وتتضاف للمخزن الرئيسي.',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: dialogContext.colors.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('تأكيد الإرجاع'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    await cubit.returnStockToWarehouse(
+      vehicleId: vehicleId,
+      quantities: {
+        for (final entry in entries) entry.product.id: entry.quantity,
+      },
+    );
   }
 
   Future<void> _loadProduct(

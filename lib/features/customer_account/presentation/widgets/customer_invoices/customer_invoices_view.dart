@@ -4,8 +4,10 @@ import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
+import 'package:mivet_app/features/customer_account/domain/entities/payment_breakdown.dart';
 import 'package:mivet_app/features/customer_account/presentation/cubit/customer_invoices_cubit.dart';
 import 'package:mivet_app/features/customer_account/presentation/cubit/customer_invoices_state.dart';
+import 'package:mivet_app/features/customer_account/presentation/widgets/customer_invoices/edit_collection_dialog.dart';
 import 'package:mivet_app/features/customer_account/presentation/widgets/customer_invoices/statement_filter_chips.dart';
 import 'package:mivet_app/features/customer_account/presentation/widgets/customer_invoices/statement_groups.dart';
 import 'package:mivet_app/features/invoices/presentation/screens/invoice_detail_screen.dart';
@@ -22,8 +24,9 @@ class CustomerInvoicesView extends StatelessWidget {
     required this.onExportPdf,
   });
 
-  void _openInvoice(BuildContext context, String invoiceCode) {
-    Navigator.of(context).push(
+  Future<void> _openInvoice(BuildContext context, String invoiceCode) async {
+    final cubit = context.read<CustomerInvoicesCubit>();
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => InvoiceDetailScreen(
           invoiceCode: invoiceCode,
@@ -32,6 +35,27 @@ class CustomerInvoicesView extends StatelessWidget {
         ),
       ),
     );
+    if (!cubit.isClosed) await cubit.load();
+  }
+
+  Future<void> _editPayment(
+    BuildContext context,
+    PaymentBreakdown payment,
+  ) async {
+    final cubit = context.read<CustomerInvoicesCubit>();
+    final input = await showDialog<EditCollectionInput>(
+      context: context,
+      builder: (_) => EditCollectionDialog(payment: payment),
+    );
+    if (input == null || !context.mounted) return;
+    final updated = await cubit.editPayment(
+      payment: payment,
+      newTotal: input.amount,
+      reason: input.reason,
+    );
+    if (updated && context.mounted) {
+      showAppSuccess(context, 'تم تعديل التحصيل');
+    }
   }
 
   Widget _buildBody(BuildContext context, CustomerInvoicesState state) {
@@ -59,6 +83,7 @@ class CustomerInvoicesView extends StatelessWidget {
     return StatementGroups(
       state: state,
       onOpenInvoice: (code) => _openInvoice(context, code),
+      onEditPayment: (payment) => _editPayment(context, payment),
     );
   }
 

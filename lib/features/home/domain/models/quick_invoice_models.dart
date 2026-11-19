@@ -1,4 +1,5 @@
-import 'package:mivet_app/features/customer_visits/customers/domain/models/customer_model.dart';
+
+import '../../../customer_visits/domain/models/customer_model.dart';
 
 class InvoiceCustomerModel {
   final CustomerModel customer;

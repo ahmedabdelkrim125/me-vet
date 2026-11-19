@@ -29,7 +29,9 @@ class StockMovementModel {
           : 'صنف غير معروف';
 
   bool get isOutgoing =>
-      type == 'sold_from_vehicle' || type == 'deducted_from_vehicle';
+      type == 'sold_from_vehicle' ||
+      type == 'deducted_from_vehicle' ||
+      type == 'returned_to_warehouse';
 
   int get signedQuantity => isOutgoing ? -quantity : quantity;
 
@@ -43,6 +45,8 @@ class StockMovementModel {
         return 'بيع من مخزن السيارة';
       case 'returned_to_vehicle':
         return 'مرتجع إلى مخزن السيارة';
+      case 'returned_to_warehouse':
+        return 'مرتجع إلى المخزن الرئيسي';
       default:
         return 'حركة مخزون';
     }

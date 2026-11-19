@@ -39,6 +39,12 @@ abstract class VehicleStockRepository {
     String? note,
   });
 
+  Future<void> returnToWarehouse({
+    required String vehicleId,
+    required Map<String, int> quantities,
+    String? note,
+  });
+
   Future<void> updateVehicleStockQuantity({
     required String vehicleId,
     required String productId,

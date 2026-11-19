@@ -3,13 +3,13 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import 'package:mivet_app/features/customer_visits/customers/data/customers_repository.dart';
-import 'package:mivet_app/features/customer_visits/customers/domain/models/route_stop_model.dart';
-import 'package:mivet_app/features/customer_visits/customers/domain/models/visit_status.dart';
-import 'package:mivet_app/features/customer_visits/customers/presentation/controllers/today_route_controller.dart';
-import 'package:mivet_app/features/customer_visits/customers/presentation/screens/customer_detail_screen.dart';
-import 'package:mivet_app/features/customer_visits/customers/presentation/screens/weekly_plan_screen.dart';
-import 'package:mivet_app/features/customer_visits/customers/presentation/screens/widgets/route_view/route_status_style.dart';
+import '../../../customer_visits/data/customers_repository.dart';
+import '../../../customer_visits/domain/models/route_stop_model.dart';
+import '../../../customer_visits/domain/models/visit_status.dart';
+import '../../../customer_visits/presentation/controllers/today_route_controller.dart';
+import '../../../customer_visits/presentation/screens/customer_detail_screen.dart';
+import '../../../customer_visits/presentation/screens/weekly_plan_screen.dart';
+import '../../../customer_visits/presentation/screens/widgets/route_view/route_status_style.dart';
 
 class RouteTrackingCard extends StatelessWidget {
   const RouteTrackingCard({super.key});

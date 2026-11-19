@@ -1,0 +1,997 @@
+// import 'package:flutter/material.dart';
+// import 'package:flutter_bloc/flutter_bloc.dart';
+// import 'package:mivet_app/core/di/service_locator.dart';
+// import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
+// import 'package:mivet_app/core/utils/responsive_extension.dart';
+// import 'package:mivet_app/core/widgets/custom_alert_dialog.dart';
+// import 'package:mivet_app/features/inventory/data/products_repository.dart';
+// import 'package:mivet_app/features/auth/presentation/cubit/auth_cubit.dart';
+// import '../../../../../core/errors/app_toast.dart';
+// import '../../../../../core/theme/app_text_styles.dart';
+// import '../../../inventory/domain/models/product_catalog.dart';
+// import '../../../inventory/domain/models/product_catalog_item.dart';
+// import '../../../inventory/domain/models/product_model.dart';
+// import '../../../inventory/domain/models/stock_level.dart';
+// import '../../../inventory/domain/models/vehicle_stock_model.dart';
+// import '../../../inventory/presentation/cubit/vehicle_stock_cubit.dart';
+// import '../../../inventory/presentation/cubit/vehicle_stock_state.dart';
+// import '../../../inventory/presentation/widgets/add_product_sheet.dart';
+// import '../../../inventory/presentation/widgets/add_to_vehicle_dialog.dart';
+// import '../../../inventory/presentation/widgets/edit_vehicle_stock_quantity_sheet.dart';
+// import '../../../inventory/presentation/widgets/inventory_search_bar.dart';
+// import '../../../inventory/presentation/widgets/inventory_stat_row.dart';
+// import '../../../inventory/presentation/widgets/product_detail_sheet.dart';
+// import '../../../inventory/presentation/widgets/vehicle_stock_share_type_sheet.dart';
+// import '../../../vehicle_stock/presentation/widgets/category_filter_tab.dart';
+// import '../../../vehicle_stock/presentation/widgets/existing_product_picker_sheet.dart';
+// import '../../../vehicle_stock/presentation/widgets/stock_movement_log_sheet.dart';
+// import '../../../vehicle_stock/presentation/widgets/vehicle_setup_form.dart';
+// import '../../../vehicle_stock/presentation/widgets/vehicle_stock_share_service.dart';
+// import '../../../vehicle_stock/presentation/widgets/vehicle_stock_tile.dart';
+// import 'widgets/multi_product_picker_sheet.dart';
+
+// class VehicleStockScreen extends StatefulWidget {
+//   const VehicleStockScreen({super.key});
+
+//   @override
+//   State<VehicleStockScreen> createState() => _VehicleStockScreenState();
+// }
+
+// class _VehicleStockScreenState extends State<VehicleStockScreen> {
+//   late final VehicleStockCubit _cubit;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _cubit = sl<VehicleStockCubit>();
+//     _cubit.loadVehicles();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return BlocProvider.value(
+//       value: _cubit,
+//       child: const _VehicleStockView(),
+//     );
+//   }
+// }
+
+// class _VehicleStockView extends StatefulWidget {
+//   const _VehicleStockView();
+
+//   @override
+//   State<_VehicleStockView> createState() => _VehicleStockViewState();
+// }
+
+// class _VehicleStockViewState extends State<_VehicleStockView>
+//     with SingleTickerProviderStateMixin {
+//   late final AnimationController _controller;
+//   String _query = '';
+//   ProductCatalog _catalog = ProductCatalog.empty;
+//   String? _categoryCode;
+//   StockLevel _level = StockLevel.all;
+//   bool _sharingReport = false;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _controller = AnimationController(
+//       vsync: this,
+//       duration: const Duration(milliseconds: 650),
+//     )..forward();
+//     _loadCatalog();
+//   }
+
+//   @override
+//   void dispose() {
+//     _controller.dispose();
+//     super.dispose();
+//   }
+
+//   Future<void> _refresh() {
+//     return Future.wait([
+//       context.read<VehicleStockCubit>().refresh(),
+//       _loadCatalog(),
+//     ]);
+//   }
+
+//   Future<void> _loadCatalog() async {
+//     try {
+//       final categories = await ProductsRepository.instance.getCategories();
+//       if (!mounted) return;
+//       setState(() {
+//         _catalog = ProductCatalog(categories: categories);
+//       });
+//     } catch (error) {
+//       if (mounted) showAppError(context, error);
+//     }
+//   }
+
+//   Future<void> _openProductDetail(VehicleStockModel stock) async {
+//     final product = stock.product;
+//     if (product == null) return;
+//     final cubit = context.read<VehicleStockCubit>();
+//     final changed = await showProductDetailSheet(
+//       context,
+//       product,
+//       catalog: _catalog,
+//       minThreshold: stock.minThreshold,
+//       onSaveMinThreshold: (value) => cubit.setMinThreshold(
+//         vehicleId: stock.vehicleId,
+//         productId: stock.productId,
+//         minThreshold: value,
+//       ),
+//     );
+//     if (changed && mounted) {
+//       await context.read<VehicleStockCubit>().refresh();
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       color: context.colors.background,
+//       child: SafeArea(
+//         child: BlocConsumer<VehicleStockCubit, VehicleStockState>(
+//           listener: (context, state) {
+//             if (state.successMessage != null) {
+//               showAppSuccess(context, state.successMessage!);
+//               context.read<VehicleStockCubit>().clearMessages();
+//             }
+//             if (state.errorMessage != null) {
+//               showAppError(context, Exception(state.errorMessage!));
+//               context.read<VehicleStockCubit>().clearMessages();
+//             }
+//           },
+//           builder: (context, state) {
+//             if (state.status == VehicleStockStatus.initial ||
+//                 state.status == VehicleStockStatus.loading) {
+//               return const Center(child: CircularProgressIndicator());
+//             }
+
+//             if (state.vehicles.isEmpty) {
+//               return VehicleSetupForm(
+//                 representativeName: context.select<AuthCubit, String>(
+//                   (cubit) => cubit.state.user?.name ?? 'المندوب الحالي',
+//                 ),
+//               );
+//             }
+
+//             final selectedVehicle = state.selectedVehicle;
+//             if (selectedVehicle == null) {
+//               return const Center(child: CircularProgressIndicator());
+//             }
+
+//             final activeStock = state.vehicleStock.active;
+
+//             final filtered = activeStock.byLevel(_level).where((entry) {
+//               final product = entry.product!;
+//               final matchesQuery = _query.isEmpty ||
+//                   product.name.toLowerCase().contains(_query.toLowerCase());
+//               return matchesQuery &&
+//                   (_categoryCode == null || product.category == _categoryCode);
+//             }).toList();
+
+//             final total = activeStock.length;
+//             final available = activeStock.countOf(StockLevel.available);
+//             final low = activeStock.countOf(StockLevel.low);
+//             final outOfStock = activeStock.countOf(StockLevel.out);
+
+//             return RefreshIndicator(
+//               onRefresh: _refresh,
+//               child: ListView(
+//                 physics: const AlwaysScrollableScrollPhysics(),
+//                 padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+//                 children: [
+//                   Row(
+//                     children: [
+//                       Expanded(
+//                         child: Container(
+//                           padding: EdgeInsets.symmetric(
+//                             horizontal: 14.w,
+//                             vertical: 12.h,
+//                           ),
+//                           decoration: BoxDecoration(
+//                             color: context.colors.surface,
+//                             borderRadius: BorderRadius.circular(14.r),
+//                             border: Border.all(
+//                               color: context.colors.border,
+//                             ),
+//                           ),
+//                           child: DropdownButtonHideUnderline(
+//                             child: DropdownButton<String>(
+//                               value: selectedVehicle.id,
+//                               isExpanded: true,
+//                               icon: Icon(
+//                                 Icons.keyboard_arrow_down_rounded,
+//                                 color: context.colors.textMuted,
+//                               ),
+//                               dropdownColor: context.colors.surface,
+//                               items: state.vehicles
+//                                   .map(
+//                                     (vehicle) => DropdownMenuItem<String>(
+//                                       value: vehicle.id,
+//                                       child: Text(
+//                                         '${vehicle.plateNumber} — ${vehicle.driverName}',
+//                                         overflow: TextOverflow.ellipsis,
+//                                         style: AppTextStyles.cairoMedium16
+//                                             .copyWith(
+//                                           color: context.colors.text,
+//                                           fontSize: 13.sp,
+//                                         ),
+//                                       ),
+//                                     ),
+//                                   )
+//                                   .toList(),
+//                               onChanged: (vehicleId) {
+//                                 if (vehicleId != null) {
+//                                   context
+//                                       .read<VehicleStockCubit>()
+//                                       .selectVehicle(vehicleId);
+//                                 }
+//                               },
+//                             ),
+//                           ),
+//                         ),
+//                       ),
+//                       SizedBox(width: 10.w),
+//                       Material(
+//                         color: context.colors.surface,
+//                         borderRadius: BorderRadius.circular(14.r),
+//                         child: InkWell(
+//                           borderRadius: BorderRadius.circular(14.r),
+//                           onTap: () => showStockMovementLogSheet(
+//                             context,
+//                             state.movements,
+//                           ),
+//                           child: Container(
+//                             width: 52.h,
+//                             height: 52.h,
+//                             alignment: Alignment.center,
+//                             decoration: BoxDecoration(
+//                               borderRadius: BorderRadius.circular(14.r),
+//                               border: Border.all(
+//                                 color: context.colors.border,
+//                               ),
+//                             ),
+//                             child: Icon(
+//                               Icons.history_rounded,
+//                               color: context.colors.primary,
+//                               size: 20.sp,
+//                             ),
+//                           ),
+//                         ),
+//                       ),
+//                       SizedBox(width: 10.w),
+//                       Material(
+//                         color: context.colors.surface,
+//                         borderRadius: BorderRadius.circular(14.r),
+//                         child: InkWell(
+//                           borderRadius: BorderRadius.circular(14.r),
+//                           onTap:
+//                               _sharingReport ? null : () => _shareReport(state),
+//                           child: Container(
+//                             width: 52.h,
+//                             height: 52.h,
+//                             alignment: Alignment.center,
+//                             decoration: BoxDecoration(
+//                               borderRadius: BorderRadius.circular(14.r),
+//                               border: Border.all(
+//                                 color: context.colors.border,
+//                               ),
+//                             ),
+//                             child: _sharingReport
+//                                 ? SizedBox(
+//                                     width: 18.sp,
+//                                     height: 18.sp,
+//                                     child: CircularProgressIndicator(
+//                                       strokeWidth: 2,
+//                                       color: context.colors.primary,
+//                                     ),
+//                                   )
+//                                 : Icon(
+//                                     Icons.ios_share_rounded,
+//                                     color: context.colors.primary,
+//                                     size: 20.sp,
+//                                   ),
+//                           ),
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                   SizedBox(height: 14.h),
+//                   InventoryStatRow(
+//                     total: total,
+//                     available: available,
+//                     low: low,
+//                     outOfStock: outOfStock,
+//                     selected: _level,
+//                     onSelect: (level) => setState(() => _level = level),
+//                   ),
+//                   SizedBox(height: 14.h),
+//                   Row(
+//                     children: [
+//                       Expanded(
+//                         child: FilledButton.icon(
+//                           onPressed: () => _openProductFlow(
+//                             context,
+//                             selectedVehicle.id,
+//                           ),
+//                           icon: const Icon(Icons.add),
+//                           label: const Text('إضافة صنف'),
+//                         ),
+//                       ),
+//                       SizedBox(width: 10.w),
+//                       Expanded(
+//                         child: OutlinedButton.icon(
+//                           onPressed: () => _openReturnToWarehouseFlow(
+//                             context,
+//                             selectedVehicle.id,
+//                           ),
+//                           icon: const Icon(Icons.warehouse_outlined),
+//                           label: const Text('إرجاع للمخزن'),
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                   SizedBox(height: 14.h),
+//                   Text(
+//                     'التصنيفات',
+//                     style: AppTextStyles.cairoMedium16.copyWith(
+//                       color: context.colors.text,
+//                       fontSize: 13.sp,
+//                     ),
+//                   ),
+//                   SizedBox(height: 10.h),
+//                   SizedBox(
+//                     height: 38.h,
+//                     child: ListView(
+//                       scrollDirection: Axis.horizontal,
+//                       children: [
+//                         CategoryFilterTab(
+//                           label: 'الكل',
+//                           selected: _categoryCode == null,
+//                           onTap: () => setState(() => _categoryCode = null),
+//                         ),
+//                         for (final category in _catalog.categories)
+//                           Padding(
+//                             padding: EdgeInsets.only(left: 8.w),
+//                             child: CategoryFilterTab(
+//                               label: category.name,
+//                               selected: _categoryCode == category.code,
+//                               onTap: () => setState(
+//                                 () => _categoryCode = category.code,
+//                               ),
+//                               onEdit: () => _editCategory(category),
+//                               onDelete: () => _deleteCategory(category),
+//                             ),
+//                           ),
+//                         Padding(
+//                           padding: EdgeInsets.only(left: 8.w),
+//                           child: CategoryFilterTab(
+//                             label: '+',
+//                             selected: false,
+//                             onTap: _createCategory,
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                   SizedBox(height: 14.h),
+//                   InventorySearchBar(
+//                     onChanged: (value) {
+//                       setState(() => _query = value);
+//                     },
+//                   ),
+//                   SizedBox(height: 14.h),
+//                   if (state.status == VehicleStockStatus.loadingStock)
+//                     const LinearProgressIndicator(),
+//                   SizedBox(height: 8.h),
+//                   if (filtered.isEmpty)
+//                     Padding(
+//                       padding: EdgeInsets.only(top: 60.h),
+//                       child: Center(
+//                         child: Text(
+//                           activeStock.isEmpty
+//                               ? 'لسه مفيش أصناف محملة في العربية'
+//                               : _level != StockLevel.all &&
+//                                       activeStock.countOf(_level) == 0
+//                                   ? _level.emptyMessage
+//                                   : 'لا توجد أصناف مطابقة للبحث',
+//                           style: AppTextStyles.cairoMedium16.copyWith(
+//                             color: context.colors.textMuted,
+//                             fontSize: 13.sp,
+//                           ),
+//                         ),
+//                       ),
+//                     )
+//                   else
+//                     for (int i = 0; i < filtered.length; i++)
+//                       _AnimatedVehicleTile(
+//                         index: i,
+//                         total: filtered.length,
+//                         controller: _controller,
+//                         stock: filtered[i],
+//                         categoryName: _catalog
+//                             .categoryName(filtered[i].product!.category),
+//                         onTap: () => _openProductDetail(filtered[i]),
+//                         onEditQuantity: () => _editQuantity(
+//                           context,
+//                           selectedVehicle.id,
+//                           filtered[i],
+//                         ),
+//                       ),
+//                 ],
+//               ),
+//             );
+//           },
+//         ),
+//       ),
+//     );
+//   }
+
+//   Future<void> _shareReport(VehicleStockState state) async {
+//     final vehicle = state.selectedVehicle;
+//     if (vehicle == null || _sharingReport) return;
+
+//     final shareType = _level != StockLevel.all
+//         ? 'level'
+//         : await showModalBottomSheet<String>(
+//             context: context,
+//             isScrollControlled: true,
+//             backgroundColor: Colors.transparent,
+//             builder: (_) => const VehicleStockShareTypeSheet(),
+//           );
+
+//     if (shareType == null || !mounted) return;
+
+//     setState(() => _sharingReport = true);
+//     try {
+//       final representativeName =
+//           context.read<AuthCubit>().state.user?.name ?? 'المندوب الحالي';
+
+//       if (shareType == 'all') {
+//         if (state.vehicleStock.isEmpty) {
+//           showAppInfo(context, 'لا يوجد مخزون في العربية لمشاركته');
+//           return;
+//         }
+//         await VehicleStockShareService.shareVehicleStockReport(
+//           representativeName: representativeName,
+//           vehicle: vehicle,
+//           stock: state.vehicleStock,
+//           catalog: _catalog,
+//         );
+//       } else if (shareType == 'level') {
+//         final levelStock = state.vehicleStock.active.byLevel(_level);
+//         if (levelStock.isEmpty) {
+//           showAppInfo(context, _level.emptyMessage);
+//           return;
+//         }
+//         await VehicleStockShareService.shareVehicleStockReport(
+//           representativeName: representativeName,
+//           vehicle: vehicle,
+//           stock: levelStock,
+//           catalog: _catalog,
+//           title: _level.reportTitle,
+//           fileTag: _level.fileTag,
+//         );
+//       } else if (shareType == 'today') {
+//         final todayStock = await context
+//             .read<VehicleStockCubit>()
+//             .getAddedTodayReport(vehicle.id);
+//         if (todayStock.isEmpty) {
+//           if (mounted) {
+//             showAppInfo(context, 'لم تتم إضافة أي منتجات للعربية اليوم');
+//           }
+//           return;
+//         }
+//         await VehicleStockShareService.shareVehicleStockTodayReport(
+//           representativeName: representativeName,
+//           vehicle: vehicle,
+//           todayStock: todayStock,
+//           catalog: _catalog,
+//         );
+//       }
+//     } catch (error) {
+//       if (mounted) showAppError(context, error);
+//     } finally {
+//       if (mounted) setState(() => _sharingReport = false);
+//     }
+//   }
+
+//   Future<void> _createCategory() async {
+//     final controller = TextEditingController();
+//     final name = await showDialog<String>(
+//       context: context,
+//       builder: (dialog) => AlertDialog(
+//         title: const Text('إنشاء تصنيف'),
+//         content: TextField(
+//           controller: controller,
+//           autofocus: true,
+//           textAlign: TextAlign.right,
+//           decoration: const InputDecoration(labelText: 'اسم التصنيف'),
+//         ),
+//         actions: [
+//           TextButton(
+//             onPressed: () => Navigator.pop(dialog),
+//             child: const Text('إلغاء'),
+//           ),
+//           FilledButton(
+//             onPressed: () => Navigator.pop(dialog, controller.text),
+//             child: const Text('إنشاء'),
+//           ),
+//         ],
+//       ),
+//     );
+
+//     Future.delayed(
+//         const Duration(milliseconds: 300), () => controller.dispose());
+
+//     if (name == null || name.trim().isEmpty) return;
+//     final trimmed = name.trim();
+//     final isDuplicate = _catalog.categories.any(
+//       (item) => item.name.trim().toLowerCase() == trimmed.toLowerCase(),
+//     );
+//     if (isDuplicate) {
+//       if (mounted) {
+//         showAppError(
+//           context,
+//           DuplicateCatalogItemException('هذا التصنيف موجود بالفعل'),
+//         );
+//       }
+//       return;
+//     }
+//     try {
+//       final category =
+//           await ProductsRepository.instance.createCategory(trimmed);
+//       if (mounted) {
+//         setState(() {
+//           _catalog = _catalog.copyWith(
+//             categories: [..._catalog.categories, category],
+//           );
+//           _categoryCode = category.code;
+//         });
+//       }
+//     } catch (error) {
+//       if (mounted) showAppError(context, error);
+//     }
+//   }
+
+//   Future<void> _editCategory(ProductCatalogItem category) async {
+//     final controller = TextEditingController(text: category.name);
+//     final name = await showDialog<String>(
+//       context: context,
+//       builder: (dialog) => AlertDialog(
+//         title: const Text('تعديل التصنيف'),
+//         content: TextField(
+//           controller: controller,
+//           autofocus: true,
+//           textAlign: TextAlign.right,
+//           decoration: const InputDecoration(labelText: 'اسم التصنيف'),
+//         ),
+//         actions: [
+//           TextButton(
+//             onPressed: () => Navigator.pop(dialog),
+//             child: const Text('إلغاء'),
+//           ),
+//           FilledButton(
+//             onPressed: () => Navigator.pop(dialog, controller.text),
+//             child: const Text('حفظ'),
+//           ),
+//         ],
+//       ),
+//     );
+
+//     Future.delayed(
+//         const Duration(milliseconds: 300), () => controller.dispose());
+
+//     if (name == null) return;
+//     final trimmed = name.trim();
+//     if (trimmed.isEmpty || trimmed == category.name) return;
+
+//     final isDuplicate = _catalog.categories.any(
+//       (item) =>
+//           item.code != category.code &&
+//           item.name.trim().toLowerCase() == trimmed.toLowerCase(),
+//     );
+//     if (isDuplicate) {
+//       if (mounted) {
+//         showAppError(
+//           context,
+//           DuplicateCatalogItemException('هذا التصنيف موجود بالفعل'),
+//         );
+//       }
+//       return;
+//     }
+
+//     try {
+//       final updated = await ProductsRepository.instance
+//           .updateCategory(category.code, trimmed);
+//       if (!mounted) return;
+//       setState(() {
+//         _catalog = _catalog.copyWith(
+//           categories: [
+//             for (final item in _catalog.categories)
+//               if (item.code == updated.code) updated else item,
+//           ],
+//         );
+//       });
+//     } catch (error) {
+//       if (mounted) showAppError(context, error);
+//     }
+//   }
+
+//   Future<void> _deleteCategory(ProductCatalogItem category) async {
+//     if (category.code == 'other') {
+//       showAppError(
+//         context,
+//         Exception('لا يمكن حذف تصنيف "أخرى" لأنه التصنيف الاحتياطي للمنتجات'),
+//       );
+//       return;
+//     }
+//     await showDialog(
+//       context: context,
+//       builder: (dialogContext) => CustomAlertDialog(
+//         title: 'حذف التصنيف',
+//         content: 'هل أنت متأكد من حذف التصنيف "${category.name}"؟ أي منتجات '
+//             'مرتبطة به سيتم نقلها تلقائيًا إلى تصنيف "أخرى".',
+//         primaryButtonText: 'حذف',
+//         secondaryButtonText: 'إلغاء',
+//         primaryButtonColor: dialogContext.colors.statusNotReached,
+//         onPrimaryPressed: () => _performDeleteCategory(dialogContext, category),
+//         onSecondaryPressed: () => Navigator.of(dialogContext).pop(),
+//       ),
+//     );
+//   }
+
+//   Future<void> _performDeleteCategory(
+//     BuildContext dialogContext,
+//     ProductCatalogItem category,
+//   ) async {
+//     ProductCatalogItem? fallback;
+//     for (final item in _catalog.categories) {
+//       if (item.code == 'other') {
+//         fallback = item;
+//         break;
+//       }
+//     }
+
+//     if (fallback == null) {
+//       if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+//       if (mounted) {
+//         showAppError(
+//           context,
+//           Exception(
+//               'تصنيف "أخرى" الاحتياطي غير موجود، لا يمكن إتمام الحذف بأمان'),
+//         );
+//       }
+//       return;
+//     }
+
+//     try {
+//       await ProductsRepository.instance.deleteCategory(
+//         category.code,
+//         reassignProductsTo: fallback.code,
+//       );
+//       if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+//       if (!mounted) return;
+//       setState(() {
+//         _catalog = _catalog.copyWith(
+//           categories: [
+//             for (final item in _catalog.categories)
+//               if (item.code != category.code) item,
+//           ],
+//         );
+//         if (_categoryCode == category.code) {
+//           _categoryCode = null;
+//         }
+//       });
+//       showAppSuccess(
+//         context,
+//         'تم حذف التصنيف، وتم نقل أي منتجات كانت مرتبطة به إلى تصنيف "أخرى"',
+//       );
+//       await context.read<VehicleStockCubit>().refresh();
+//     } catch (error) {
+//       if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+//       if (mounted) showAppError(context, error);
+//     }
+//   }
+
+//   Future<void> _openProductFlow(BuildContext context, String vehicleId) async {
+//     final choice = await showModalBottomSheet<String>(
+//       context: context,
+//       builder: (sheetContext) => SafeArea(
+//         child: Wrap(
+//           children: [
+//             ListTile(
+//               leading: const Icon(Icons.search_rounded),
+//               title: const Text('اختيار صنف موجود'),
+//               onTap: () => Navigator.pop(sheetContext, 'existing'),
+//             ),
+//             ListTile(
+//               leading: const Icon(Icons.checklist_rounded),
+//               title: const Text('اختيار عدة أصناف'),
+//               onTap: () => Navigator.pop(sheetContext, 'multi'),
+//             ),
+//             ListTile(
+//               leading: const Icon(Icons.add_box_outlined),
+//               title: const Text('إنشاء صنف جديد'),
+//               onTap: () => Navigator.pop(sheetContext, 'new'),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//     if (!context.mounted || choice == null) return;
+//     if (choice == 'multi') {
+//       await _openMultiProductFlow(context, vehicleId);
+//       return;
+//     }
+//     if (choice == 'existing') {
+//       final product = await showModalBottomSheet<ProductModel>(
+//         context: context,
+//         isScrollControlled: true,
+//         builder: (_) => ExistingProductPickerSheet(
+//           loadProducts: ProductsRepository.instance.getProducts,
+//           catalog: _catalog,
+//         ),
+//       );
+//       if (product != null && context.mounted) {
+//         await _loadProduct(context, vehicleId, product);
+//       }
+//       return;
+//     }
+//     await showAddProductSheet(
+//       context,
+//       initialVehicleQuantity: 1,
+//       onCreated: (product, quantity) =>
+//           context.read<VehicleStockCubit>().loadStock(
+//                 vehicleId: vehicleId,
+//                 productId: product.id,
+//                 quantity: quantity,
+//                 minThreshold: product.minStockThreshold,
+//               ),
+//     );
+//   }
+
+//   Future<void> _openMultiProductFlow(
+//     BuildContext context,
+//     String vehicleId,
+//   ) async {
+//     final cubit = context.read<VehicleStockCubit>();
+//     final currentStock = {
+//       for (final stock in cubit.state.vehicleStock) stock.productId: stock,
+//     };
+//     final myProducts = [
+//       for (final stock in currentStock.values)
+//         if (stock.product != null && !stock.product!.isDeleted) stock.product!,
+//     ];
+//     final entries = await showModalBottomSheet<List<ProductQuantityEntry>>(
+//       context: context,
+//       isScrollControlled: true,
+//       backgroundColor: Colors.transparent,
+//       builder: (_) => MultiProductPickerSheet(
+//         products: myProducts,
+//         catalog: _catalog,
+//         currentQuantities: {
+//           for (final entry in currentStock.entries)
+//             entry.key: entry.value.quantity,
+//         },
+//       ),
+//     );
+//     if (entries == null || entries.isEmpty) return;
+//     final failed = await cubit.loadStockBatch(
+//       vehicleId: vehicleId,
+//       items: entries
+//           .map((entry) => VehicleStockBatchItem(
+//                 productId: entry.product.id,
+//                 productName: entry.product.name,
+//                 quantity: entry.quantity,
+//                 minThreshold: currentStock[entry.product.id]?.minThreshold ??
+//                     entry.product.minStockThreshold,
+//               ))
+//           .toList(),
+//     );
+//     if (failed.isNotEmpty && context.mounted) {
+//       showAppError(context, Exception('تعذر إضافة: ${failed.join('، ')}'));
+//     }
+//   }
+
+//   Future<void> _openReturnToWarehouseFlow(
+//     BuildContext context,
+//     String vehicleId,
+//   ) async {
+//     final cubit = context.read<VehicleStockCubit>();
+//     final available = {
+//       for (final stock in cubit.state.vehicleStock)
+//         if (stock.product != null &&
+//             !stock.product!.isDeleted &&
+//             stock.quantity > 0)
+//           stock.productId: stock,
+//     };
+//     if (available.isEmpty) {
+//       showAppInfo(context, 'مفيش أصناف في العربية ترجّعها للمخزن');
+//       return;
+//     }
+//     final entries = await showModalBottomSheet<List<ProductQuantityEntry>>(
+//       context: context,
+//       isScrollControlled: true,
+//       backgroundColor: Colors.transparent,
+//       builder: (_) => MultiProductPickerSheet(
+//         products: [for (final stock in available.values) stock.product!],
+//         catalog: _catalog,
+//         currentQuantities: {
+//           for (final entry in available.entries)
+//             entry.key: entry.value.quantity,
+//         },
+//         maxQuantities: {
+//           for (final entry in available.entries)
+//             entry.key: entry.value.quantity,
+//         },
+//         title: 'إرجاع للمخزن الرئيسي',
+//         subtitle:
+//             'علّم على الأصناف واكتب الكمية اللي هترجعها من العربية للمخزن الرئيسي',
+//         submitLabelBuilder: (count) => 'إرجاع $count للمخزن الرئيسي',
+//       ),
+//     );
+//     if (entries == null || entries.isEmpty || !context.mounted) return;
+
+//     final confirmed = await showDialog<bool>(
+//       context: context,
+//       builder: (dialogContext) => AlertDialog(
+//         title: const Text('تأكيد الإرجاع للمخزن الرئيسي'),
+//         content: SingleChildScrollView(
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             crossAxisAlignment: CrossAxisAlignment.stretch,
+//             children: [
+//               for (final entry in entries)
+//                 Padding(
+//                   padding: EdgeInsets.symmetric(vertical: 3.h),
+//                   child: Text('${entry.product.name} × ${entry.quantity}'),
+//                 ),
+//               SizedBox(height: 10.h),
+//               Text(
+//                 'الكميات دي هتتشال من مخزن العربية وتتضاف للمخزن الرئيسي.',
+//                 style: TextStyle(
+//                   fontSize: 12.sp,
+//                   color: dialogContext.colors.textMuted,
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//         actions: [
+//           TextButton(
+//             onPressed: () => Navigator.pop(dialogContext, false),
+//             child: const Text('إلغاء'),
+//           ),
+//           ElevatedButton(
+//             onPressed: () => Navigator.pop(dialogContext, true),
+//             child: const Text('تأكيد الإرجاع'),
+//           ),
+//         ],
+//       ),
+//     );
+//     if (confirmed != true || !context.mounted) return;
+
+//     await cubit.returnStockToWarehouse(
+//       vehicleId: vehicleId,
+//       quantities: {
+//         for (final entry in entries) entry.product.id: entry.quantity,
+//       },
+//     );
+//   }
+
+//   Future<void> _loadProduct(
+//     BuildContext context,
+//     String vehicleId,
+//     ProductModel product,
+//   ) =>
+//       showAddToVehicleDialog(
+//         context,
+//         product: product,
+//         onConfirm: (quantity, minThreshold) async {
+//           try {
+//             await context.read<VehicleStockCubit>().loadStock(
+//                   vehicleId: vehicleId,
+//                   productId: product.id,
+//                   quantity: quantity,
+//                   minThreshold: minThreshold,
+//                 );
+//             return null;
+//           } catch (error) {
+//             return error.toString();
+//           }
+//         },
+//       );
+
+//   Future<void> _editQuantity(
+//     BuildContext context,
+//     String vehicleId,
+//     VehicleStockModel stock,
+//   ) async {
+//     final product = stock.product;
+//     if (product == null) return;
+
+//     final newQuantity = await showModalBottomSheet<int>(
+//       context: context,
+//       isScrollControlled: true,
+//       backgroundColor: Colors.transparent,
+//       builder: (_) => EditVehicleStockQuantitySheet(
+//         productName: product.name,
+//         initialQuantity: stock.quantity,
+//       ),
+//     );
+
+//     if (newQuantity != null && newQuantity != stock.quantity && mounted) {
+//       context.read<VehicleStockCubit>().updateStockQuantity(
+//             vehicleId: vehicleId,
+//             productId: product.id,
+//             newQuantity: newQuantity,
+//           );
+//     }
+//   }
+// }
+
+// class _AnimatedVehicleTile extends StatelessWidget {
+//   final int index;
+//   final int total;
+//   final AnimationController controller;
+//   final VehicleStockModel stock;
+//   final String categoryName;
+//   final VoidCallback onTap;
+//   final VoidCallback onEditQuantity;
+
+//   const _AnimatedVehicleTile({
+//     required this.index,
+//     required this.total,
+//     required this.controller,
+//     required this.stock,
+//     required this.categoryName,
+//     required this.onTap,
+//     required this.onEditQuantity,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final product = stock.product;
+//     if (product == null) return const SizedBox.shrink();
+
+//     final safeTotal = total == 0 ? 1 : total;
+//     final start = (index / safeTotal) * 0.5;
+//     final end = (start + 0.5).clamp(0.0, 1.0);
+
+//     final animation = CurvedAnimation(
+//       parent: controller,
+//       curve: Interval(
+//         start,
+//         end,
+//         curve: Curves.easeOutCubic,
+//       ),
+//     );
+
+//     return AnimatedBuilder(
+//       animation: animation,
+//       builder: (context, child) {
+//         return Opacity(
+//           opacity: animation.value.clamp(0.0, 1.0),
+//           child: Transform.translate(
+//             offset: Offset(0, 16 * (1 - animation.value)),
+//             child: child,
+//           ),
+//         );
+//       },
+//       child: Padding(
+//         padding: EdgeInsets.only(bottom: 12.h),
+//         child: VehicleStockTile(
+//           product: product,
+//           stock: stock,
+//           categoryName: categoryName,
+//           onTap: onTap,
+//           onEditQuantity: onEditQuantity,
+//         ),
+//       ),
+//     );
+//   }
+// }

@@ -58,6 +58,8 @@ class AuthErrorMapper implements ErrorMapper {
 }
 
 class PostgrestErrorMapper implements ErrorMapper {
+  static final RegExp _arabic = RegExp(r'[\u0600-\u06FF]');
+
   @override
   bool canHandle(Object error) => error is PostgrestException;
 
@@ -67,6 +69,9 @@ class PostgrestErrorMapper implements ErrorMapper {
     if (e.code == '401' || e.code == 'PGRST301') {
       return AppException('انتهت جلسة الدخول، سجّل الدخول مرة أخرى',
           cause: error);
+    }
+    if (e.code == 'P0001' && _arabic.hasMatch(e.message)) {
+      return AppException(e.message);
     }
     switch (e.code) {
       case '23505':

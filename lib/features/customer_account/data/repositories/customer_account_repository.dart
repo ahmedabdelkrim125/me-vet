@@ -1,8 +1,8 @@
+import '../../../customer_visits/domain/models/collection_record_model.dart';
 import '../../domain/entities/customer_ledger.dart';
 import '../../domain/entities/payment_method.dart';
 import '../../domain/entities/sales_return.dart';
 import '../../domain/entities/collection_receipt.dart';
-import '../../../customer_visits/customers/domain/models/collection_record_model.dart';
 
 abstract class CustomerAccountRepository {
   Future<CustomerLedger> getLedger({

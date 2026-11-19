@@ -1,7 +1,7 @@
 import 'package:mivet_app/core/errors/app_exception.dart';
+import '../../../customer_visits/domain/models/collection_record_model.dart';
 import '../../data/repositories/customer_account_repository.dart';
 import '../entities/payment_method.dart';
-import '../../../customer_visits/customers/domain/models/collection_record_model.dart';
 
 class RecordCustomerPayment {
   const RecordCustomerPayment(this._repository);

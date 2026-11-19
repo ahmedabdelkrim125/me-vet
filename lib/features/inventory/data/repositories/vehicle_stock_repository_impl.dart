@@ -81,6 +81,22 @@ class VehicleStockRepositoryImpl implements VehicleStockRepository {
   }
 
   @override
+  Future<void> returnToWarehouse({
+    required String vehicleId,
+    required Map<String, int> quantities,
+    String? note,
+  }) {
+    return remoteDataSource.returnToWarehouse(
+      vehicleId: vehicleId,
+      items: [
+        for (final entry in quantities.entries)
+          {'product_id': entry.key, 'quantity': entry.value},
+      ],
+      note: note,
+    );
+  }
+
+  @override
   Future<void> returnToVehicle({
     required String vehicleId,
     required String productId,

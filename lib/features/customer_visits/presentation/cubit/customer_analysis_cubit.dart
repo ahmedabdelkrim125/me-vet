@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../invoices/data/invoices_repository.dart';
+import '../../../invoices/data/invoices_repository.dart';
 import '../../domain/models/customer_detail_model.dart';
 import 'customer_analysis_state.dart';
 

@@ -34,6 +34,21 @@ class PaymentBreakdownRepository {
     return PaymentBreakdownLine.listFromRows(rows as List<dynamic>);
   }
 
+  Future<void> editCollectionAmount({
+    required String collectionId,
+    required double newTotal,
+    required String reason,
+  }) async {
+    await _supabase.rpc(
+      'edit_collection_amount',
+      params: {
+        'p_collection_id': collectionId,
+        'p_new_total': newTotal,
+        'p_reason': reason,
+      },
+    );
+  }
+
   Future<Map<String, String?>> getCollectionSourcesForCustomer(
     String customerId,
   ) async {

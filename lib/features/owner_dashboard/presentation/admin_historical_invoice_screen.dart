@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mivet_app/features/customer_visits/customers/domain/models/customer_model.dart';
 import 'package:mivet_app/features/owner_dashboard/presentation/cubit/historical_invoice_cubit.dart';
 import 'package:mivet_app/features/owner_dashboard/presentation/widgets/historical_invoice/historical_invoice_view.dart';
+import '../../customer_visits/domain/models/customer_model.dart';
 
 class AdminHistoricalInvoiceScreen extends StatelessWidget {
   final CustomerModel customer;

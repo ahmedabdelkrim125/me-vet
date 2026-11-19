@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mivet_app/core/theme/app_color_scheme_extension.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../customer_visits/customers/presentation/screens/customers_screen.dart';
+import '../../customer_visits/customers/presentation/screens/vehicle_stock_screen.dart';
+import '../../customer_visits/presentation/screens/customers_screen.dart';
 import '../../daily_report/presentation/screens/daily_report_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
-import '../../vehicle_stock/presentation/screens/vehicle_stock_screen.dart';
 import 'widgets/app_bottom_nav_bar.dart';
 import 'widgets/app_side_nav_bar.dart';
 import 'widgets/nav_items.dart';

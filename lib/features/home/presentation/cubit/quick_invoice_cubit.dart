@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mivet_app/features/customer_visits/customers/data/customers_repository.dart';
 import 'package:mivet_app/features/invoices/data/invoices_repository.dart';
 import 'package:mivet_app/features/invoices/domain/models/invoice_line_input.dart';
 import 'package:mivet_app/features/customer_account/domain/entities/payment_method.dart';
@@ -13,6 +12,8 @@ import 'package:mivet_app/features/home/presentation/utils/invoice_mappers.dart'
 import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_cubit.dart';
 import 'package:mivet_app/features/inventory/presentation/cubit/vehicle_stock_state.dart';
 import 'package:mivet_app/features/invoices/domain/invoice_pdf_builder.dart';
+
+import '../../../customer_visits/data/customers_repository.dart';
 
 class QuickInvoiceCubit extends Cubit<QuickInvoiceState> {
   static const String _noExtraStockMessage =
