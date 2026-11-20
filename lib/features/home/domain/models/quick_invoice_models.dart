@@ -1,4 +1,3 @@
-
 import '../../../customer_visits/domain/models/customer_model.dart';
 
 class InvoiceCustomerModel {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mivet_app/core/errors/app_toast.dart';
 import 'package:mivet_app/core/theme/app_text_styles.dart';
 import 'package:mivet_app/core/utils/responsive_extension.dart';
-import '../../../../../../../core/theme/app_color_scheme_extension.dart';
+import '../../../../../../core/theme/app_color_scheme_extension.dart';
 import '../../../../data/customers_repository.dart';
 import '../../../../domain/models/customer_model.dart';
 import '../../../../domain/models/customer_status.dart';
